@@ -154,9 +154,58 @@ export const CONTEXT_SNAPSHOT: Record<string, LocationContext> = {
       "message": null
     },
     "yieldHistory": {
-      "status": "not_configured",
-      "data": null,
-      "message": "County yields need a free USDA NASS API key. Set SOILSIGNAL_NASS_API_KEY on the backend."
+      "status": "ok",
+      "data": {
+        "county": {
+          "name": "Tippecanoe County",
+          "stateCode": "IN",
+          "stateName": "Indiana",
+          "fips": "18157"
+        },
+        "years": [
+          {
+            "year": 2017,
+            "yield": 180.3
+          },
+          {
+            "year": 2018,
+            "yield": 201.1
+          },
+          {
+            "year": 2019,
+            "yield": 180.4
+          },
+          {
+            "year": 2020,
+            "yield": 207.1
+          },
+          {
+            "year": 2021,
+            "yield": 207.2
+          },
+          {
+            "year": 2022,
+            "yield": 188.6
+          },
+          {
+            "year": 2023,
+            "yield": 222.4
+          },
+          {
+            "year": 2024,
+            "yield": 220.0
+          },
+          {
+            "year": 2025,
+            "yield": 233.4
+          }
+        ],
+        "fiveYearAverage": 214.3,
+        "unit": "bu/ac",
+        "source": "USDA NASS Quick Stats",
+        "retrievedAt": "2026-09-24T05:41:02+00:00"
+      },
+      "message": null
     }
   },
   "purdue-221": {
@@ -305,9 +354,58 @@ export const CONTEXT_SNAPSHOT: Record<string, LocationContext> = {
       "message": null
     },
     "yieldHistory": {
-      "status": "not_configured",
-      "data": null,
-      "message": "County yields need a free USDA NASS API key. Set SOILSIGNAL_NASS_API_KEY on the backend."
+      "status": "ok",
+      "data": {
+        "county": {
+          "name": "Tippecanoe County",
+          "stateCode": "IN",
+          "stateName": "Indiana",
+          "fips": "18157"
+        },
+        "years": [
+          {
+            "year": 2017,
+            "yield": 180.3
+          },
+          {
+            "year": 2018,
+            "yield": 201.1
+          },
+          {
+            "year": 2019,
+            "yield": 180.4
+          },
+          {
+            "year": 2020,
+            "yield": 207.1
+          },
+          {
+            "year": 2021,
+            "yield": 207.2
+          },
+          {
+            "year": 2022,
+            "yield": 188.6
+          },
+          {
+            "year": 2023,
+            "yield": 222.4
+          },
+          {
+            "year": 2024,
+            "yield": 220.0
+          },
+          {
+            "year": 2025,
+            "yield": 233.4
+          }
+        ],
+        "fiveYearAverage": 214.3,
+        "unit": "bu/ac",
+        "source": "USDA NASS Quick Stats",
+        "retrievedAt": "2026-09-24T05:41:02+00:00"
+      },
+      "message": null
     }
   },
   "illinois-18": {
@@ -396,9 +494,54 @@ export const CONTEXT_SNAPSHOT: Record<string, LocationContext> = {
       "message": null
     },
     "yieldHistory": {
-      "status": "not_configured",
-      "data": null,
-      "message": "County yields need a free USDA NASS API key. Set SOILSIGNAL_NASS_API_KEY on the backend."
+      "status": "ok",
+      "data": {
+        "county": {
+          "name": "Champaign County",
+          "stateCode": "IL",
+          "stateName": "Illinois",
+          "fips": "17019"
+        },
+        "years": [
+          {
+            "year": 2016,
+            "yield": 210.2
+          },
+          {
+            "year": 2017,
+            "yield": 206.8
+          },
+          {
+            "year": 2018,
+            "yield": 221.3
+          },
+          {
+            "year": 2019,
+            "yield": 180.8
+          },
+          {
+            "year": 2020,
+            "yield": 192.7
+          },
+          {
+            "year": 2021,
+            "yield": 222.4
+          },
+          {
+            "year": 2022,
+            "yield": 219.1
+          },
+          {
+            "year": 2023,
+            "yield": 218.2
+          }
+        ],
+        "fiveYearAverage": 206.6,
+        "unit": "bu/ac",
+        "source": "USDA NASS Quick Stats",
+        "retrievedAt": "2026-09-24T05:41:04+00:00"
+      },
+      "message": null
     }
   },
   "nebraska-42": {
@@ -487,9 +630,58 @@ export const CONTEXT_SNAPSHOT: Record<string, LocationContext> = {
       "message": null
     },
     "yieldHistory": {
-      "status": "not_configured",
-      "data": null,
-      "message": "County yields need a free USDA NASS API key. Set SOILSIGNAL_NASS_API_KEY on the backend."
+      "status": "ok",
+      "data": {
+        "county": {
+          "name": "Hall County",
+          "stateCode": "NE",
+          "stateName": "Nebraska",
+          "fips": "31079"
+        },
+        "years": [
+          {
+            "year": 2016,
+            "yield": 186.4
+          },
+          {
+            "year": 2017,
+            "yield": 199.8
+          },
+          {
+            "year": 2018,
+            "yield": 217.5
+          },
+          {
+            "year": 2019,
+            "yield": 180.4
+          },
+          {
+            "year": 2020,
+            "yield": 201.8
+          },
+          {
+            "year": 2022,
+            "yield": 188.2
+          },
+          {
+            "year": 2023,
+            "yield": 214.9
+          },
+          {
+            "year": 2024,
+            "yield": 214.7
+          },
+          {
+            "year": 2025,
+            "yield": 210.4
+          }
+        ],
+        "fiveYearAverage": 206.0,
+        "unit": "bu/ac",
+        "source": "USDA NASS Quick Stats",
+        "retrievedAt": "2026-09-24T05:41:06+00:00"
+      },
+      "message": null
     }
   },
   "iowa-07": {
@@ -578,9 +770,62 @@ export const CONTEXT_SNAPSHOT: Record<string, LocationContext> = {
       "message": null
     },
     "yieldHistory": {
-      "status": "not_configured",
-      "data": null,
-      "message": "County yields need a free USDA NASS API key. Set SOILSIGNAL_NASS_API_KEY on the backend."
+      "status": "ok",
+      "data": {
+        "county": {
+          "name": "Story County",
+          "stateCode": "IA",
+          "stateName": "Iowa",
+          "fips": "19169"
+        },
+        "years": [
+          {
+            "year": 2016,
+            "yield": 211.9
+          },
+          {
+            "year": 2017,
+            "yield": 200.3
+          },
+          {
+            "year": 2018,
+            "yield": 192.3
+          },
+          {
+            "year": 2019,
+            "yield": 189.3
+          },
+          {
+            "year": 2020,
+            "yield": 148.4
+          },
+          {
+            "year": 2021,
+            "yield": 201.2
+          },
+          {
+            "year": 2022,
+            "yield": 207.1
+          },
+          {
+            "year": 2023,
+            "yield": 211.4
+          },
+          {
+            "year": 2024,
+            "yield": 215.5
+          },
+          {
+            "year": 2025,
+            "yield": 204.0
+          }
+        ],
+        "fiveYearAverage": 207.8,
+        "unit": "bu/ac",
+        "source": "USDA NASS Quick Stats",
+        "retrievedAt": "2026-09-24T05:41:10+00:00"
+      },
+      "message": null
     }
   }
 };

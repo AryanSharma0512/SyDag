@@ -413,3 +413,11 @@ def test_all_validates_its_query(api, query):
 def test_blank_nass_key_counts_as_not_configured(monkeypatch):
     monkeypatch.setenv("SOILSIGNAL_NASS_API_KEY", "  ")
     assert Settings(_env_file=None).nass_api_key is None
+
+
+def test_yield_history_from_recorded_nass(tmp_path):
+    gov = FakeGov(nass_yields=load("nass_yields_recorded"))
+    history, _ = make_service(tmp_path, gov, nass_key="test-key").yield_history(LAT, LON, 2025)
+    assert [y.year for y in history.years] == list(range(2017, 2026))
+    assert (history.years[-1].yield_, history.years[-2].yield_) == (233.4, 220.0)  # "220" parses
+    assert history.five_year_average == 214.3

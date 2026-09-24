@@ -38,7 +38,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 9 | Switch the live site off mock data | Build frontend with `VITE_DEMO_MODE=false` (compose build arg) | Ready (needs `/api` proxy rule live) |
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
-| 12 | County yield history | Set `SOILSIGNAL_NASS_API_KEY` (free key: https://quickstats.nass.usda.gov/api) and restart the backend | Ready (needs a key) |
+| 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
 
 ---
 
@@ -124,7 +124,7 @@ or one failed to load (forecast endpoints keep working).
 | `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field |
 | `services/apiClient.ts` | `apiGet()` JSON client |
 | `config/appConfig.ts` | Branding, event, team, `demoMode`, `apiBaseUrl`, defaults |
-| `mock/fieldsData.ts` | 5 demo fields and `DATA_SOURCES` (source of `backend/data/mock/fields.json`). Coordinates are real farmland whose SSURGO soil matches each field |
+| `mock/fieldsData.ts` | 5 demo fields and `DATA_SOURCES` (source of `backend/data/mock/fields.json`). Coordinates are real farmland whose SSURGO soil matches each field; yields are scaled to each county's real NASS five-year average |
 | `mock/contextSnapshot.ts` | Generated snapshot of the public data for the demo fields, used in demo mode |
 | `App.tsx` | Page shell: route transitions, presentation (`?presentation=true`, `F`) and debug (`?debug=true`) flags |
 | `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/methodology`, `/about` |
