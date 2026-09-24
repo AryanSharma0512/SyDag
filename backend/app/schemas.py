@@ -77,7 +77,7 @@ class ModelExplanation(ApiModel):
 class FeatureImportanceItem(ApiModel):
     name: str
     weight: float  # percentage 0-100
-    category: Literal["Vegetation", "Weather", "Soil", "Temporal"]
+    category: Literal["Vegetation", "Weather", "Soil", "Temporal", "Management", "History"]
     direction: Influence
 
 

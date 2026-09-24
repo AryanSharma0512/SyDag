@@ -17,7 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-FeatureCategory = Literal["Vegetation", "Weather", "Soil", "Temporal"]
+FeatureCategory = Literal["Vegetation", "Weather", "Soil", "Temporal", "Management", "History"]
 Direction = Literal["positive", "negative", "neutral"]
 
 MODEL_FILE = "model.joblib"
@@ -40,6 +40,15 @@ class PredictionInterval(BaseModel):
     upper_offset: float = Field(ge=0)
 
 
+class HoldoutEvaluation(BaseModel):
+    """Accuracy on data the model never saw during training, tuning or interval fitting."""
+
+    group: str  # e.g. "site: Crawfordsville"
+    metrics: Metrics
+    interval_coverage: float = Field(ge=0, le=1)  # share of held-out yields inside the interval
+    n: int
+
+
 class ModelMetadata(BaseModel):
     model_id: str
     algorithm: str
@@ -53,6 +62,8 @@ class ModelMetadata(BaseModel):
     # date. None means the model uses the full season.
     as_of: str | None = None
     interval: PredictionInterval
+    dataset: str | None = None  # e.g. "shrestha2024 (public practice data)"
+    holdout: HoldoutEvaluation | None = None
 
     @field_validator("model_id")
     @classmethod
@@ -81,6 +92,15 @@ class FeatureSpec(BaseModel):
     # If omitted, the estimator's feature_importances_ is used when available.
     importance: float | None = Field(default=None, ge=0)
     direction: Direction = "neutral"
+    # Typical training value (median, or most common category). Enables per-prediction
+    # drivers: how far the forecast moves if this feature alone were typical.
+    typical: float | str | None = None
+    # Central 98% of training values; inputs outside it lower the confidence score.
+    train_low: float | None = None
+    train_high: float | None = None
+    # Driver phrases for values above / below typical, e.g. "Rainfall deficit, last 30 days".
+    high_label: str | None = None
+    low_label: str | None = None
 
 
 class FeatureSchema(BaseModel):

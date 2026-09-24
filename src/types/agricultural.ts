@@ -57,7 +57,7 @@ export interface ModelExplanation {
 export interface FeatureImportanceItem {
   name: string;
   weight: number; // percentage (0 - 100)
-  category: 'Vegetation' | 'Weather' | 'Soil' | 'Temporal';
+  category: 'Vegetation' | 'Weather' | 'Soil' | 'Temporal' | 'Management' | 'History';
   direction: 'positive' | 'negative' | 'neutral';
 }
 

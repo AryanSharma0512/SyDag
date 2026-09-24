@@ -56,8 +56,8 @@ Each trained model is a directory `artifacts/<model_id>/`:
 | File | Contents |
 | --- | --- |
 | `model.joblib` | fitted estimator with `.predict(DataFrame)` (sklearn API; pipelines are fine) |
-| `metadata.json` | `ModelMetadata`: id, algorithm, target, unit, metrics, validation, `as_of` cutoff (`"MM-DD"`), interval offsets |
-| `feature_schema.json` | `FeatureSchema`: ordered features with dtype, nullable, label, category, optional importance and direction |
+| `metadata.json` | `ModelMetadata`: id, algorithm, target, unit, CV metrics, validation, `as_of` cutoff (`"MM-DD"`), interval offsets, optional `dataset` and `holdout` (accuracy on data never used in training) |
+| `feature_schema.json` | `FeatureSchema`: ordered features with dtype, nullable, label, category, importance, direction, and optionally `typical`, `train_low`/`train_high`, `high_label`/`low_label` |
 
 The contract is defined in `app/model/contract.py`. Export with
 `app.model.export.save_artifact(estimator, metadata, schema, root)`: it refuses to
@@ -65,15 +65,27 @@ write an artifact the API couldn't load (for example, feature count or column
 order not matching what the estimator was fitted on).
 
 - **Intervals:** `interval.lower_offset`/`upper_offset` are added to the point
-  prediction. Use validation residual quantiles (5th/95th percentile for 90%).
-- **Confidence** is derived from relative interval width: `1 - (upper - lower) / yield`.
+  prediction. The ML pipeline sets them from out-of-fold residual quantiles on
+  unseen sites (5th/95th percentile for 90%).
+- **Confidence** = interval precision × in-domain share, as a 0–100 display score
+  (not a probability). Interval precision is `1 - (upper - lower) / yield`. In-domain
+  share is the fraction of numeric inputs inside `[train_low, train_high]`, the
+  central 98% of training values; an input outside that range means the model is
+  extrapolating. HIGH ≥ 80, MODERATE ≥ 60, otherwise LOW.
+- **Drivers:** when the schema has `typical` values, each prediction gets its own
+  drivers (`app/model/explain.py`). A feature's contribution is how far the forecast
+  moves if that feature alone were typical. It is shown with `high_label` or
+  `low_label` depending on the field's value, e.g. "Rainfall deficit, last 30 days",
+  and ranked by share. These are associations the model learned, not causes. Without
+  `typical`, drivers fall back to global `importance` (or `feature_importances_`).
 - **Progressive forecasts:** export one model per season cutoff (`as_of`), each
   trained only on features observable by that date.
-- **Drivers** come from `importance` in the schema if every feature has one,
-  otherwise the estimator's `feature_importances_`.
+- **Features:** `app/features/` turns raw field inputs (images, daily weather, soil,
+  management, county history) into model features as of a date. The ML pipeline in
+  `ml/` trains on exactly this code. See `ml/README.md`.
 
-`scripts/make_dummy_model.py` is a worked example: it trains three
-cutoff models on synthetic data and exports them.
+`scripts/make_dummy_model.py` is a minimal worked example on synthetic data;
+`ml/soilsignal_ml/export/export_to_backend.py` is the real one.
 
 ```bash
 uv run python -m scripts.make_dummy_model   # writes artifacts/dummy-06-15 etc.
@@ -82,7 +94,8 @@ uv run python -m scripts.make_dummy_model   # writes artifacts/dummy-06-15 etc.
 **Versions matter.** A joblib file only loads reliably with the same library
 versions it was trained with. Train with the versions pinned in `uv.lock`
 (scikit-learn, numpy, pandas), and add any new model library (LightGBM, XGBoost,
-CatBoost) to this project before exporting with it.
+CatBoost) to this project before exporting with it. Training-only libraries live in
+the `ml` dependency group (`uv sync --group ml`), which Docker does not install.
 
 **Only load artifacts the team produced.** joblib files are pickles and run code
 when loaded.

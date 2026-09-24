@@ -15,8 +15,13 @@ Browser ──► sydag.aboutsharma.com (Cloudflare → Aryan's reverse proxy)
               └── /api/*  → sydag_backend   (FastAPI, port 8000)
                               ├── forecasts  ← ForecastProvider  (mock data today)
                               ├── predictions ← ModelRegistry    (backend/artifacts/)
+                              │                   features ← backend/app/features (build_features)
                               └── /api/context/* ← USDA SSURGO, NOAA NCEI, USDA NASS
                                                    (fetched by the backend, cached in backend/cache/)
+
+ml/ (offline) ── dataset adapter ─► canonical tables ─► build_features (same backend code)
+                 ─► leave-one-site-out screening/tuning ─► held-out site ─► save_artifact()
+                 ─► backend/artifacts/soilsignal-maize-MMDD/
 ```
 
 ---
@@ -27,16 +32,17 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 
 | # | Step | What to run / call / edit | Status |
 |---|------|---------------------------|--------|
-| 1 | Profile the dataset | `ml/` profiler | Not built (ML starter kit) |
-| 2 | Features + leak-free validation + training | `ml/` | Not built (ML starter kit) |
-| 3 | Export each trained model | `save_artifact(estimator, metadata, schema, root)` in `backend/app/model/export.py`. One model per season cutoff (`as_of: "MM-DD"`). Pattern to copy: `backend/scripts/make_dummy_model.py` | Ready |
-| 4 | Add any new model library to the backend | `cd backend && uv add lightgbm` (or xgboost/catboost), commit `uv.lock`, rebuild the image | Ready |
+| 0 | Map the challenge files to the canonical tables | Fill in `HackathonDatasetAdapter` in `ml/soilsignal_ml/ingest/dataset_adapter.py`; set the held-out group and cutoffs in `ml/configs/` | Ready (adapter body to write) |
+| 1 | Ingest, check and profile the dataset | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml ingest`, then `validate`, `profile` (→ `ml/experiments/reports/dataset_profile.md`) | Ready |
+| 2 | Features + leak-free validation + training | `... -m soilsignal_ml train` (feature-set screening, Optuna tuning, leave-one-site-out, held-out site), then `report` (→ `ml/experiments/reports/model_report.md`) | Ready |
+| 3 | Export each trained model | `... -m soilsignal_ml export` (calls `save_artifact()` in `backend/app/model/export.py` for every cutoff config) | Ready |
+| 4 | Add any new model library to the backend | `cd backend && uv add catboost` (or lightgbm/xgboost), commit `uv.lock`, rebuild the image. Training-only libraries go in the `ml` group: `uv add --group ml ...` | Ready |
 | 5 | Test the model locally | `cd backend && uv run uvicorn app.main:app --port 8000`, then `GET /api/models` and `POST /api/predict` | Ready |
 | 6 | Deploy the model | Copy `backend/artifacts/<model_id>/` to the server, then `docker compose -f compose.sydag.yml restart backend`. Check `/api/health` shows `modelsLoaded > 0` | Ready |
 | 7 | Get predictions | `POST /api/predict` with `features` + `asOfDate` | Ready |
 | 8 | Show real forecasts in the dashboard | Model-backed `ForecastProvider` in `backend/app/providers.py`; likely contract changes (see "Contracts") | Not built (needs dataset shape) |
 | 9 | Switch the live site off mock data | Build frontend with `VITE_DEMO_MODE=false` (compose build arg) | Ready (needs `/api` proxy rule live) |
-| 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server | — |
+| 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server (the registry would mix them with real cutoffs) | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
 | 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
 
@@ -55,7 +61,7 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/fields/{id}/weather?snapshotId=` | Frontend `getWeatherContext()` | `WeatherContext` (latest snapshot by default) |
 | GET | `/api/fields/{id}/soil` | Frontend `getSoilContext()` | `SoilContext` |
 | GET | `/api/models` | After deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list |
-| POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence`, `confidenceRating`, `drivers` |
+| POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence` (interval precision × share of inputs inside the training range), `confidenceRating`, `drivers` (this forecast's own drivers when the schema has typical values) |
 | GET | `/api/context/all?lat=&lon=&date=` | Dashboard once per field (`getLocationContext()`), with `date` repeated for every forecast date | `LocationContext`: `county`, and `soil` / `weather` / `yieldHistory` parts, each with its own `status` (`ok`, `unavailable`, `not_configured`) |
 | GET | `/api/context/soil?lat=&lon=` | Soil for one point | `SoilProfile` from USDA NRCS SSURGO |
 | GET | `/api/context/weather?lat=&lon=&date=` | Observed weather as of a date | `ObservedWeather`: nearest NOAA station, rainfall, growing degree days, heat days, dry spells |
@@ -97,21 +103,27 @@ or one failed to load (forecast endpoints keep working).
 | `app/schemas.py` | API response models; **mirror of `src/types/agricultural.ts`** |
 | `app/providers.py` | `ForecastProvider` protocol + `MockForecastProvider`; `get_registry()` loads models |
 | `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
-| `app/model/contract.py` | Model artifact format: `ModelMetadata`, `FeatureSchema` |
-| `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts; `ModelRegistry.for_date()` picks the point-in-time model |
+| `app/model/contract.py` | Model artifact format: `ModelMetadata` (incl. held-out evaluation), `FeatureSchema` (incl. typical values, training ranges, driver phrases) |
+| `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts, confidence; `ModelRegistry.for_date()` picks the point-in-time model |
+| `app/model/explain.py` | Per-forecast drivers: how far the forecast moves if one feature were typical |
 | `app/model/export.py` | `save_artifact()`: the only way the ML side should write models |
+| `app/features/build.py` | `build_features(FieldInputs, as_of)`: the one feature pipeline for training and serving; drops and asserts against anything dated after `as_of` |
+| `app/features/inputs.py` | `FieldInputs`: raw per-field inputs (images, daily weather, soil, management, county yields) |
+| `app/features/vegetation.py`, `weather.py`, `soil.py`, `temporal.py` | Index formulas and in-season summaries; GDD, heat, dry spells, Hargreaves water deficit, stage windows; soil; growth stage |
+| `app/features/thresholds.py` | Agronomic thresholds, each sourced in `ml/research/agronomy_thresholds.md` |
+| `app/features/catalog.py` | Every feature's label, category, ablation group and driver phrases |
 | `app/context_routes.py` | `/api/context/*` endpoints |
 | `app/context/service.py` | Runs the public-data sources in parallel with caching; each fails independently |
 | `app/context/soil.py`, `weather.py`, `yield_history.py`, `geo.py` | One module per source: USDA Soil Data Access, NOAA NCEI, USDA NASS Quick Stats, FCC county lookup |
 | `app/context/cache.py` | Disk cache with per-source lifetimes; serves the last good copy when a source is down |
 | `cache/` | Cached public data (git-ignored; a named Docker volume in production) |
-| `artifacts/<model_id>/` | Deployed models (`model.joblib`, `metadata.json`, `feature_schema.json`); `dummy-*` is git-ignored |
+| `artifacts/<model_id>/` | Deployed models (`model.joblib`, `metadata.json`, `feature_schema.json`). `soilsignal-maize-0531` … `-1015` are the practice-data models, committed so a pull deploys them; `dummy-*` is git-ignored |
 | `data/mock/fields.json` | Mock forecasts, generated from `src/mock/fieldsData.ts` |
 | `scripts/make_dummy_model.py` | Trains 3 synthetic cutoff models; export reference |
 | `scripts/snapshot_context.py` | Fetches public data for every demo field; writes `src/mock/contextSnapshot.ts` and warms the cache |
-| `tests/` | `test_api.py` (endpoints + contract), `test_model.py` (artifacts, predict, point-in-time), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
+| `tests/` | `test_api.py` (endpoints + contract), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
 | `Dockerfile` | Python 3.13 + uv, frozen lockfile, non-root, healthcheck |
-| `pyproject.toml` / `uv.lock` | Pinned deps. **Models must be trained with these versions** |
+| `pyproject.toml` / `uv.lock` | Pinned deps. **Models must be trained with these versions**. Training-only libraries are the `ml` dependency group (not installed in Docker) |
 | `README.md` | Backend details: running, testing, artifact format |
 
 ### Frontend (`src/`)
@@ -145,11 +157,32 @@ or one failed to load (forecast endpoints keep working).
 | `scripts/export-mock-data.ts` | `npm run export:mock` → regenerates `backend/data/mock/fields.json` |
 | `vite.config.ts` | Dev server; proxies `/api` to `localhost:8000` |
 
+### ML pipeline (`ml/`)
+
+Run from `ml/` with `uv run --project ../backend --group ml python -m soilsignal_ml <command>`.
+Details in `ml/README.md`.
+
+| Path | Purpose |
+|------|---------|
+| `soilsignal_ml/__main__.py` | CLI: `ingest`, `context`, `validate`, `profile`, `train`, `report`, `export` |
+| `soilsignal_ml/ingest/` | Dataset adapters (`PublicDatasetAdapter` = Shrestha et al. 2024; `HackathonDatasetAdapter` stub), canonical tables, remote-zip streaming, public context, data checks, profiler |
+| `soilsignal_ml/features/build.py` | Training tables from `backend/app/features` |
+| `soilsignal_ml/validation/splits.py` | Grouped splits (plot, field, site, year) and the held-out site, with overlap checks |
+| `soilsignal_ml/models/` | Mean, Ridge, Random Forest, HistGradientBoosting, CatBoost; `train.py` runs screening, tuning, selection, held-out scoring |
+| `soilsignal_ml/evaluation/` | Metrics, intervals, drivers, sensitivity checks, report |
+| `soilsignal_ml/export/export_to_backend.py` | Writes `backend/artifacts/` with `save_artifact()` |
+| `configs/` | `project.yaml` (held-out site, seed, trials) and one file per cutoff (`may` … `full`) |
+| `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results) |
+| `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report) |
+| `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
+| `tests/` | Data checks, leakage, splits, models + artifact round trip, research ↔ code |
+| `data/` | Git-ignored datasets (`processed/` canonical tables, `interim/` feature tables) |
+
 ### Not built yet
 
 | Path | Purpose |
 |------|---------|
-| `ml/` | ML starter kit: profiler, splits, baselines, features, experiment log |
+| `backend/app/providers.py` | Model-backed `ForecastProvider` so the dashboard's forecasts come from the models (next PR) |
 
 ---
 
@@ -161,8 +194,11 @@ or one failed to load (forecast endpoints keep working).
 | `src/mock/fieldsData.ts` | Run `npm run export:mock` | Same test |
 | A field's coordinates or dates | Run `cd backend && uv run python -m scripts.snapshot_context` | `npm run lint` type-checks the snapshot |
 | Context types in `src/types/agricultural.ts` | `backend/app/schemas.py` (location context section) | `test_context.py` |
-| Model artifact format | `backend/app/model/contract.py` only | `test_model.py` |
-| ML library versions | `backend/uv.lock` (train with the same versions) | Artifact fails to load |
+| Model artifact format | `backend/app/model/contract.py` only | `test_model.py`, `ml/tests/test_models.py` |
+| ML library versions | `backend/uv.lock` (train with the same versions; the ML pipeline runs in the backend's environment) | Artifact fails to load |
+| A threshold in `backend/app/features/thresholds.py` | `ml/research/agronomy_thresholds.yaml` and `.md` | `ml/tests/test_research.py` |
+| A new feature in `backend/app/features/` | Its entry in `app/features/catalog.py`; retrain and re-export | `test_every_built_feature_is_described_in_the_catalog` |
+| Driver categories (`FeatureImportanceItem.category`) | `src/types/agricultural.ts`, `backend/app/schemas.py`, `app/model/contract.py` | — |
 | An endpoint | `src/services/*.ts`, this file | — |
 
 ---
@@ -189,5 +225,6 @@ or one failed to load (forecast endpoints keep working).
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
 VITE_DEMO_MODE=false npm run dev          # dashboard against the local API
 cd backend && uv run pytest               # backend tests
+cd ml && uv run --project ../backend --group ml pytest   # ML tests
 npm run lint && npm run build             # frontend checks
 ```

@@ -154,6 +154,6 @@ def predict(req: PredictRequest, registry: Registry) -> PredictResponse:
             FeatureImportanceItem(
                 name=d.label, weight=d.weight, category=d.category, direction=d.direction
             )
-            for d in artifact.drivers
+            for d in pred.drivers
         ],
     )

@@ -1,0 +1,5 @@
+# Forecast made on this date each season: the model sees only data available by then.
+name: june
+label: Through June
+as_of: "06-30"
+model_id: soilsignal-maize-0630

@@ -40,8 +40,9 @@ def fetch_yield_history(
             "reference_period_desc": "YEAR",
             "state_alpha": county.state_code,
             "county_ansi": county_code,
-            "year__GE": through_year - YEARS_SHOWN + 1,
-            "year__LE": through_year,
+            # Quick Stats honours only one comparison operator per field (year__GE with
+            # year__LE silently drops the __LE), so the years are listed explicitly.
+            "year": [str(y) for y in range(through_year - YEARS_SHOWN + 1, through_year + 1)],
             "format": "JSON",
         },
     )
@@ -51,7 +52,7 @@ def fetch_yield_history(
             continue  # skip "other (combined) counties" rows
         value = _bushels(row.get("Value"))
         year = int(row["year"]) if str(row.get("year", "")).isdigit() else None
-        if value is not None and year is not None:
+        if value is not None and year is not None and year <= through_year:
             by_year.setdefault(year, value)
     if not by_year:
         raise NoData(f"NASS has no published corn yields for {county.name}")

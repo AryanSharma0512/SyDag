@@ -1,0 +1,14 @@
+line-length = 100
+target-version = "py313"
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[lint.isort]
+# soilsignal_ml must import before app: its __init__ puts backend/ on sys.path.
+known-first-party = ["soilsignal_ml", "app"]
+
+[lint.per-file-ignores]
+# Report generators are mostly prose in string literals.
+"soilsignal_ml/evaluation/reports.py" = ["E501"]
+"soilsignal_ml/ingest/profile.py" = ["E501"]

@@ -244,7 +244,22 @@ def test_yield_history_parsing_and_request(tmp_path, gov):
     assert history.county.name == "Tippecanoe County"
     params = next(r for r in gov.requests if r.url.host == "quickstats.nass.usda.gov").url.params
     assert (params["state_alpha"], params["county_ansi"]) == ("IN", "157")
-    assert (params["year__GE"], params["year__LE"]) == ("2016", "2025")
+    # Quick Stats ignores year__LE when year__GE is also sent, so the years are listed.
+    assert params.get_list("year") == [str(y) for y in range(2016, 2026)]
+
+
+def test_yield_history_drops_years_after_through_year(tmp_path):
+    gov = FakeGov(
+        nass_yields={
+            "data": [
+                {"year": 2021, "Value": "180.0", "county_ansi": "157"},
+                {"year": 2022, "Value": "190.0", "county_ansi": "157"},
+                {"year": 2023, "Value": "200.0", "county_ansi": "157"},
+            ]
+        }
+    )
+    history, _ = make_service(tmp_path, gov, nass_key="test-key").yield_history(LAT, LON, 2022)
+    assert [y.year for y in history.years] == [2021, 2022]
 
 
 @pytest.mark.parametrize(
