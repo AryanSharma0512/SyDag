@@ -14,6 +14,7 @@ from typing import Protocol
 from pydantic import TypeAdapter
 
 from app.config import get_settings
+from app.model.artifact import ModelRegistry
 from app.schemas import FieldForecast, FieldMeta
 
 
@@ -45,3 +46,10 @@ class MockForecastProvider:
 @lru_cache
 def get_provider() -> ForecastProvider:
     return MockForecastProvider(get_settings().mock_data_path)
+
+
+@lru_cache
+def get_registry() -> ModelRegistry:
+    """Loaded once per process; restart the API after adding or replacing artifacts.
+    Raises ArtifactError if any artifact is broken (not cached, so the next call retries)."""
+    return ModelRegistry.load(get_settings().model_dir)
