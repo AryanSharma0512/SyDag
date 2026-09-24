@@ -1,0 +1,37 @@
+name: sydag
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.sydag
+
+    container_name: sydag_frontend
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8188:80"
+
+    cpus: 0.25
+    mem_limit: 256m
+    mem_reservation: 64m
+    pids_limit: 64
+
+    networks:
+      - sydag_internal
+      - lostnfound_network
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  sydag_internal:
+    name: sydag_internal
+    driver: bridge
+
+  lostnfound_network:
+    external: true
+    name: lostnfound_network
