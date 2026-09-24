@@ -14,7 +14,7 @@ It is being developed for the SyDAg26 IoT4Ag Hackathon at Purdue University.
 
 ## Current prototype
 
-This repository is the front end. It runs entirely on local demo data and needs no API keys or external services.
+This repository holds the front end and the backend API (`backend/`). By default the front end runs entirely on local demo data and needs no API keys or external services.
 
 | Route | What it shows |
 | --- | --- |
@@ -34,14 +34,14 @@ Motion respects `prefers-reduced-motion`: entrance sequences render their final 
 ## Architecture
 
 ```
-Frontend (this repo, React + Vite)
+Frontend (React + Vite)
    ↓  normalized responses
-Backend API (planned)
+Backend API (backend/, FastAPI): serves forecasts and model predictions
    ↓
 ML and context services (planned)
 ```
 
-Components never fetch weather, soil, satellite or model data directly. They call the functions in `src/services/`, which return the typed shapes in `src/types/`. Today those services resolve demo data from `src/mock/`; later they will call the backend API without any component changes.
+Components never fetch weather, soil, satellite or model data directly. They call the functions in `src/services/`, which return the typed shapes in `src/types/`. In demo mode (the default) those services resolve demo data from `src/mock/`; built with `VITE_DEMO_MODE=false`, they call the backend API instead, with no component changes. The backend's response models (`backend/app/schemas.py`) mirror `src/types/agricultural.ts`, and a backend test fails if the two drift apart.
 
 Stack: React 19, TypeScript, Vite, Tailwind CSS 4, and Motion. Charts, the logo and all illustrations are hand-built SVG. Inter and Geist Mono are self-hosted through Fontsource, so the site makes no third-party requests.
 
@@ -55,6 +55,17 @@ npm run dev      # http://localhost:3000
 npm run lint     # type-check with tsc
 ```
 
+npm is the package manager for production: the Docker build runs `npm ci` against `package-lock.json`. After changing `src/mock/fieldsData.ts`, run `npm run export:mock` to refresh the backend's copy of the demo data.
+
+To run the dashboard against the local API (needs [uv](https://docs.astral.sh/uv/)):
+
+```bash
+cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
+VITE_DEMO_MODE=false npm run dev    # Vite forwards /api to localhost:8000
+```
+
+See `backend/README.md` for the API, tests and model artifacts, and `STRUCTURE.md` for the full repository map.
+
 ## Production build
 
 ```bash
@@ -62,7 +73,7 @@ npm run build    # outputs static files to dist/
 npm run preview  # serve the production build locally
 ```
 
-Production runs as static files behind Nginx (`Dockerfile.sydag`, `nginx.sydag.conf`, `compose.sydag.yml`) at [sydag.aboutsharma.com](https://sydag.aboutsharma.com). Nginx falls back to `index.html`, so `/`, `/dashboard`, `/methodology` and `/about` all load directly.
+Production runs at [sydag.aboutsharma.com](https://sydag.aboutsharma.com) as two containers from `compose.sydag.yml`: the front end as static files behind Nginx (`Dockerfile.sydag`, `nginx.sydag.conf`) and the API (`backend/Dockerfile`), with the reverse proxy sending `/api/*` to the API. Nginx falls back to `index.html`, so `/`, `/dashboard`, `/methodology` and `/about` all load directly.
 
 ```bash
 docker compose -f compose.sydag.yml up -d --build
@@ -87,6 +98,8 @@ src/
 ├── utils/              Chart geometry, motion constants, formatting, hooks, routing
 └── App.tsx             Routes, presentation and debug flags
 public/                 Favicon, touch icon and social preview image
+backend/                FastAPI service: forecasts, model predictions, tests
+scripts/                export-mock-data.ts (npm run export:mock)
 ```
 
 ## Data strategy
@@ -101,7 +114,7 @@ The competition dataset is the primary input. External sources are listed as can
 | USDA NASS | Historical yield | Candidate |
 | Sentinel-2 | Spatial context | Candidate |
 
-All values in the interface are demo values until the challenge dataset and backend are connected. The spatial view is labeled as an illustrative demo layer.
+All values in the interface are demo values until the challenge dataset and a trained model are connected. The spatial view is labeled as an illustrative demo layer.
 
 ## Team
 

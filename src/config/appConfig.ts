@@ -10,7 +10,9 @@ export const APP_CONFIG = {
     'Progressive crop yield forecasting powered by field observations, environmental context, and interpretable models.',
   version: '1.0.0-hackathon',
   datasetLabel: 'Demo Data',
-  demoMode: true,
+  // Build with VITE_DEMO_MODE=false to fetch from the SoilSignal API instead of src/mock.
+  demoMode: import.meta.env.VITE_DEMO_MODE !== 'false',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
   defaultFieldId: 'purdue-104',
   defaultDateIndex: 4,
   seasonYear: 2026,

@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.sydag
+      args:
+        # Flip to "false" once the proxy routes /api to sydag_backend.
+        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
 
     container_name: sydag_frontend
     restart: unless-stopped
@@ -16,6 +19,37 @@ services:
     mem_limit: 256m
     mem_reservation: 64m
     pids_limit: 64
+
+    networks:
+      - sydag_internal
+      - lostnfound_network
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: sydag_backend
+    restart: unless-stopped
+
+    # Model artifacts live outside the image: drop a new model into
+    # backend/artifacts/<model_id>/ and `docker compose restart backend`.
+    volumes:
+      - ./backend/artifacts:/app/artifacts:ro
+
+    ports:
+      - "127.0.0.1:8189:8000"
+
+    cpus: 1.0
+    mem_limit: 1g
+    mem_reservation: 256m
+    pids_limit: 256  # numeric libraries spawn a thread per core
 
     networks:
       - sydag_internal
