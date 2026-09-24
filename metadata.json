@@ -1,0 +1,6 @@
+{
+  "name": "YieldLens",
+  "description": "Understand where yield is heading, how confident the forecast is, and what is influencing it.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
