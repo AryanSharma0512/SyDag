@@ -1,4 +1,4 @@
-# YieldLens: Project Structure & Data-Day Map
+# SoilSignal: Project Structure & Data-Day Map
 
 What exists, where it lives, and what to run or call once the challenge dataset
 arrives. **Keep this file updated in the same PR as any structural change.**
@@ -32,7 +32,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 5 | Test the model locally | `cd backend && uv run uvicorn app.main:app --port 8000`, then `GET /api/models` and `POST /api/predict` | Ready |
 | 6 | Deploy the model | Copy `backend/artifacts/<model_id>/` to the server, then `docker compose -f compose.sydag.yml restart backend`. Check `/api/health` shows `modelsLoaded > 0` | Ready |
 | 7 | Get predictions | `POST /api/predict` with `features` + `asOfDate` | Ready |
-| 8 | Show real forecasts in the dashboard | Model-backed `ForecastProvider` in `backend/app/providers.py`; likely contract changes (see "Contracts"); `DashboardView` field list via `getFields()` | Not built (needs dataset shape) |
+| 8 | Show real forecasts in the dashboard | Model-backed `ForecastProvider` in `backend/app/providers.py`; likely contract changes (see "Contracts") | Not built (needs dataset shape) |
 | 9 | Switch the live site off mock data | Build frontend with `VITE_DEMO_MODE=false` (compose build arg) | Ready (needs `/api` proxy rule live) |
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server | — |
 
@@ -53,6 +53,9 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/models` | After deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list |
 | POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence`, `confidenceRating`, `drivers` |
 
+Data provenance (`getDataSources()` in `src/services/sources.ts`) has no endpoint yet: it
+always returns the list in `src/mock/fieldsData.ts`, in both modes.
+
 Errors: `404` unknown field/model/snapshot, or no model valid by `asOfDate`;
 `422` bad prediction input (lists every problem); `503` no model artifacts loaded
 or one failed to load (forecast endpoints keep working).
@@ -70,7 +73,9 @@ or one failed to load (forecast endpoints keep working).
 | `nginx.sydag.conf` | Frontend nginx: SPA fallback, asset caching |
 | `.dockerignore` | Keeps `node_modules`, `dist`, env files, `backend/` out of the frontend image |
 | `.env.example` | Frontend env vars (see "Configuration") |
-| `package.json` / `package-lock.json` | Frontend deps (npm is the package manager; `bun.lock` is stale) |
+| `package.json` / `package-lock.json` | Frontend deps. npm is the production package manager (Docker runs `npm ci`) |
+| `bun.lock` | Also committed for Bun users; refresh with `bun install` after dependency changes |
+| `README.md` | Product overview, routes, local development |
 
 ### Backend (`backend/`)
 
@@ -80,7 +85,7 @@ or one failed to load (forecast endpoints keep working).
 | `app/routes.py` | All `/api` endpoints |
 | `app/schemas.py` | API response models; **mirror of `src/types/agricultural.ts`** |
 | `app/providers.py` | `ForecastProvider` protocol + `MockForecastProvider`; `get_registry()` loads models |
-| `app/config.py` | Settings (`YIELDLENS_*` env vars) |
+| `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
 | `app/model/contract.py` | Model artifact format: `ModelMetadata`, `FeatureSchema` |
 | `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts; `ModelRegistry.for_date()` picks the point-in-time model |
 | `app/model/export.py` | `save_artifact()`: the only way the ML side should write models |
@@ -97,15 +102,22 @@ or one failed to load (forecast endpoints keep working).
 | Path | Purpose |
 |------|---------|
 | `types/agricultural.ts` | Frontend data contract (`FieldForecast` and friends) |
-| `services/*.ts` | The only code that fetches data: mock when demo mode is on, `/api` otherwise |
+| `services/*.ts` | The only code that fetches data: demo data in demo mode, `/api` otherwise |
+| `services/sources.ts` | Data provenance list (demo data in both modes; no endpoint yet) |
 | `services/apiClient.ts` | `apiGet()` JSON client |
-| `config/appConfig.ts` | Branding, `demoMode`, `apiBaseUrl`, defaults |
-| `mock/fieldsData.ts` | 5 mock fields (source of `backend/data/mock/fields.json`) |
-| `components/dashboard/DashboardView.tsx` | Dashboard state: selected field, active snapshot, shortcuts |
-| `components/dashboard/*` | One component per dashboard section |
-| `components/landing/`, `components/about/`, `components/common/` | Landing, methodology, nav/skeletons |
-| `utils/useSmoothNumber.ts` | Number animation (**known bug**: freezes mid-transition) |
-| `App.tsx` | Client-side routing (`/`, `/dashboard`, `/about`), presentation mode |
+| `config/appConfig.ts` | Branding, event, team, `demoMode`, `apiBaseUrl`, defaults |
+| `mock/fieldsData.ts` | 5 demo fields and `DATA_SOURCES` (source of `backend/data/mock/fields.json`) |
+| `App.tsx` | Page shell: route transitions, presentation (`?presentation=true`, `F`) and debug (`?debug=true`) flags |
+| `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/methodology`, `/about` |
+| `components/dashboard/DashboardView.tsx` | Dashboard state: fields, selected field, active date, field-switch transition, shortcuts |
+| `components/dashboard/*` | One component per dashboard section; hand-built SVG charts |
+| `components/overview/`, `components/methodology/`, `components/about/` | The other three pages |
+| `components/brand/` | SoilSignal mark, lockup and animated logo |
+| `components/common/` | Navigation, footer, page transitions, animated numbers, shared controls |
+| `components/debug/DebugPanel.tsx` | Scenario switcher and simulated loading/error states (`?debug=true`) |
+| `utils/` | Chart geometry, motion timings, palette, formatting, hooks |
+
+`public/` holds the favicon, touch icon and social preview image.
 
 ### Tooling
 
@@ -141,8 +153,8 @@ or one failed to load (forecast endpoints keep working).
 | `VITE_DEMO_MODE` | Frontend build (compose arg) | `true` | `false` = fetch from `/api` instead of mocks |
 | `VITE_API_BASE_URL` | Frontend build | `/api` | API location |
 | `API_PROXY_TARGET` | Vite dev server | `http://localhost:8000` | Where `/api` goes in local dev |
-| `YIELDLENS_MODEL_DIR` | Backend | `backend/artifacts` | Where models are loaded from |
-| `YIELDLENS_MOCK_DATA_PATH` | Backend | `backend/data/mock/fields.json` | Mock forecast source |
+| `SOILSIGNAL_MODEL_DIR` | Backend | `backend/artifacts` | Where models are loaded from |
+| `SOILSIGNAL_MOCK_DATA_PATH` | Backend | `backend/data/mock/fields.json` | Mock forecast source |
 
 ---
 

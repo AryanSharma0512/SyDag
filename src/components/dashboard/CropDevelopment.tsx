@@ -1,270 +1,346 @@
-import React, { useState } from 'react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ReferenceLine,
-  ReferenceDot,
-  CartesianGrid,
-} from 'recharts';
-import { VegetationObservation, EventMarker } from '../../types/agricultural';
-import { Info, CloudRain, Sun, Flame, Sparkles } from 'lucide-react';
+import { useId, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { CloudRain, Sprout, Sun, Thermometer, Tractor, type LucideIcon } from 'lucide-react';
+import type { EventMarker, VegetationObservation } from '../../types/agricultural';
+import { monotonePath, nearestIndex, scaleLinear, toTime } from '../../utils/chart';
+import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
+import { useElementWidth, useIsMobile } from '../../utils/hooks';
+import { PALETTE as C } from '../../utils/palette';
+import { SegmentedControl } from '../common/SegmentedControl';
+
+type Signal = 'ndvi' | 'ndre';
 
 interface CropDevelopmentProps {
+  fieldKey: string;
   timeline: VegetationObservation[];
   events: EventMarker[];
-  activeDateDisplay: string;
-  activeDateIso: string;
+  activeDate: string;
 }
 
-export const CropDevelopment: React.FC<CropDevelopmentProps> = ({
-  timeline,
-  events,
-  activeDateDisplay,
-  activeDateIso,
-}) => {
-  // Toggle between single active index: NDVI or NDRE
-  const [activeSignal, setActiveSignal] = useState<'ndvi' | 'ndre'>('ndvi');
-  const [hoveredEvent, setHoveredEvent] = useState<EventMarker | null>(null);
+const EVENT_STYLE: Record<EventMarker['type'], { Icon: LucideIcon; tone: string; label: string }> = {
+  rain: { Icon: CloudRain, tone: 'bg-rain-100 text-rain-600 ring-rain-200', label: 'Rain' },
+  heat: { Icon: Thermometer, tone: 'bg-stress-100 text-stress-600 ring-stress-300/60', label: 'Heat' },
+  dry: { Icon: Sun, tone: 'bg-sun-100 text-sun-700 ring-sun-300/60', label: 'Dry spell' },
+  recovery: { Icon: Sprout, tone: 'bg-leaf-100 text-leaf-700 ring-leaf-200', label: 'Recovery' },
+  management: { Icon: Tractor, tone: 'bg-mist text-ink-soft ring-line-strong', label: 'Management' },
+};
 
-  // Find index of current forecast date in timeline
-  const activeDatePoint =
-    timeline.find((t) => t.displayDate === activeDateDisplay) ||
-    timeline[Math.floor(timeline.length / 2)];
+const MONTHS = [
+  { label: 'Jun', date: '2026-06-01' },
+  { label: 'Jul', date: '2026-07-01' },
+  { label: 'Aug', date: '2026-08-01' },
+  { label: 'Sep', date: '2026-09-01' },
+];
 
-  // For responsive time-series truncation:
-  // Points after the selected forecast date are rendered differently (e.g. not observed yet)
-  const activeIsoTime = new Date(activeDateIso).getTime();
+export function CropDevelopment({ fieldKey, timeline, events, activeDate }: CropDevelopmentProps) {
+  const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
+  const [signal, setSignal] = useState<Signal>('ndvi');
+  const [hover, setHover] = useState<number | null>(null);
+  const [openEvent, setOpenEvent] = useState<string | null>(null);
+  const [wrapRef, width] = useElementWidth<HTMLDivElement>();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
 
-  const formattedData = timeline.map((pt) => {
-    const ptTime = new Date(pt.date).getTime();
-    const isObserved = ptTime <= activeIsoTime;
+  const plotHeight = isMobile ? 170 : 236;
+  const margin = { top: 12, right: 10, bottom: 66, left: 34 };
+  const height = margin.top + plotHeight + margin.bottom;
+  const transition = reduce ? { duration: 0 } : DATA_TRANSITION;
 
+  const geo = useMemo(() => {
+    if (width <= 0 || timeline.length < 2) return null;
+    const times = timeline.map((o) => toTime(o.date));
+    const x0 = margin.left + 6;
+    const x1 = width - margin.right - 6;
+    const sx = scaleLinear(times[0], times[times.length - 1], x0, x1);
+    const bottom = margin.top + plotHeight;
+    const sy = scaleLinear(0, 1, bottom, margin.top);
+    const series = (key: 'ndvi' | 'ndre' | 'regionalBaselineNdvi') =>
+      timeline.map((o, i) => ({ x: sx(times[i]), y: sy(o[key]) }));
     return {
-      date: pt.date,
-      displayDate: pt.displayDate,
-      // Only show observed value up to active date; future is null for the primary observed line
-      observedVal: isObserved ? (activeSignal === 'ndvi' ? pt.ndvi : pt.ndre) : null,
-      fullVal: activeSignal === 'ndvi' ? pt.ndvi : pt.ndre,
-      baselineVal: pt.regionalBaselineNdvi,
-      isObserved,
-      isCurrentMarker: pt.displayDate === activeDateDisplay,
+      sx,
+      x0,
+      x1,
+      bottom,
+      times,
+      points: { ndvi: series('ndvi'), ndre: series('ndre') },
+      paths: { ndvi: monotonePath(series('ndvi')), ndre: monotonePath(series('ndre')) },
+      baseline: monotonePath(series('regionalBaselineNdvi')),
+      ticks: [0.2, 0.4, 0.6, 0.8].map((v) => ({ v, y: sy(v) })),
+      months: MONTHS.map((m) => ({ ...m, x: sx(toTime(m.date)) })).filter((m) => m.x > x0 + 8 && m.x < x1 - 8),
     };
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeline, width, plotHeight]);
 
-  const getEventIcon = (type: EventMarker['type']) => {
-    switch (type) {
-      case 'rain':
-        return <CloudRain className="w-3.5 h-3.5 text-blue-600" />;
-      case 'heat':
-        return <Flame className="w-3.5 h-3.5 text-rose-600" />;
-      case 'dry':
-        return <Sun className="w-3.5 h-3.5 text-amber-600" />;
-      case 'recovery':
-      default:
-        return <Sparkles className="w-3.5 h-3.5 text-emerald-600" />;
-    }
+  const activeTime = toTime(activeDate);
+  const activeX = geo ? Math.max(geo.x0, Math.min(geo.x1, geo.sx(activeTime))) : 0;
+  const points = geo ? geo.points[signal] : [];
+  const hovered = hover !== null && geo ? hover : null;
+
+  const onPointerMove = (event: PointerEvent<SVGRectElement>) => {
+    if (!geo || !svgRef.current || event.pointerType !== 'mouse') return;
+    const rect = svgRef.current.getBoundingClientRect();
+    setHover(
+      nearestIndex(
+        points.map((p) => p.x),
+        event.clientX - rect.left,
+      ),
+    );
   };
 
+  const eventsInRange = geo
+    ? events
+        .map((e) => ({ ...e, x: geo.sx(toTime(e.date)) }))
+        .filter((e) => e.x >= geo.x0 - 1 && e.x <= geo.x1 + 1)
+    : [];
+
+  const label = signal.toUpperCase();
+
   return (
-    <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-xs transition-all h-full flex flex-col justify-between">
-      <div>
-        {/* Header & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              Crop Development
-            </h3>
-            <p className="text-[11px] text-slate-500">
-              Multispectral canopy reflection through vegetative & reproductive cycles.
-            </p>
-          </div>
-
-          {/* Index Selector Tabs (NDVI vs NDRE) */}
-          <div className="flex items-center gap-1 p-0.5 bg-slate-100/90 rounded border border-slate-200/60 self-start sm:self-auto">
-            <button
-              onClick={() => setActiveSignal('ndvi')}
-              className={`px-2.5 py-1 text-xs font-mono font-medium rounded transition-all cursor-pointer ${
-                activeSignal === 'ndvi'
-                  ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              NDVI
-            </button>
-            <button
-              onClick={() => setActiveSignal('ndre')}
-              className={`px-2.5 py-1 text-xs font-mono font-medium rounded transition-all cursor-pointer ${
-                activeSignal === 'ndre'
-                  ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              NDRE
-            </button>
-          </div>
+    <section className="flex h-full flex-col rounded-2xl border border-line bg-surface transition-colors duration-300 hover:border-line-strong p-5 sm:p-6" aria-labelledby={`crop-${uid}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id={`crop-${uid}`} className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
+            Crop development
+          </h2>
+          <p className="mt-1 text-[14px] text-muted">Canopy vigor from multispectral observations, with season events.</p>
         </div>
-
-        {/* Legend */}
-        <div className="flex items-center justify-between mt-3 text-[11px] font-mono text-slate-500">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-emerald-600 inline-block"></span>
-              <span className="text-slate-700">Observed {activeSignal.toUpperCase()}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-slate-400 border-b border-dashed border-slate-400 inline-block"></span>
-              <span className="text-slate-500">5-Yr Baseline</span>
-            </div>
-          </div>
-          <span className="text-[10px] text-slate-400">Vertical line = Selected Date</span>
-        </div>
-
-        {/* Chart */}
-        <div className="h-48 sm:h-52 w-full mt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={formattedData}
-              margin={{ top: 10, right: 15, left: -15, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-              <XAxis
-                dataKey="displayDate"
-                stroke="#64748B"
-                fontSize={10}
-                fontFamily="JetBrains Mono"
-                tickLine={false}
-                axisLine={{ stroke: '#E2E8F0' }}
-              />
-              <YAxis
-                domain={[0, 1.0]}
-                stroke="#64748B"
-                fontSize={10}
-                fontFamily="JetBrains Mono"
-                tickLine={false}
-                axisLine={{ stroke: '#E2E8F0' }}
-                tickFormatter={(v) => v.toFixed(1)}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-slate-900 text-white rounded p-2 text-xs font-mono border border-slate-800 pointer-events-none shadow-md">
-                        <div className="text-slate-400 font-semibold mb-1">
-                          {data.displayDate}
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="flex justify-between gap-4">
-                            <span className="text-emerald-400 font-bold uppercase">
-                              {activeSignal}:
-                            </span>
-                            <span>{data.fullVal.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between gap-4 text-slate-400">
-                            <span>Baseline:</span>
-                            <span>{data.baselineVal.toFixed(2)}</span>
-                          </div>
-                          <div className="text-[10px] pt-1 border-t border-slate-800 text-slate-400">
-                            {data.isObserved ? 'Observed by selected date' : 'Future trajectory'}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-
-              {/* Baseline reference line (Dashed) */}
-              <Line
-                type="monotone"
-                dataKey="baselineVal"
-                stroke="#94A3B8"
-                strokeWidth={1.5}
-                strokeDasharray="3 3"
-                dot={false}
-                isAnimationActive={false}
-              />
-
-              {/* Observed line (Solid Green) */}
-              <Line
-                type="monotone"
-                dataKey="observedVal"
-                stroke="#059669"
-                strokeWidth={2.2}
-                dot={{ r: 3, fill: '#059669', stroke: '#FFFFFF', strokeWidth: 1.5 }}
-                isAnimationActive={true}
-                animationDuration={300}
-              />
-
-              {/* Vertical Reference for Active Date */}
-              <ReferenceLine
-                x={activeDateDisplay}
-                stroke="#047857"
-                strokeWidth={1.5}
-                strokeDasharray="3 3"
-              />
-
-              {/* Active Marker Dot */}
-              {activeDatePoint && (
-                <ReferenceDot
-                  x={activeDatePoint.displayDate}
-                  y={activeSignal === 'ndvi' ? activeDatePoint.ndvi : activeDatePoint.ndre}
-                  r={5}
-                  fill="#065F46"
-                  stroke="#FFFFFF"
-                  strokeWidth={2}
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <SegmentedControl
+          ariaLabel="Vegetation index"
+          size="sm"
+          mono
+          value={signal}
+          onChange={setSignal}
+          options={[
+            { value: 'ndvi', label: 'NDVI' },
+            { value: 'ndre', label: 'NDRE' },
+          ]}
+        />
       </div>
 
-      {/* Event Markers Section (Item 14 of Brief) */}
-      <div className="mt-3 pt-3 border-t border-slate-100">
-        <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-[11px] font-mono uppercase text-slate-600">
-            Timeline Field Events
-          </span>
-          <span className="text-[10px] text-slate-500">Hover marker for details</span>
-        </div>
-
-        {/* Small contextual event chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          {events.map((evt) => (
-            <div
-              key={evt.date}
-              onMouseEnter={() => setHoveredEvent(evt)}
-              onMouseLeave={() => setHoveredEvent(null)}
-              className="p-1.5 rounded border border-slate-200 hover:border-slate-300 hover:bg-slate-50 cursor-pointer transition-colors text-left group relative"
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-[2px] w-4 rounded-full bg-leaf-700" aria-hidden="true" />
+          Observed <span className="data">{label}</span>
+        </span>
+        <AnimatePresence initial={false}>
+          {signal === 'ndvi' && (
+            <motion.span
+              className="inline-flex items-center gap-1.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-mono text-slate-600">{evt.displayDate}</span>
-                {getEventIcon(evt.type)}
-              </div>
-              <p className="text-[11px] font-medium text-slate-800 truncate group-hover:text-emerald-950">
-                {evt.title}
-              </p>
-              <span className="text-[10px] text-slate-600 block truncate">{evt.summary}</span>
+              <span className="h-[2px] w-4 rounded-full bg-[#B4BAC2]" aria-hidden="true" />
+              5-yr regional baseline
+            </motion.span>
+          )}
+        </AnimatePresence>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full border-2 border-surface bg-leaf-700 ring-1 ring-leaf-700/30" aria-hidden="true" />
+          Satellite observation
+        </span>
+      </div>
 
-              {/* Tooltip on hover */}
-              {hoveredEvent?.date === evt.date && (
-                <div className="absolute bottom-full left-0 mb-1 z-30 w-52 p-2 bg-slate-900 text-white text-[11px] rounded shadow-lg border border-slate-800 leading-tight">
-                  <div className="font-semibold text-emerald-300 mb-0.5">
-                    {evt.displayDate} — {evt.title}
-                  </div>
-                  <p className="text-slate-300 text-[10px]">{evt.hoverDetail}</p>
+      <div ref={wrapRef} className="relative mt-3" style={{ height }}>
+        {geo && (
+          <svg
+            ref={svgRef}
+            width={width}
+            height={height}
+            className="overflow-visible"
+            role="img"
+            aria-label={`${label} through the season, observed up to the selected forecast date.`}
+          >
+            <defs>
+              <clipPath id={`veg-past-${uid}`}>
+                <motion.rect x={0} y={0} height={height} initial={false} animate={{ width: activeX }} transition={transition} />
+              </clipPath>
+            </defs>
+            {geo.ticks.map((t) => (
+              <g key={t.v}>
+                <line x1={margin.left} x2={width - margin.right} y1={t.y} y2={t.y} stroke={C.line} />
+                <text x={margin.left - 8} y={t.y + 4} textAnchor="end" className="data fill-faint text-[10.5px] tabular-nums">
+                  {t.v.toFixed(1)}
+                </text>
+              </g>
+            ))}
+            <line x1={margin.left} x2={width - margin.right} y1={geo.bottom} y2={geo.bottom} stroke={C.lineStrong} />
+            {geo.months.map((m) => (
+              <text key={m.label} x={m.x} y={geo.bottom + 56} textAnchor="middle" className="data fill-faint text-[11px]">
+                {m.label}
+              </text>
+            ))}
+
+            <motion.path
+              d={geo.baseline}
+              fill="none"
+              stroke="#B4BAC2"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              initial={false}
+              animate={{ opacity: signal === 'ndvi' ? 1 : 0 }}
+              transition={{ duration: 0.25 }}
+            />
+
+            <g key={fieldKey}>
+              <motion.path
+                fill="none"
+                stroke={C.leaf200}
+                strokeWidth={2}
+                strokeLinecap="round"
+                initial={reduce ? false : { d: geo.paths[signal], pathLength: 0, opacity: 0 }}
+                animate={{ d: geo.paths[signal], pathLength: 1, opacity: 1 }}
+                transition={{ d: transition, pathLength: { duration: reduce ? 0 : 0.9, ease: EASE_OUT }, opacity: { duration: 0.05 } }}
+              />
+              <g clipPath={`url(#veg-past-${uid})`}>
+                <motion.path
+                  fill="none"
+                  stroke={C.leaf700}
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  initial={reduce ? false : { d: geo.paths[signal], pathLength: 0, opacity: 0 }}
+                  animate={{ d: geo.paths[signal], pathLength: 1, opacity: 1 }}
+                  transition={{ d: transition, pathLength: { duration: reduce ? 0 : 0.9, ease: EASE_OUT }, opacity: { duration: 0.05 } }}
+                />
+              </g>
+              {points.map((p, i) => {
+                const observed = geo.times[i] <= activeTime;
+                return (
+                  <motion.circle
+                    key={i}
+                    cx={p.x}
+                    stroke={C.surface}
+                    strokeWidth={2}
+                    initial={false}
+                    animate={{ cy: p.y, r: hovered === i ? 5 : 3.5, fill: observed ? C.leaf700 : C.leaf200 }}
+                    transition={transition}
+                  />
+                );
+              })}
+            </g>
+
+            <motion.line
+              y1={margin.top}
+              y2={geo.bottom}
+              stroke={C.leaf700}
+              strokeOpacity={0.32}
+              initial={false}
+              animate={{ x1: activeX, x2: activeX }}
+              transition={transition}
+            />
+
+            {/* Event lane: a hairline tick anchors each event to its date on the curve. */}
+            {eventsInRange.map((e) => (
+              <line
+                key={e.date}
+                x1={e.x}
+                x2={e.x}
+                y1={margin.top + 4}
+                y2={geo.bottom + 16}
+                stroke={C.faint}
+                strokeOpacity={toTime(e.date) <= activeTime ? 0.35 : 0.15}
+                strokeDasharray="2 3"
+              />
+            ))}
+
+            {hovered !== null && (
+              <line x1={points[hovered].x} x2={points[hovered].x} y1={margin.top} y2={geo.bottom} stroke={C.faint} strokeOpacity={0.45} />
+            )}
+
+            <rect
+              x={margin.left}
+              y={margin.top}
+              width={Math.max(0, width - margin.left - margin.right)}
+              height={plotHeight}
+              fill="transparent"
+              onPointerMove={onPointerMove}
+              onPointerLeave={() => setHover(null)}
+            />
+          </svg>
+        )}
+
+        {/* Event markers are real buttons so they work with keyboard and touch. */}
+        {geo &&
+          eventsInRange.map((e) => {
+            const style = EVENT_STYLE[e.type];
+            const happened = toTime(e.date) <= activeTime;
+            const isOpen = openEvent === e.date;
+            const flip = e.x > width - 150;
+            const Icon = style.Icon;
+            return (
+              <div key={e.date} className="absolute" style={{ left: e.x, top: geo.bottom + 18 }}>
+                <button
+                  type="button"
+                  aria-label={`${e.displayDate}: ${e.title}. ${e.summary}`}
+                  aria-expanded={isOpen}
+                  onMouseEnter={() => setOpenEvent(e.date)}
+                  onMouseLeave={() => setOpenEvent((cur) => (cur === e.date ? null : cur))}
+                  onFocus={() => setOpenEvent(e.date)}
+                  onBlur={() => setOpenEvent((cur) => (cur === e.date ? null : cur))}
+                  onClick={() => setOpenEvent((cur) => (cur === e.date ? null : e.date))}
+                  className={`-ml-[11px] flex h-[22px] w-[22px] items-center justify-center rounded-full ring-1 transition-[opacity,transform] duration-300 hover:scale-110 ${style.tone} ${
+                    happened ? 'opacity-100' : 'opacity-45'
+                  }`}
+                >
+                  <Icon className="h-3 w-3" strokeWidth={2.2} />
+                </button>
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      role="tooltip"
+                      className={`pointer-events-none absolute bottom-full z-20 mb-2 w-56 rounded-xl border border-line bg-surface p-3 shadow-lift ${
+                        flip ? 'right-0 -mr-[11px]' : '-ml-[11px] left-0'
+                      }`}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4, transition: { duration: 0.1 } }}
+                      transition={{ duration: 0.16, ease: EASE_OUT }}
+                    >
+                      <div className="flex items-center justify-between gap-2 text-[12px]">
+                        <span className="data font-medium text-ink">{e.displayDate}</span>
+                        <span className="text-muted">{happened ? style.label : `${style.label} · later in season`}</span>
+                      </div>
+                      <div className="mt-1 text-[13px] font-medium text-ink">{e.title}</div>
+                      <p className="mt-1 text-[12px] leading-relaxed text-muted">{e.hoverDetail.replace(/^[^:]{3,48}:\s*/, '')}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+
+        <AnimatePresence>
+          {geo && hovered !== null && (
+            <motion.div
+              className="pointer-events-none absolute top-0 left-0 z-10 w-44 rounded-xl border border-line bg-surface/95 px-3 py-2.5 shadow-lift backdrop-blur-sm"
+              initial={{ opacity: 0, x: points[hovered].x + (points[hovered].x > width - 200 ? -190 : 12), y: 8 }}
+              animate={{ opacity: 1, x: points[hovered].x + (points[hovered].x > width - 200 ? -190 : 12), y: 8 }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+              transition={{ type: 'spring', stiffness: 520, damping: 42, mass: 0.6, opacity: { duration: 0.15 } }}
+            >
+              <div className="flex items-baseline justify-between text-[12px]">
+                <span className="data font-medium text-ink">{timeline[hovered].displayDate}</span>
+                <span className="text-muted">
+                  {geo.times[hovered] <= activeTime ? 'Observed' : 'Later in season'}
+                </span>
+              </div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="data text-[12px] text-muted">{label}</span>
+                <span className="data-tight text-[20px] font-medium text-ink">{timeline[hovered][signal].toFixed(2)}</span>
+              </div>
+              {signal === 'ndvi' && (
+                <div className="mt-1 flex justify-between text-[12px] text-muted">
+                  <span>Regional baseline</span>
+                  <span className="data">{timeline[hovered].regionalBaselineNdvi.toFixed(2)}</span>
                 </div>
               )}
-            </div>
-          ))}
-        </div>
+              <div className="mt-1.5 border-t border-line pt-1.5 text-[11px] text-faint">Satellite observation</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </section>
   );
-};
+}

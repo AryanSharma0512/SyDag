@@ -1,7 +1,8 @@
 /**
  * Forecasts Service
- * Decouples forecast intelligence retrieval from UI components.
- * Standard interface for getting time-series forecast snapshots, vegetation points, and explanations.
+ * The single entry point for forecast data: snapshots through the season,
+ * vegetation observations, events, explanations and historical context.
+ * Demo data in demo mode, otherwise GET /api/fields/:fieldId/forecast.
  */
 
 import { FieldForecast } from '../types/agricultural';

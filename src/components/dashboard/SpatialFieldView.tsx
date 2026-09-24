@@ -1,244 +1,343 @@
-import React, { useState } from 'react';
-import { SpatialContext, SpatialZone } from '../../types/agricultural';
-import { Layers, Crosshair, MapPin, Eye, Satellite, HelpCircle } from 'lucide-react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import type { SpatialContext, SpatialZone } from '../../types/agricultural';
+import { AnimatedNumber } from '../common/AnimatedNumber';
+import { DataBadge } from '../common/DataBadge';
+import { SegmentedControl } from '../common/SegmentedControl';
+import { EASE_OUT } from '../../utils/motion';
+import { PALETTE as C, rampColor } from '../../utils/palette';
+import type { Pt } from '../../utils/chart';
+
+type Layer = 'satellite' | 'vegetation' | 'yield';
 
 interface SpatialFieldViewProps {
-  spatial?: SpatialContext;
+  spatial: SpatialContext;
   fieldName: string;
 }
 
-export const SpatialFieldView: React.FC<SpatialFieldViewProps> = ({
-  spatial,
-  fieldName,
-}) => {
-  const [activeLayer, setActiveLayer] = useState<'satellite' | 'vegetation' | 'yield'>('vegetation');
-  const [hoveredZone, setHoveredZone] = useState<SpatialZone | null>(
-    spatial?.zones[13] || null // Default to Zone 14 (index 13) matching brief example
+/** Irregular field boundary (viewBox 600 × 400). Zones are warped to follow it. */
+const CORNERS = { tl: { x: 46, y: 64 }, tr: { x: 548, y: 30 }, br: { x: 572, y: 350 }, bl: { x: 22, y: 374 } };
+
+function bilerp(u: number, v: number): Pt {
+  const top = { x: CORNERS.tl.x + (CORNERS.tr.x - CORNERS.tl.x) * u, y: CORNERS.tl.y + (CORNERS.tr.y - CORNERS.tl.y) * u };
+  const bottom = { x: CORNERS.bl.x + (CORNERS.br.x - CORNERS.bl.x) * u, y: CORNERS.bl.y + (CORNERS.br.y - CORNERS.bl.y) * u };
+  return { x: top.x + (bottom.x - top.x) * v, y: top.y + (bottom.y - top.y) * v };
+}
+
+const RAMPS = {
+  satellite: ['#CDBEA5', '#A9A77F', '#7A9163', '#55744B'],
+  vegetation: ['#EFE9D2', '#D5DEA2', '#9CC585', '#4B9C6C', '#17704B'],
+  below: ['#ECE8DF', '#E3CDB6', '#C49A74'],
+  above: ['#ECE8DF', '#A3CDB5', '#1B7F59'],
+} as const;
+
+const LAYERS: Array<{ value: Layer; label: string }> = [
+  { value: 'satellite', label: 'Satellite' },
+  { value: 'vegetation', label: 'Vegetation' },
+  { value: 'yield', label: 'Yield' },
+];
+
+export function SpatialFieldView({ spatial, fieldName }: SpatialFieldViewProps) {
+  const reduce = useReducedMotion();
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const [layer, setLayer] = useState<Layer>('vegetation');
+  const [selected, setSelected] = useState(13);
+  const [hovering, setHovering] = useState(false);
+  const [sweep, setSweep] = useState(false);
+  const sweepTimer = useRef<number | undefined>(undefined);
+
+  const zones = spatial.zones;
+  const zone: SpatialZone | undefined = zones[Math.min(selected, zones.length - 1)];
+
+  const geometry = useMemo(
+    () =>
+      zones.map((z) => {
+        const u0 = z.gridCol / 4;
+        const u1 = (z.gridCol + 1) / 4;
+        const v0 = z.gridRow / 4;
+        const v1 = (z.gridRow + 1) / 4;
+        const pts = [bilerp(u0, v0), bilerp(u1, v0), bilerp(u1, v1), bilerp(u0, v1)];
+        const center = bilerp((u0 + u1) / 2, (v0 + v1) / 2);
+        return { points: pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '), center };
+      }),
+    [zones],
   );
 
-  const zones = spatial?.zones || [];
+  const meanYield = zones.reduce((sum, z) => sum + z.predictedYield, 0) / Math.max(1, zones.length);
+  const maxDev = Math.max(4, ...zones.map((z) => Math.abs(z.predictedYield - meanYield)));
 
-  // Helper to color each zone based on the active layer
-  const getZoneStyle = (z: SpatialZone) => {
-    if (activeLayer === 'satellite') {
-      // Natural agricultural surface tones
-      const alpha = 0.5 + z.satelliteReflectance * 0.4;
-      return {
-        backgroundColor: `rgba(47, 85, 54, ${alpha})`,
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-      };
-    } else if (activeLayer === 'vegetation') {
-      // NDVI colormap (from 0.35 yellow-green to 0.90 rich emerald)
-      // Normalize NDVI between 0.35 and 0.90
-      const norm = Math.max(0, Math.min(1, (z.ndvi - 0.4) / 0.5));
-      if (norm > 0.7) {
-        return { backgroundColor: '#065F46', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Deep emerald
-      } else if (norm > 0.45) {
-        return { backgroundColor: '#059669', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Medium green
-      } else if (norm > 0.25) {
-        return { backgroundColor: '#10B981', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Light green
-      } else {
-        return { backgroundColor: '#D97706', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Amber low vigor
-      }
-    } else {
-      // Yield colormap (bu/ac)
-      if (z.predictedYield >= 185) {
-        return { backgroundColor: '#047857', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Dark green
-      } else if (z.predictedYield >= 170) {
-        return { backgroundColor: '#10B981', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Emerald
-      } else if (z.predictedYield >= 155) {
-        return { backgroundColor: '#F59E0B', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Amber
-      } else {
-        return { backgroundColor: '#DC2626', border: '1px solid rgba(255, 255, 255, 0.2)' }; // Red
-      }
-    }
+  const colorFor = (z: SpatialZone) => {
+    if (layer === 'satellite') return rampColor(RAMPS.satellite, (z.ndvi - 0.3) / 0.62);
+    if (layer === 'vegetation') return rampColor(RAMPS.vegetation, (z.ndvi - 0.3) / 0.62);
+    const t = (z.predictedYield - meanYield) / maxDev;
+    return t < 0 ? rampColor(RAMPS.below, -t) : rampColor(RAMPS.above, t);
   };
 
+  const changeLayer = (next: Layer) => {
+    setLayer(next);
+    setSweep(true);
+    window.clearTimeout(sweepTimer.current);
+    sweepTimer.current = window.setTimeout(() => setSweep(false), 700);
+  };
+
+  useEffect(() => () => window.clearTimeout(sweepTimer.current), []);
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const row = Math.floor(selected / 4);
+    const col = selected % 4;
+    let next = selected;
+    if (event.key === 'ArrowRight') next = row * 4 + Math.min(3, col + 1);
+    else if (event.key === 'ArrowLeft') next = row * 4 + Math.max(0, col - 1);
+    else if (event.key === 'ArrowDown') next = Math.min(3, row + 1) * 4 + col;
+    else if (event.key === 'ArrowUp') next = Math.max(0, row - 1) * 4 + col;
+    else return;
+    event.preventDefault();
+    event.stopPropagation();
+    setSelected(next);
+  };
+
+  const legend: { stops: readonly string[]; left: string; right: string; title: string } =
+    layer === 'satellite'
+      ? { stops: RAMPS.satellite, left: 'Bare soil', right: 'Dense canopy', title: 'Illustrative surface color' }
+      : layer === 'vegetation'
+        ? { stops: RAMPS.vegetation, left: '0.30', right: '0.92', title: 'NDVI' }
+        : {
+            stops: [...[...RAMPS.below].reverse(), ...RAMPS.above.slice(1)] as string[],
+            left: `−${maxDev.toFixed(0)}`,
+            right: `+${maxDev.toFixed(0)}`,
+            title: `bu/ac vs field mean ${meanYield.toFixed(0)}`,
+          };
+
+  const zoneTransition = (z: SpatialZone) => ({
+    duration: reduce ? 0 : sweep ? 0.3 : 0.38,
+    delay: reduce ? 0 : sweep ? (z.gridRow + z.gridCol) * 0.03 : 0,
+    ease: EASE_OUT,
+  });
+
   return (
-    <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-xs transition-all">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+    <section className="rounded-2xl border border-line bg-surface transition-colors duration-300 hover:border-line-strong p-5 sm:p-6" aria-labelledby={`spatial-${uid}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              Spatial Field View
-            </h3>
-            <span className="text-[11px] font-mono text-slate-500">
-              {fieldName} · 10m Ground Resolution
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 id={`spatial-${uid}`} className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
+              Spatial field view
+            </h2>
+            <DataBadge variant="illustrative" />
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Zone-level variability & satellite context. Hover any cell to inspect soil & moisture telemetry.
+          <p className="mt-1 text-[14px] text-muted">
+            {fieldName} in 16 management zones. Hover or use arrow keys to inspect a zone.
           </p>
         </div>
-
-        {/* Layer Mode Tabs: [ Satellite ] [ Vegetation ] [ Yield ] */}
-        <div className="flex items-center gap-1 p-0.5 bg-slate-100/90 rounded border border-slate-200/60 self-start sm:self-auto">
-          <button
-            onClick={() => setActiveLayer('satellite')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-all cursor-pointer ${
-              activeLayer === 'satellite'
-                ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Satellite
-          </button>
-          <button
-            onClick={() => setActiveLayer('vegetation')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-all cursor-pointer ${
-              activeLayer === 'vegetation'
-                ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Vegetation
-          </button>
-          <button
-            onClick={() => setActiveLayer('yield')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-all cursor-pointer ${
-              activeLayer === 'yield'
-                ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Yield
-          </button>
-        </div>
+        <SegmentedControl ariaLabel="Map layer" size="sm" value={layer} onChange={changeLayer} options={LAYERS} />
       </div>
 
-      {/* Main Visual Stage & HUD Inspector */}
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        {/* Left 2 Cols: Interactive Field Grid Canvas Container */}
-        <div className="lg:col-span-2 relative bg-slate-950 rounded-lg p-4 overflow-hidden border border-slate-900 shadow-inner">
-          {/* Subtle Map Coordinates Overlay */}
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-2.5">
-            <div className="flex items-center gap-1.5">
-              <Crosshair className="w-3 h-3 text-emerald-400" />
-              <span>40°25'25.3"N 86°55'16.3"W</span>
-            </div>
-            <span>Platform: Sentinel-2 MSI L2A</span>
-          </div>
+      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8">
+        <div>
+          <div
+            tabIndex={0}
+            role="group"
+            aria-label="Field zones. Use the arrow keys to move between zones."
+            onKeyDown={onKeyDown}
+            className="relative overflow-hidden rounded-xl bg-canvas"
+          >
+            <svg viewBox="0 0 600 400" className="block h-auto w-full" aria-hidden="true">
+              <defs>
+                <pattern id={`rows-${uid}`} width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-4)">
+                  <line x1="0" y1="0" x2="9" y2="0" stroke="#FFFFFF" strokeWidth="1.3" />
+                </pattern>
+                <clipPath id={`field-${uid}`}>
+                  <polygon points={geometry.length ? `${CORNERS.tl.x},${CORNERS.tl.y} ${CORNERS.tr.x},${CORNERS.tr.y} ${CORNERS.br.x},${CORNERS.br.y} ${CORNERS.bl.x},${CORNERS.bl.y}` : ''} />
+                </clipPath>
+                <filter id={`glow-${uid}`} x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="6" floodColor={C.ink} floodOpacity="0.28" />
+                </filter>
+              </defs>
 
-          {/* 4x4 Polygonal Field Zones Matrix */}
-          <div className="aspect-16/10 sm:aspect-16/9 w-full grid grid-cols-4 grid-rows-4 gap-1 p-2 bg-slate-900/80 rounded border border-slate-800">
-            {zones.map((zone) => {
-              const isSelected = hoveredZone?.id === zone.id;
-              const style = getZoneStyle(zone);
+              {/* Faint surrounding contours place the field in a landscape without competing with it. */}
+              {[0, 1, 2, 3, 4].map((k) => (
+                <path
+                  key={k}
+                  d={`M-20 ${40 + k * 86} C 140 ${20 + k * 86}, 320 ${70 + k * 86}, 620 ${34 + k * 86}`}
+                  fill="none"
+                  stroke={C.line}
+                  strokeWidth={1}
+                />
+              ))}
 
-              return (
-                <div
+              <g clipPath={`url(#field-${uid})`}>
+                {zones.map((z, i) => (
+                  <motion.polygon
+                    key={z.id}
+                    points={geometry[i].points}
+                    stroke={C.surface}
+                    strokeWidth={2.5}
+                    strokeLinejoin="round"
+                    initial={false}
+                    animate={{ fill: colorFor(z) }}
+                    transition={zoneTransition(z)}
+                    onMouseEnter={() => {
+                      setSelected(i);
+                      setHovering(true);
+                    }}
+                    onMouseLeave={() => setHovering(false)}
+                    onClick={() => setSelected(i)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+                <motion.rect
+                  x={0}
+                  y={0}
+                  width={600}
+                  height={400}
+                  fill={`url(#rows-${uid})`}
+                  pointerEvents="none"
+                  initial={false}
+                  animate={{ opacity: layer === 'satellite' ? 0.22 : 0 }}
+                  transition={{ duration: reduce ? 0 : 0.45 }}
+                />
+              </g>
+
+              <polygon
+                points={`${CORNERS.tl.x},${CORNERS.tl.y} ${CORNERS.tr.x},${CORNERS.tr.y} ${CORNERS.br.x},${CORNERS.br.y} ${CORNERS.bl.x},${CORNERS.bl.y}`}
+                fill="none"
+                stroke={C.lineStrong}
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+              />
+
+              {/* The selected zone lifts: a crisp copy with a soft shadow and a quiet outline. */}
+              {zone && (
+                <motion.g
                   key={zone.id}
-                  style={style}
-                  onMouseEnter={() => setHoveredZone(zone)}
-                  onClick={() => setHoveredZone(zone)}
-                  className={`relative cursor-pointer transition-all duration-150 flex flex-col justify-between p-1.5 rounded-xs select-none ${
-                    isSelected
-                      ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 z-10 scale-[1.03] shadow-md'
-                      : 'hover:brightness-110'
+                  pointerEvents="none"
+                  style={{ originX: 0.5, originY: 0.5 }}
+                  initial={reduce ? false : { scale: 1, opacity: 0 }}
+                  animate={{ scale: 1.035, opacity: 1 }}
+                  transition={{ duration: 0.22, ease: EASE_OUT }}
+                >
+                  <motion.polygon
+                    points={geometry[selected].points}
+                    stroke="#FFFFFF"
+                    strokeWidth={3}
+                    strokeLinejoin="round"
+                    filter={`url(#glow-${uid})`}
+                    initial={false}
+                    animate={{ fill: colorFor(zone) }}
+                    transition={zoneTransition(zone)}
+                  />
+                  <polygon
+                    points={geometry[selected].points}
+                    fill="none"
+                    stroke={C.ink}
+                    strokeOpacity={hovering ? 0.55 : 0.4}
+                    strokeWidth={1.25}
+                    strokeLinejoin="round"
+                  />
+                </motion.g>
+              )}
+
+              {zones.map((z, i) => (
+                <text
+                  key={`label-${z.id}`}
+                  x={geometry[i].center.x}
+                  y={geometry[i].center.y + 4}
+                  textAnchor="middle"
+                  pointerEvents="none"
+                  className={`data text-[11px] transition-[fill] duration-300 ${
+                    layer === 'satellite' ? 'fill-white/80' : i === selected ? 'fill-ink' : 'fill-ink/45'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-medium text-white/90 drop-shadow-xs">
-                      {zone.name.replace('Zone ', 'Z')}
-                    </span>
-                    {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                    )}
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-white drop-shadow-xs">
-                      {activeLayer === 'yield'
-                        ? `${zone.predictedYield}`
-                        : activeLayer === 'vegetation'
-                        ? `${zone.ndvi.toFixed(2)}`
-                        : `${zone.satelliteReflectance.toFixed(2)}`}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                  {i + 1}
+                </text>
+              ))}
+            </svg>
           </div>
 
-          {/* Bottom Colormap Legend */}
-          <div className="mt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <div className="flex items-center gap-2">
-              <span>Low Vigor</span>
-              <div className="w-24 h-2 rounded-full bg-gradient-to-r from-amber-600 via-emerald-500 to-emerald-800 border border-slate-700"></div>
-              <span>High Canopy Density</span>
-            </div>
-            <span className="text-slate-500">16 Sampled Pedon Sectors</span>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <AnimatePresence initial={false} mode="wait">
+              <motion.div
+                key={layer}
+                className="flex items-center gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+              >
+                <span className="text-[12px] text-muted">{legend.title}</span>
+                <span className="data text-[11px] text-faint">{legend.left}</span>
+                <span
+                  className="h-2 w-28 rounded-full"
+                  style={{ background: `linear-gradient(90deg, ${legend.stops.join(', ')})` }}
+                  aria-hidden="true"
+                />
+                <span className="data text-[11px] text-faint">{legend.right}</span>
+              </motion.div>
+            </AnimatePresence>
+            <span className="text-[12px] text-muted">Values change with the selected date</span>
           </div>
         </div>
 
-        {/* Right 1 Col: Spatial Zone Inspector HUD (Item 18 of Developer Brief) */}
-        <div className="bg-[#FBFBFA] border border-slate-200/90 rounded-lg p-4 h-full flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/80">
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="text-xs font-bold text-slate-900 font-mono">
-                  {hoveredZone ? hoveredZone.name : 'Zone 14 (Selected)'}
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
-                Inspector HUD
+        {zone && (
+          <div className="rounded-xl border border-line bg-canvas/60 p-4 sm:p-5" aria-live="polite">
+            <div className="flex items-baseline justify-between">
+              <span className="relative inline-grid overflow-hidden">
+                <AnimatePresence initial={false} mode="popLayout">
+                  <motion.span
+                    key={zone.id}
+                    className="text-[18px] font-semibold tracking-[-0.01em] text-ink"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {zone.name}
+                  </motion.span>
+                </AnimatePresence>
               </span>
+              <span className="text-[12px] text-faint">Demo values</span>
             </div>
-
-            {hoveredZone ? (
-              <div className="space-y-3 font-mono">
-                {/* Predicted Yield */}
-                <div className="p-2.5 bg-white rounded border border-slate-200/80">
-                  <span className="text-[10px] text-slate-500 block uppercase">
-                    Predicted Yield
-                  </span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-2xl font-bold text-slate-900">
-                      {hoveredZone.predictedYield}
-                    </span>
-                    <span className="text-xs text-slate-500">bu/ac</span>
-                  </div>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-1 lg:gap-y-0">
+              {[
+                { label: 'NDVI', value: <AnimatedNumber value={zone.ndvi} decimals={2} /> },
+                {
+                  label: 'Yield',
+                  value: (
+                    <>
+                      <AnimatedNumber value={zone.predictedYield} decimals={0} />
+                      <span className="ml-1 text-[12px] text-muted">bu/ac</span>
+                    </>
+                  ),
+                },
+                {
+                  label: 'Rainfall',
+                  value: (
+                    <>
+                      <AnimatedNumber value={zone.rainfall30Day} decimals={0} />
+                      <span className="ml-1 text-[12px] text-muted">mm</span>
+                    </>
+                  ),
+                },
+                {
+                  label: 'vs field mean',
+                  value: (
+                    <AnimatedNumber
+                      value={zone.predictedYield - meanYield}
+                      decimals={1}
+                      format={(v) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`}
+                    />
+                  ),
+                },
+                { label: 'Soil', value: <span className="font-sans text-[14px] text-ink">{zone.soil}</span> },
+              ].map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-3 lg:border-t lg:border-line lg:py-3 lg:first:border-t-0 lg:first:pt-0">
+                  <dt className="text-[13px] text-muted">{row.label}</dt>
+                  <dd className="data text-[16px] font-medium text-ink">{row.value}</dd>
                 </div>
-
-                {/* NDVI & 30-day rain */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 bg-white rounded border border-slate-200/80">
-                    <span className="text-[10px] text-slate-500 block uppercase">NDVI</span>
-                    <span className="text-base font-bold text-emerald-800">
-                      {hoveredZone.ndvi.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="p-2 bg-white rounded border border-slate-200/80">
-                    <span className="text-[10px] text-slate-500 block uppercase">30-day rain</span>
-                    <span className="text-base font-bold text-blue-700">
-                      {hoveredZone.rainfall30Day} mm
-                    </span>
-                  </div>
-                </div>
-
-                {/* Soil Classification */}
-                <div className="p-2 bg-white rounded border border-slate-200/80">
-                  <span className="text-[10px] text-slate-500 block uppercase">Soil</span>
-                  <span className="text-xs font-semibold text-slate-800">
-                    {hoveredZone.soil}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500 py-8 text-center">
-                Hover or click any cell in the field grid to view zone telemetry.
-              </div>
-            )}
+              ))}
+            </dl>
           </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-200/70 text-[10px] text-slate-600 font-mono flex items-center justify-between">
-            <span>Tile: 2026-07-21</span>
-            <span className="text-emerald-800 font-medium">Ready for GeoTIFF API</span>
-          </div>
-        </div>
+        )}
       </div>
-    </div>
+    </section>
   );
-};
+}

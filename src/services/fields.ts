@@ -1,7 +1,7 @@
 /**
  * Fields Service
- * Decouples field metadata access. Currently resolves centralized mock data,
- * ready to be swapped with GET /api/fields when backend arrives.
+ * Field metadata for the field selector. Demo data in demo mode, otherwise
+ * GET /api/fields.
  */
 
 import { FieldMeta } from '../types/agricultural';

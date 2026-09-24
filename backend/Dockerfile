@@ -16,8 +16,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY data ./data
 
-RUN useradd --system --uid 10001 yieldlens
-USER yieldlens
+RUN useradd --system --uid 10001 soilsignal
+USER soilsignal
 
 EXPOSE 8000
 

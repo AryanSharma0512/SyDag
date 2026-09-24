@@ -1,228 +1,153 @@
-import React from 'react';
-import { APP_CONFIG } from '../../config/appConfig';
-import { RotateCcw, Presentation, Database, Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Menu, X } from 'lucide-react';
+import { AnimatedLogo } from '../brand/AnimatedLogo';
+import { DataBadge } from './DataBadge';
+import { Link, ROUTE_ORDER, ROUTES, useRouter } from '../../utils/router';
+import { EASE_OUT, GLIDE } from '../../utils/motion';
 
 interface NavigationProps {
-  currentRoute: 'landing' | 'dashboard' | 'about';
-  onRouteChange: (route: 'landing' | 'dashboard' | 'about') => void;
-  isPresentationMode?: boolean;
-  onTogglePresentationMode?: () => void;
-  onResetDemo?: () => void;
+  isPresentationMode: boolean;
+  onExitPresentation: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({
-  currentRoute,
-  onRouteChange,
-  isPresentationMode = false,
-  onTogglePresentationMode,
-  onResetDemo,
-}) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+export function Navigation({ isPresentationMode, onExitPresentation }: NavigationProps) {
+  const { route } = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // If in presentation mode, render a minimized, unobtrusive top bar
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 6);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  const shell = `sticky top-0 z-40 border-b transition-[background-color,border-color,backdrop-filter] duration-300 ${
+    scrolled || menuOpen ? 'border-line bg-canvas/85 backdrop-blur-md' : 'border-transparent bg-canvas'
+  }`;
+
   if (isPresentationMode) {
     return (
-      <header className="sticky top-0 z-50 bg-[#FBFBFA]/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-base font-semibold tracking-tight text-slate-900">
-              {APP_CONFIG.name}
-            </span>
-            <span className="text-xs text-emerald-800 font-mono bg-emerald-50/90 border border-emerald-200/60 px-2 py-0.5 rounded">
-              Presentation Mode
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {onResetDemo && (
-              <button
-                onClick={onResetDemo}
-                title="Reset demo (Shortcut: R)"
-                className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded bg-white transition-colors flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline">Reset</span>
-              </button>
-            )}
-            {onTogglePresentationMode && (
-              <button
-                onClick={onTogglePresentationMode}
-                title="Exit presentation mode (Shortcut: F)"
-                className="px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-slate-900 border border-slate-300 rounded bg-white transition-colors flex items-center gap-1.5"
-              >
-                <Presentation className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Exit (F)</span>
-              </button>
-            )}
-          </div>
+      <header className={shell}>
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link to="overview" aria-label="SoilSignal overview" className="rounded-md">
+            <AnimatedLogo size={24} wordmarkClassName="text-[16px]" />
+          </Link>
+          <button
+            type="button"
+            onClick={onExitPresentation}
+            className="lift inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[12px] font-medium text-muted hover:border-line-strong hover:text-ink"
+          >
+            Exit presentation
+            <kbd className="data rounded border border-line bg-mist px-1 text-[11px] text-muted">F</kbd>
+          </button>
         </div>
       </header>
     );
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FBFBFA]/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-3.5 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Zone 1: Single text element wordmark */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onRouteChange('landing')}
-            className="text-left group cursor-pointer focus:outline-none"
-          >
-            <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-emerald-800 transition-colors">
-              {APP_CONFIG.name}
-            </span>
-          </button>
-        </div>
+    <header className={shell}>
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-10 px-4 sm:px-6">
+        <Link to="overview" aria-label="SoilSignal overview" className="-mx-1 shrink-0 rounded-md px-1">
+          <AnimatedLogo />
+        </Link>
 
-        {/* Zone 2: Clean text navigation links */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-          <button
-            onClick={() => onRouteChange('dashboard')}
-            className={`transition-colors hover:text-slate-900 relative py-1 focus:outline-none ${
-              currentRoute === 'dashboard'
-                ? 'text-emerald-800 font-semibold'
-                : 'text-slate-600'
-            }`}
-          >
-            Dashboard
-            {currentRoute === 'dashboard' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => onRouteChange('about')}
-            className={`transition-colors hover:text-slate-900 relative py-1 focus:outline-none ${
-              currentRoute === 'about'
-                ? 'text-emerald-800 font-semibold'
-                : 'text-slate-600'
-            }`}
-          >
-            Methodology & Data Sources
-            {currentRoute === 'about' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => onRouteChange('landing')}
-            className={`transition-colors hover:text-slate-900 relative py-1 focus:outline-none ${
-              currentRoute === 'landing'
-                ? 'text-emerald-800 font-semibold'
-                : 'text-slate-600'
-            }`}
-          >
-            Overview
-            {currentRoute === 'landing' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />
-            )}
-          </button>
+        <nav aria-label="Primary" className="hidden items-center gap-7 md:flex">
+          {ROUTE_ORDER.map((r) => {
+            const active = route === r;
+            return (
+              <Link
+                key={r}
+                to={r}
+                aria-current={active ? 'page' : undefined}
+                className={`relative py-2 text-[14px] transition-colors duration-150 ${
+                  active ? 'font-medium text-ink' : 'text-muted hover:text-ink'
+                }`}
+              >
+                {ROUTES[r].label}
+                {active && (
+                  <motion.span
+                    layoutId="nav-underline"
+                    className="absolute bottom-0 left-1/2 h-[2px] w-4 -translate-x-1/2 rounded-full bg-leaf-700"
+                    transition={GLIDE}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Zone 3: Dataset badge + Quick presentation button */}
-        <div className="hidden sm:flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-slate-600 bg-slate-100 border border-slate-200/70 rounded">
-            <Database className="w-3.5 h-3.5 text-emerald-700" />
-            <span className="whitespace-nowrap">{APP_CONFIG.datasetLabel}</span>
-          </div>
-
-          {onTogglePresentationMode && (
-            <button
-              onClick={onTogglePresentationMode}
-              title="Presentation Mode (Shortcut: F)"
-              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors focus:outline-none"
-              aria-label="Toggle presentation mode"
-            >
-              <Presentation className="w-4 h-4" />
-            </button>
-          )}
-
-          {onResetDemo && (
-            <button
-              onClick={onResetDemo}
-              title="Reset Demo to Defaults (Shortcut: R)"
-              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors focus:outline-none"
-              aria-label="Reset demo"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Mobile menu toggle */}
-        <div className="flex sm:hidden items-center gap-2">
-          <div className="text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-            Demo
-          </div>
+        <div className="ml-auto flex items-center gap-2">
+          <DataBadge variant="demo" className="hidden sm:inline-flex" />
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 text-slate-600 hover:text-slate-900 focus:outline-none"
-            aria-label="Toggle menu"
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            className="-mr-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink-soft hover:bg-mist md:hidden"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile nav drawer */}
-      {mobileMenuOpen && (
-        <div className="sm:hidden pt-3 pb-2 border-t border-slate-200 mt-3 flex flex-col gap-2">
-          <button
-            onClick={() => {
-              onRouteChange('dashboard');
-              setMobileMenuOpen(false);
-            }}
-            className={`text-left px-3 py-2 rounded text-sm font-medium ${
-              currentRoute === 'dashboard'
-                ? 'bg-emerald-50 text-emerald-800'
-                : 'text-slate-700 hover:bg-slate-50'
-            }`}
+      <AnimatePresence initial={false}>
+        {menuOpen && (
+          <motion.nav
+            id="mobile-navigation"
+            aria-label="Primary"
+            className="overflow-hidden border-t border-line md:hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: EASE_OUT }}
           >
-            Dashboard
-          </button>
-          <button
-            onClick={() => {
-              onRouteChange('about');
-              setMobileMenuOpen(false);
-            }}
-            className={`text-left px-3 py-2 rounded text-sm font-medium ${
-              currentRoute === 'about'
-                ? 'bg-emerald-50 text-emerald-800'
-                : 'text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            Methodology & Data Sources
-          </button>
-          <button
-            onClick={() => {
-              onRouteChange('landing');
-              setMobileMenuOpen(false);
-            }}
-            className={`text-left px-3 py-2 rounded text-sm font-medium ${
-              currentRoute === 'landing'
-                ? 'bg-emerald-50 text-emerald-800'
-                : 'text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            Project Overview
-          </button>
-          <div className="pt-2 flex items-center justify-between px-3 text-xs text-slate-500 border-t border-slate-100">
-            <span>Dataset: {APP_CONFIG.datasetLabel}</span>
-            {onResetDemo && (
-              <button
-                onClick={() => {
-                  onResetDemo();
-                  setMobileMenuOpen(false);
-                }}
-                className="text-emerald-700 font-medium"
-              >
-                Reset Demo
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+            <ul className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
+              {ROUTE_ORDER.map((r, i) => {
+                const active = route === r;
+                return (
+                  <motion.li
+                    key={r}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.04 * i + 0.05, duration: 0.25, ease: EASE_OUT }}
+                  >
+                    <Link
+                      to={r}
+                      aria-current={active ? 'page' : undefined}
+                      className={`flex items-center justify-between rounded-lg px-2 py-3 text-[17px] ${
+                        active ? 'font-medium text-ink' : 'text-muted'
+                      }`}
+                    >
+                      {ROUTES[r].label}
+                      {active && <span className="h-1.5 w-1.5 rounded-full bg-leaf-700" aria-hidden="true" />}
+                    </Link>
+                  </motion.li>
+                );
+              })}
+              <li className="mt-2 border-t border-line px-2 pt-4 pb-1">
+                <DataBadge variant="demo" />
+              </li>
+            </ul>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
-};
+}

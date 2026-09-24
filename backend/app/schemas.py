@@ -21,7 +21,7 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(alias_generator=_json_name, populate_by_name=True, extra="forbid")
 
 
-GrowthStage = Literal["Emergence", "Vegetative", "Reproductive", "Maturity"]
+GrowthStage = Literal["Emergence", "Vegetative", "Reproductive", "Grain Fill", "Maturity"]
 Influence = Literal["positive", "negative", "neutral"]
 
 
@@ -163,12 +163,14 @@ class HistoricalContext(ApiModel):
 
 class DataSource(ApiModel):
     id: str
-    name: str
-    source: str
-    resolution: str
-    last_observation: str
-    status: Literal["active", "degraded", "cached"]
-    badge: str
+    name: str  # e.g. "Competition multispectral observations"
+    short_name: str  # e.g. "Hackathon data", "PRISM / NOAA"
+    purpose: str  # e.g. "Crop observations", "Weather"
+    # `challenge` sources are provided by the hackathon; `candidate` sources are
+    # possible external enrichments that are not connected yet.
+    role: Literal["challenge", "candidate"]
+    status_label: str  # e.g. "Challenge-provided"
+    detail: str
 
 
 class ForecastMetadata(ApiModel):

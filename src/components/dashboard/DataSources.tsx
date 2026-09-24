@@ -1,82 +1,55 @@
-import React from 'react';
-import { DataSource } from '../../types/agricultural';
-import { Database, Clock, Radio, CheckCircle, ShieldCheck } from 'lucide-react';
+import type { DataSource } from '../../types/agricultural';
+import { DataBadge } from '../common/DataBadge';
 
 interface DataSourcesProps {
   sources: DataSource[];
-  forecastGeneratedAt: string;
 }
 
-export const DataSources: React.FC<DataSourcesProps> = ({
-  sources,
-  forecastGeneratedAt,
-}) => {
+/**
+ * Provenance, stated plainly: what the challenge provides and which external
+ * enrichments are only candidates. Nothing here claims a live connection.
+ */
+export function DataSources({ sources }: DataSourcesProps) {
+  const challenge = sources.filter((s) => s.role === 'challenge');
+  const candidates = sources.filter((s) => s.role === 'candidate');
+
   return (
-    <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-xs transition-all">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-emerald-700" />
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              Data Behind This Forecast
-            </h3>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Transparent data provenance, temporal cadence, and ground-truth validation pipelines.
-          </p>
-        </div>
+    <section aria-labelledby="provenance-heading">
+      <h2 id="provenance-heading" className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
+        Data provenance
+      </h2>
 
-        <div className="flex items-center gap-1.5 text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
-          <Clock className="w-3.5 h-3.5 text-slate-500" />
-          <span>Inference: {forecastGeneratedAt}</span>
-        </div>
+      <div className="mt-5">
+        <h3 className="text-[12px] font-medium tracking-wide text-muted uppercase">Challenge-provided</h3>
+        <ul className="mt-2">
+          {challenge.map((s) => (
+            <li key={s.id} className="flex flex-col gap-1 border-t border-line py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div>
+                <div className="text-[14px] font-medium text-ink">{s.name}</div>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{s.detail}</p>
+              </div>
+              <DataBadge variant="challenge" className="self-start" />
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Grid of Compact Source Cards */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {sources.map((src) => (
-          <div
-            key={src.id}
-            className="p-3 rounded-md border border-slate-200/80 bg-[#FBFBFA] flex flex-col justify-between hover:border-slate-300 transition-colors"
-          >
-            <div>
-              {/* Badge & Status */}
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-mono font-medium text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-                  {src.badge}
-                </span>
-                <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-700">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>Verified</span>
-                </span>
-              </div>
-
-              {/* Title */}
-              <h4 className="text-xs font-bold text-slate-900 leading-tight">
-                {src.name}
-              </h4>
-
-              {/* Source agency */}
-              <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                {src.source}
-              </p>
-            </div>
-
-            {/* Resolution and freshness footer */}
-            <div className="mt-3 pt-2 border-t border-slate-200/60 space-y-1 text-[10px] font-mono text-slate-600">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Res:</span>
-                <span className="text-slate-800 font-medium truncate ml-1">{src.resolution}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Sync:</span>
-                <span className="text-slate-800 font-medium truncate ml-1">{src.lastObservation}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="mt-5">
+        <h3 className="text-[12px] font-medium tracking-wide text-muted uppercase">Candidate external enrichment</h3>
+        <ul className="mt-2">
+          {candidates.map((s) => (
+            <li key={s.id} className="flex items-baseline justify-between gap-6 border-t border-line py-2.5">
+              <span className="text-[14px] text-ink">{s.name}</span>
+              <span className="text-right text-[13px] text-muted">{s.statusLabel}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+
+      <p className="mt-4 text-[12px] leading-relaxed text-muted">
+        Candidate sources are not connected yet. The challenge rules and the actual dataset will determine the final
+        integrations.
+      </p>
+    </section>
   );
-};
+}

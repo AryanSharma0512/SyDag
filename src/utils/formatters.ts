@@ -1,22 +1,28 @@
 /**
- * Formatting and Numeric Utilities
- * Ensures standardized scientific tabular formatting and smooth numeric transitions.
+ * Formatting utilities for scientific values shown across the interface.
  */
 
-export function formatYield(val: number): string {
-  return Number.isFinite(val) ? val.toFixed(1) : '--';
+export function formatYield(val: number, decimals = 1): string {
+  return Number.isFinite(val) ? val.toFixed(decimals) : '--';
 }
 
-export function formatPercent(val: number, includeSign: boolean = true): string {
+export function formatSignedPercent(val: number, decimals = 1): string {
   if (!Number.isFinite(val)) return '--';
-  const prefix = includeSign && val > 0 ? '+' : '';
-  return `${prefix}${val.toFixed(1)}%`;
+  const prefix = val > 0 ? '+' : val < 0 ? '−' : '';
+  return `${prefix}${Math.abs(val).toFixed(decimals)}%`;
 }
 
-export function formatConfidence(val: number): string {
-  return Math.round(val).toString();
+export function formatNumber(val: number, decimals = 0): string {
+  if (!Number.isFinite(val)) return '--';
+  return val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-export function formatMm(val: number): string {
-  return Math.round(val).toString();
+/** "Corn (Maize)" → "Corn" */
+export function shortCropName(crop: string): string {
+  return crop.split(' (')[0];
+}
+
+/** "HIGH" → "High" */
+export function ratingLabel(rating: string): string {
+  return rating.charAt(0) + rating.slice(1).toLowerCase();
 }

@@ -1,4 +1,4 @@
-# YieldLens API
+# SoilSignal API
 
 FastAPI service that serves field forecasts to the dashboard and predictions from
 trained models. Forecast responses mirror `src/types/agricultural.ts` exactly
@@ -113,4 +113,4 @@ needs no rebuild: copy `artifacts/<model_id>/` onto the server and run
 `docker compose -f compose.sydag.yml restart backend`. Check `/api/health`
 (`modelsLoaded`) and `/api/models` afterwards.
 
-Settings are environment variables prefixed `YIELDLENS_` (see `app/config.py`).
+Settings are environment variables prefixed `SOILSIGNAL_` (see `app/config.py`).

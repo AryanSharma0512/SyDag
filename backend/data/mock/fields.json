@@ -1483,7 +1483,7 @@
         "id": "snap-6",
         "date": "2026-07-30",
         "displayDate": "Jul 30",
-        "stage": "Reproductive",
+        "stage": "Grain Fill",
         "stageSubtext": "R3 - Milk stage; kernel starch accumulation begins",
         "yield": 184,
         "unit": "bu/ac",
@@ -1772,7 +1772,7 @@
         "id": "snap-7",
         "date": "2026-08-15",
         "displayDate": "Aug 15",
-        "stage": "Reproductive",
+        "stage": "Grain Fill",
         "stageSubtext": "R4 / R5 - Dough to early dent; late summer rainfall replenished soil reserves",
         "yield": 186.2,
         "unit": "bu/ac",
@@ -2492,49 +2492,49 @@
     },
     "sources": [
       {
-        "id": "src-1",
-        "name": "Multispectral Observations",
-        "source": "Challenge Dataset (PlanetScope & Sentinel-2)",
-        "resolution": "3m - 10m / 5-day cadence",
-        "lastObservation": "July 21, 2026",
-        "status": "active",
-        "badge": "Challenge Dataset"
+        "id": "challenge-observations",
+        "name": "Competition multispectral observations",
+        "shortName": "Hackathon data",
+        "purpose": "Crop observations",
+        "role": "challenge",
+        "statusLabel": "Challenge-provided",
+        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
       },
       {
-        "id": "src-2",
-        "name": "Meteorological Enrichment",
-        "source": "PRISM / NOAA HRRR Analysis",
-        "resolution": "800m gridded / hourly reanalysis",
-        "lastObservation": "2 hours ago",
-        "status": "active",
-        "badge": "PRISM / NOAA"
+        "id": "prism-noaa",
+        "name": "PRISM / NOAA",
+        "shortName": "PRISM / NOAA",
+        "purpose": "Weather",
+        "role": "candidate",
+        "statusLabel": "Candidate weather enrichment",
+        "detail": "Daily precipitation, temperature and growing degree days."
       },
       {
-        "id": "src-3",
-        "name": "Soil Taxonomy & Hydraulic Properties",
-        "source": "USDA NRCS SSURGO Database",
-        "resolution": "1:24,000 tabular pedon survey",
-        "lastObservation": "Baseline 2026 Release",
-        "status": "active",
-        "badge": "USDA NRCS SSURGO"
+        "id": "usda-ssurgo",
+        "name": "USDA SSURGO",
+        "shortName": "USDA SSURGO",
+        "purpose": "Soil",
+        "role": "candidate",
+        "statusLabel": "Candidate soil enrichment",
+        "detail": "Available water capacity, drainage class, organic matter and texture."
       },
       {
-        "id": "src-4",
-        "name": "Historical Agricultural Benchmark",
-        "source": "USDA NASS Quick Stats",
-        "resolution": "County-level 10-year yield distributions",
-        "lastObservation": "2021 - 2025 Benchmarks",
-        "status": "active",
-        "badge": "USDA NASS"
+        "id": "usda-nass",
+        "name": "USDA NASS",
+        "shortName": "USDA NASS",
+        "purpose": "Historical yield",
+        "role": "candidate",
+        "statusLabel": "Candidate historical context",
+        "detail": "County-level yield history for regional baselines."
       },
       {
-        "id": "src-5",
-        "name": "Satellite Surface Context",
-        "source": "Copernicus Sentinel-2 Level-2A",
-        "resolution": "10m surface reflectance (B2, B3, B4, B8, B8A)",
-        "lastObservation": "July 21, 2026 (0.8% cloud cover)",
-        "status": "active",
-        "badge": "Sentinel-2"
+        "id": "sentinel-2",
+        "name": "Sentinel-2",
+        "shortName": "Sentinel-2",
+        "purpose": "Spatial context",
+        "role": "candidate",
+        "statusLabel": "Candidate spatial enrichment",
+        "detail": "Multispectral imagery for within-field variability."
       }
     ]
   },
@@ -3940,7 +3940,7 @@
         "id": "p221-snap-6",
         "date": "2026-07-30",
         "displayDate": "Jul 30",
-        "stage": "Reproductive",
+        "stage": "Grain Fill",
         "stageSubtext": "R3 - Kernel abortion fixed",
         "yield": 152.8,
         "unit": "bu/ac",
@@ -4210,7 +4210,7 @@
         "id": "p221-snap-7",
         "date": "2026-08-15",
         "displayDate": "Aug 15",
-        "stage": "Reproductive",
+        "stage": "Grain Fill",
         "stageSubtext": "R4 - Modest late rain too late to restore ear size",
         "yield": 150.1,
         "unit": "bu/ac",
@@ -4884,49 +4884,49 @@
     },
     "sources": [
       {
-        "id": "src-1",
-        "name": "Multispectral Observations",
-        "source": "Challenge Dataset (PlanetScope & Sentinel-2)",
-        "resolution": "3m - 10m / 5-day cadence",
-        "lastObservation": "July 21, 2026",
-        "status": "active",
-        "badge": "Challenge Dataset"
+        "id": "challenge-observations",
+        "name": "Competition multispectral observations",
+        "shortName": "Hackathon data",
+        "purpose": "Crop observations",
+        "role": "challenge",
+        "statusLabel": "Challenge-provided",
+        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
       },
       {
-        "id": "src-2",
-        "name": "Meteorological Enrichment",
-        "source": "PRISM / NOAA HRRR Analysis",
-        "resolution": "800m gridded / hourly reanalysis",
-        "lastObservation": "2 hours ago",
-        "status": "active",
-        "badge": "PRISM / NOAA"
+        "id": "prism-noaa",
+        "name": "PRISM / NOAA",
+        "shortName": "PRISM / NOAA",
+        "purpose": "Weather",
+        "role": "candidate",
+        "statusLabel": "Candidate weather enrichment",
+        "detail": "Daily precipitation, temperature and growing degree days."
       },
       {
-        "id": "src-3",
-        "name": "Soil Taxonomy & Hydraulic Properties",
-        "source": "USDA NRCS SSURGO Database",
-        "resolution": "1:24,000 tabular pedon survey",
-        "lastObservation": "Baseline 2026 Release",
-        "status": "active",
-        "badge": "USDA NRCS SSURGO"
+        "id": "usda-ssurgo",
+        "name": "USDA SSURGO",
+        "shortName": "USDA SSURGO",
+        "purpose": "Soil",
+        "role": "candidate",
+        "statusLabel": "Candidate soil enrichment",
+        "detail": "Available water capacity, drainage class, organic matter and texture."
       },
       {
-        "id": "src-4",
-        "name": "Historical Agricultural Benchmark",
-        "source": "USDA NASS Quick Stats",
-        "resolution": "County-level 10-year yield distributions",
-        "lastObservation": "2021 - 2025 Benchmarks",
-        "status": "active",
-        "badge": "USDA NASS"
+        "id": "usda-nass",
+        "name": "USDA NASS",
+        "shortName": "USDA NASS",
+        "purpose": "Historical yield",
+        "role": "candidate",
+        "statusLabel": "Candidate historical context",
+        "detail": "County-level yield history for regional baselines."
       },
       {
-        "id": "src-5",
-        "name": "Satellite Surface Context",
-        "source": "Copernicus Sentinel-2 Level-2A",
-        "resolution": "10m surface reflectance (B2, B3, B4, B8, B8A)",
-        "lastObservation": "July 21, 2026 (0.8% cloud cover)",
-        "status": "active",
-        "badge": "Sentinel-2"
+        "id": "sentinel-2",
+        "name": "Sentinel-2",
+        "shortName": "Sentinel-2",
+        "purpose": "Spatial context",
+        "role": "candidate",
+        "statusLabel": "Candidate spatial enrichment",
+        "detail": "Multispectral imagery for within-field variability."
       }
     ]
   },
@@ -5905,49 +5905,49 @@
     },
     "sources": [
       {
-        "id": "src-1",
-        "name": "Multispectral Observations",
-        "source": "Challenge Dataset (PlanetScope & Sentinel-2)",
-        "resolution": "3m - 10m / 5-day cadence",
-        "lastObservation": "July 21, 2026",
-        "status": "active",
-        "badge": "Challenge Dataset"
+        "id": "challenge-observations",
+        "name": "Competition multispectral observations",
+        "shortName": "Hackathon data",
+        "purpose": "Crop observations",
+        "role": "challenge",
+        "statusLabel": "Challenge-provided",
+        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
       },
       {
-        "id": "src-2",
-        "name": "Meteorological Enrichment",
-        "source": "PRISM / NOAA HRRR Analysis",
-        "resolution": "800m gridded / hourly reanalysis",
-        "lastObservation": "2 hours ago",
-        "status": "active",
-        "badge": "PRISM / NOAA"
+        "id": "prism-noaa",
+        "name": "PRISM / NOAA",
+        "shortName": "PRISM / NOAA",
+        "purpose": "Weather",
+        "role": "candidate",
+        "statusLabel": "Candidate weather enrichment",
+        "detail": "Daily precipitation, temperature and growing degree days."
       },
       {
-        "id": "src-3",
-        "name": "Soil Taxonomy & Hydraulic Properties",
-        "source": "USDA NRCS SSURGO Database",
-        "resolution": "1:24,000 tabular pedon survey",
-        "lastObservation": "Baseline 2026 Release",
-        "status": "active",
-        "badge": "USDA NRCS SSURGO"
+        "id": "usda-ssurgo",
+        "name": "USDA SSURGO",
+        "shortName": "USDA SSURGO",
+        "purpose": "Soil",
+        "role": "candidate",
+        "statusLabel": "Candidate soil enrichment",
+        "detail": "Available water capacity, drainage class, organic matter and texture."
       },
       {
-        "id": "src-4",
-        "name": "Historical Agricultural Benchmark",
-        "source": "USDA NASS Quick Stats",
-        "resolution": "County-level 10-year yield distributions",
-        "lastObservation": "2021 - 2025 Benchmarks",
-        "status": "active",
-        "badge": "USDA NASS"
+        "id": "usda-nass",
+        "name": "USDA NASS",
+        "shortName": "USDA NASS",
+        "purpose": "Historical yield",
+        "role": "candidate",
+        "statusLabel": "Candidate historical context",
+        "detail": "County-level yield history for regional baselines."
       },
       {
-        "id": "src-5",
-        "name": "Satellite Surface Context",
-        "source": "Copernicus Sentinel-2 Level-2A",
-        "resolution": "10m surface reflectance (B2, B3, B4, B8, B8A)",
-        "lastObservation": "July 21, 2026 (0.8% cloud cover)",
-        "status": "active",
-        "badge": "Sentinel-2"
+        "id": "sentinel-2",
+        "name": "Sentinel-2",
+        "shortName": "Sentinel-2",
+        "purpose": "Spatial context",
+        "role": "candidate",
+        "statusLabel": "Candidate spatial enrichment",
+        "detail": "Multispectral imagery for within-field variability."
       }
     ]
   },
@@ -6933,49 +6933,49 @@
     },
     "sources": [
       {
-        "id": "src-1",
-        "name": "Multispectral Observations",
-        "source": "Challenge Dataset (PlanetScope & Sentinel-2)",
-        "resolution": "3m - 10m / 5-day cadence",
-        "lastObservation": "July 21, 2026",
-        "status": "active",
-        "badge": "Challenge Dataset"
+        "id": "challenge-observations",
+        "name": "Competition multispectral observations",
+        "shortName": "Hackathon data",
+        "purpose": "Crop observations",
+        "role": "challenge",
+        "statusLabel": "Challenge-provided",
+        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
       },
       {
-        "id": "src-2",
-        "name": "Meteorological Enrichment",
-        "source": "PRISM / NOAA HRRR Analysis",
-        "resolution": "800m gridded / hourly reanalysis",
-        "lastObservation": "2 hours ago",
-        "status": "active",
-        "badge": "PRISM / NOAA"
+        "id": "prism-noaa",
+        "name": "PRISM / NOAA",
+        "shortName": "PRISM / NOAA",
+        "purpose": "Weather",
+        "role": "candidate",
+        "statusLabel": "Candidate weather enrichment",
+        "detail": "Daily precipitation, temperature and growing degree days."
       },
       {
-        "id": "src-3",
-        "name": "Soil Taxonomy & Hydraulic Properties",
-        "source": "USDA NRCS SSURGO Database",
-        "resolution": "1:24,000 tabular pedon survey",
-        "lastObservation": "Baseline 2026 Release",
-        "status": "active",
-        "badge": "USDA NRCS SSURGO"
+        "id": "usda-ssurgo",
+        "name": "USDA SSURGO",
+        "shortName": "USDA SSURGO",
+        "purpose": "Soil",
+        "role": "candidate",
+        "statusLabel": "Candidate soil enrichment",
+        "detail": "Available water capacity, drainage class, organic matter and texture."
       },
       {
-        "id": "src-4",
-        "name": "Historical Agricultural Benchmark",
-        "source": "USDA NASS Quick Stats",
-        "resolution": "County-level 10-year yield distributions",
-        "lastObservation": "2021 - 2025 Benchmarks",
-        "status": "active",
-        "badge": "USDA NASS"
+        "id": "usda-nass",
+        "name": "USDA NASS",
+        "shortName": "USDA NASS",
+        "purpose": "Historical yield",
+        "role": "candidate",
+        "statusLabel": "Candidate historical context",
+        "detail": "County-level yield history for regional baselines."
       },
       {
-        "id": "src-5",
-        "name": "Satellite Surface Context",
-        "source": "Copernicus Sentinel-2 Level-2A",
-        "resolution": "10m surface reflectance (B2, B3, B4, B8, B8A)",
-        "lastObservation": "July 21, 2026 (0.8% cloud cover)",
-        "status": "active",
-        "badge": "Sentinel-2"
+        "id": "sentinel-2",
+        "name": "Sentinel-2",
+        "shortName": "Sentinel-2",
+        "purpose": "Spatial context",
+        "role": "candidate",
+        "statusLabel": "Candidate spatial enrichment",
+        "detail": "Multispectral imagery for within-field variability."
       }
     ]
   },
@@ -7961,49 +7961,49 @@
     },
     "sources": [
       {
-        "id": "src-1",
-        "name": "Multispectral Observations",
-        "source": "Challenge Dataset (PlanetScope & Sentinel-2)",
-        "resolution": "3m - 10m / 5-day cadence",
-        "lastObservation": "July 21, 2026",
-        "status": "active",
-        "badge": "Challenge Dataset"
+        "id": "challenge-observations",
+        "name": "Competition multispectral observations",
+        "shortName": "Hackathon data",
+        "purpose": "Crop observations",
+        "role": "challenge",
+        "statusLabel": "Challenge-provided",
+        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
       },
       {
-        "id": "src-2",
-        "name": "Meteorological Enrichment",
-        "source": "PRISM / NOAA HRRR Analysis",
-        "resolution": "800m gridded / hourly reanalysis",
-        "lastObservation": "2 hours ago",
-        "status": "active",
-        "badge": "PRISM / NOAA"
+        "id": "prism-noaa",
+        "name": "PRISM / NOAA",
+        "shortName": "PRISM / NOAA",
+        "purpose": "Weather",
+        "role": "candidate",
+        "statusLabel": "Candidate weather enrichment",
+        "detail": "Daily precipitation, temperature and growing degree days."
       },
       {
-        "id": "src-3",
-        "name": "Soil Taxonomy & Hydraulic Properties",
-        "source": "USDA NRCS SSURGO Database",
-        "resolution": "1:24,000 tabular pedon survey",
-        "lastObservation": "Baseline 2026 Release",
-        "status": "active",
-        "badge": "USDA NRCS SSURGO"
+        "id": "usda-ssurgo",
+        "name": "USDA SSURGO",
+        "shortName": "USDA SSURGO",
+        "purpose": "Soil",
+        "role": "candidate",
+        "statusLabel": "Candidate soil enrichment",
+        "detail": "Available water capacity, drainage class, organic matter and texture."
       },
       {
-        "id": "src-4",
-        "name": "Historical Agricultural Benchmark",
-        "source": "USDA NASS Quick Stats",
-        "resolution": "County-level 10-year yield distributions",
-        "lastObservation": "2021 - 2025 Benchmarks",
-        "status": "active",
-        "badge": "USDA NASS"
+        "id": "usda-nass",
+        "name": "USDA NASS",
+        "shortName": "USDA NASS",
+        "purpose": "Historical yield",
+        "role": "candidate",
+        "statusLabel": "Candidate historical context",
+        "detail": "County-level yield history for regional baselines."
       },
       {
-        "id": "src-5",
-        "name": "Satellite Surface Context",
-        "source": "Copernicus Sentinel-2 Level-2A",
-        "resolution": "10m surface reflectance (B2, B3, B4, B8, B8A)",
-        "lastObservation": "July 21, 2026 (0.8% cloud cover)",
-        "status": "active",
-        "badge": "Sentinel-2"
+        "id": "sentinel-2",
+        "name": "Sentinel-2",
+        "shortName": "Sentinel-2",
+        "purpose": "Spatial context",
+        "role": "candidate",
+        "statusLabel": "Candidate spatial enrichment",
+        "detail": "Multispectral imagery for within-field variability."
       }
     ]
   }

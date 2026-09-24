@@ -4,7 +4,7 @@ from app.config import get_settings
 from app.routes import router
 
 app = FastAPI(
-    title="YieldLens API",
+    title="SoilSignal API",
     version=get_settings().version,
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",

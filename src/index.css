@@ -1,74 +1,258 @@
 @import "tailwindcss";
 
+/*
+ * SoilSignal design tokens.
+ * Green leads; soil brown, weather blue, amber and red are supporting accents
+ * used sparingly for meaning (soil, weather, warning, stress).
+ */
+@theme {
+  --font-sans: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-canvas: #f8f7f3;
+  --color-surface: #ffffff;
+  --color-mist: #f1efe9;
+  --color-line: #e8e5dd;
+  --color-line-strong: #d6d2c8;
+
+  --color-ink: #14202b;
+  --color-ink-soft: #2e3a46;
+  --color-muted: #5b6674;
+  --color-faint: #8c949f;
+
+  --color-leaf-50: #eef6f2;
+  --color-leaf-100: #dceee5;
+  --color-leaf-200: #b7dbc8;
+  --color-leaf-300: #86c0a3;
+  --color-leaf-400: #4e9f7d;
+  --color-leaf-500: #1e8561;
+  --color-leaf-600: #0e7a56;
+  --color-leaf-700: #086c4c;
+  --color-leaf-800: #06573d;
+  --color-leaf-900: #05432f;
+
+  --color-soil-50: #faf4ee;
+  --color-soil-100: #f3e6da;
+  --color-soil-200: #e6ccb4;
+  --color-soil-300: #d3a882;
+  --color-soil-400: #bc8758;
+  --color-soil-500: #a66a3f;
+  --color-soil-600: #8c5733;
+  --color-soil-700: #6f4428;
+
+  --color-rain-50: #f0f5f9;
+  --color-rain-100: #dfe9f2;
+  --color-rain-200: #c3d6e7;
+  --color-rain-300: #9dbad4;
+  --color-rain-500: #4f7da8;
+  --color-rain-600: #3f6a93;
+  --color-rain-700: #325576;
+
+  --color-sun-50: #fbf6ec;
+  --color-sun-100: #f5e8cf;
+  --color-sun-300: #e2bf7c;
+  --color-sun-500: #c08a2e;
+  --color-sun-600: #9a6b1f;
+  --color-sun-700: #7e581b;
+
+  --color-stress-50: #faf1ef;
+  --color-stress-100: #f3deda;
+  --color-stress-300: #db9d93;
+  --color-stress-500: #b8574a;
+  --color-stress-600: #9c4538;
+  --color-stress-700: #7c372d;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --shadow-float: 0 1px 2px rgb(20 32 43 / 0.04), 0 10px 28px -12px rgb(20 32 43 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(20 32 43 / 0.05), 0 16px 36px -14px rgb(20 32 43 / 0.2);
+}
+
 @layer base {
+  html {
+    background-color: var(--color-canvas);
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #FBFBFA;
-    color: #1E232A;
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  code, kbd, samp, pre {
-    font-family: 'JetBrains Mono', monospace;
+  ::selection {
+    background-color: var(--color-leaf-100);
+    color: var(--color-leaf-900);
+  }
+
+  :where(a, button, [role="tab"], [role="slider"], [role="option"], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-leaf-600);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  button {
+    cursor: pointer;
   }
 }
 
-/* Custom styling for range input */
-input[type="range"].slider-custom {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
+@layer utilities {
+  /* Data values: numbers, dates, indices, versions. Everything else stays in Inter. */
+  .data {
+    font-family: var(--font-mono);
+    letter-spacing: -0.01em;
+  }
+
+  .data-tight {
+    font-family: var(--font-mono);
+    letter-spacing: -0.04em;
+  }
+
+  /* Subtle 1–2px lift used by buttons and interactive rows. */
+  .lift {
+    transition:
+      transform 180ms var(--ease-soft),
+      box-shadow 180ms var(--ease-soft),
+      background-color 180ms var(--ease-soft),
+      border-color 180ms var(--ease-soft),
+      color 180ms var(--ease-soft);
+  }
+
+  .lift:hover {
+    transform: translateY(-1.5px);
+  }
+
+  .lift:active {
+    transform: translateY(0);
+  }
 }
 
-input[type="range"].slider-custom::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  border-radius: 9999px;
-  background-color: #15803D; /* agricultural green */
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: grab;
-  margin-top: -6px;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+/*
+ * Ambient motion. These only run after an entrance sequence has settled, and
+ * are removed entirely for reduced-motion users (see the media query below).
+ */
+@keyframes ss-sway {
+  0%,
+  78%,
+  100% {
+    transform: rotate(0deg);
+  }
+  85% {
+    transform: rotate(1.3deg);
+  }
+  92% {
+    transform: rotate(-0.7deg);
+  }
 }
 
-input[type="range"].slider-custom::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  background-color: #166534;
+@keyframes ss-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-26px, 3px, 0);
+  }
 }
 
-input[type="range"].slider-custom::-webkit-slider-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.25);
-  background-color: #14532D;
+@keyframes ss-travel {
+  0% {
+    stroke-dashoffset: 104;
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  22% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  26%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
 }
 
-input[type="range"].slider-custom::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 8px;
-  background: #E5E7EB;
-  border-radius: 9999px;
+@keyframes ss-emit {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  14% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
-input[type="range"].slider-custom::-moz-range-thumb {
-  height: 20px;
-  width: 20px;
-  border-radius: 9999px;
-  background-color: #15803D;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: grab;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+@keyframes ss-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
-input[type="range"].slider-custom::-moz-range-track {
-  width: 100%;
-  height: 8px;
-  background: #E5E7EB;
-  border-radius: 9999px;
+@keyframes ss-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
+.ss-sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ss-sway 11s ease-in-out infinite;
+}
+
+.ss-drift {
+  animation: ss-drift 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.ss-travel {
+  stroke-dasharray: 4 100;
+  animation: ss-travel 9s linear infinite;
+}
+
+.ss-emit {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: ss-emit 10s ease-out infinite;
+}
+
+.ss-breathe {
+  animation: ss-breathe 7s ease-in-out infinite;
+}
+
+.ss-skeleton {
+  background: linear-gradient(90deg, var(--color-mist) 25%, #f7f5f0 50%, var(--color-mist) 75%);
+  background-size: 200% 100%;
+  animation: ss-shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .lift:hover {
+    transform: none;
+  }
+}

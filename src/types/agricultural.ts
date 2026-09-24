@@ -1,11 +1,11 @@
 /**
  * Front-End Data Model Contract
- * Standardized typed structures matching Section 28 of the Developer Brief.
- * The front-end only consumes this clean contract regardless of whether it originates
- * from mock state or future real backend / ML services.
+ * The front end only consumes these normalized structures, whether they come from
+ * the local demo data or, later, from the backend API that fronts the ML and
+ * context services. Components never talk to external data providers directly.
  */
 
-export type GrowthStage = 'Emergence' | 'Vegetative' | 'Reproductive' | 'Maturity';
+export type GrowthStage = 'Emergence' | 'Vegetative' | 'Reproductive' | 'Grain Fill' | 'Maturity';
 
 export interface FieldMeta {
   id: string;
@@ -137,14 +137,20 @@ export interface HistoricalContext {
   }>;
 }
 
+/**
+ * `challenge` sources are provided by the hackathon. `candidate` sources are
+ * possible external enrichments that are not connected yet.
+ */
+export type SourceRole = 'challenge' | 'candidate';
+
 export interface DataSource {
   id: string;
-  name: string;
-  source: string;
-  resolution: string;
-  lastObservation: string;
-  status: 'active' | 'degraded' | 'cached';
-  badge: string;
+  name: string; // e.g. "Competition multispectral observations"
+  shortName: string; // e.g. "Hackathon data", "PRISM / NOAA"
+  purpose: string; // e.g. "Crop observations", "Weather"
+  role: SourceRole;
+  statusLabel: string; // e.g. "Challenge-provided", "Candidate weather enrichment"
+  detail: string;
 }
 
 export interface FieldForecast {

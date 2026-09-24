@@ -1,5 +1,5 @@
 /**
- * Minimal JSON client for the YieldLens API.
+ * Minimal JSON client for the SoilSignal API.
  * Services call this only when APP_CONFIG.demoMode is off; components never import it.
  */
 

@@ -1,6 +1,7 @@
 /**
  * Soil Context Service
- * Supplies USDA NRCS SSURGO pedon surveys and moisture holding capacity metrics.
+ * Soil properties for a field. Demo values today; USDA SSURGO is a candidate
+ * source once the backend API is in place.
  */
 
 import { SoilContext } from '../types/agricultural';

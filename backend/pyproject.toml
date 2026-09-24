@@ -1,7 +1,7 @@
 [project]
-name = "yieldlens-backend"
+name = "soilsignal-backend"
 version = "0.1.0"
-description = "YieldLens API: serves field forecasts to the dashboard"
+description = "SoilSignal API: serves field forecasts to the dashboard"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.141.1",
