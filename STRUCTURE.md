@@ -1,0 +1,156 @@
+# YieldLens: Project Structure & Data-Day Map
+
+What exists, where it lives, and what to run or call once the challenge dataset
+arrives. **Keep this file updated in the same PR as any structural change.**
+
+Last updated: 2026-09-24
+
+---
+
+## How a request flows
+
+```
+Browser ──► sydag.aboutsharma.com (Cloudflare → Aryan's reverse proxy)
+              ├── /*      → sydag_frontend  (nginx serving the Vite build)
+              └── /api/*  → sydag_backend   (FastAPI, port 8000)
+                              ├── forecasts  ← ForecastProvider  (mock data today)
+                              └── predictions ← ModelRegistry    (backend/artifacts/)
+```
+
+---
+
+## Data-day playbook
+
+In order. **Ready** = built and tested. **Not built** = still to do.
+
+| # | Step | What to run / call / edit | Status |
+|---|------|---------------------------|--------|
+| 1 | Profile the dataset | `ml/` profiler | Not built (ML starter kit) |
+| 2 | Features + leak-free validation + training | `ml/` | Not built (ML starter kit) |
+| 3 | Export each trained model | `save_artifact(estimator, metadata, schema, root)` in `backend/app/model/export.py`. One model per season cutoff (`as_of: "MM-DD"`). Pattern to copy: `backend/scripts/make_dummy_model.py` | Ready |
+| 4 | Add any new model library to the backend | `cd backend && uv add lightgbm` (or xgboost/catboost), commit `uv.lock`, rebuild the image | Ready |
+| 5 | Test the model locally | `cd backend && uv run uvicorn app.main:app --port 8000`, then `GET /api/models` and `POST /api/predict` | Ready |
+| 6 | Deploy the model | Copy `backend/artifacts/<model_id>/` to the server, then `docker compose -f compose.sydag.yml restart backend`. Check `/api/health` shows `modelsLoaded > 0` | Ready |
+| 7 | Get predictions | `POST /api/predict` with `features` + `asOfDate` | Ready |
+| 8 | Show real forecasts in the dashboard | Model-backed `ForecastProvider` in `backend/app/providers.py`; likely contract changes (see "Contracts"); `DashboardView` field list via `getFields()` | Not built (needs dataset shape) |
+| 9 | Switch the live site off mock data | Build frontend with `VITE_DEMO_MODE=false` (compose build arg) | Ready (needs `/api` proxy rule live) |
+| 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server | — |
+
+---
+
+## API reference
+
+Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
+
+| Method | Endpoint | Called by / when | Returns |
+|--------|----------|------------------|---------|
+| GET | `/api/health` | Deploy checks, Docker healthcheck | `status`, `version`, `dataSource`, `modelsLoaded` |
+| GET | `/api/fields` | Frontend `getFields()` | `FieldMeta[]` |
+| GET | `/api/fields/{id}` | Frontend `getFieldById()` | `FieldMeta` |
+| GET | `/api/fields/{id}/forecast` | Dashboard on load and on field switch (`getForecast()`) | `FieldForecast`: all snapshots, vegetation, events, history, sources |
+| GET | `/api/fields/{id}/weather?snapshotId=` | Frontend `getWeatherContext()` | `WeatherContext` (latest snapshot by default) |
+| GET | `/api/fields/{id}/soil` | Frontend `getSoilContext()` | `SoilContext` |
+| GET | `/api/models` | After deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list |
+| POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence`, `confidenceRating`, `drivers` |
+
+Errors: `404` unknown field/model/snapshot, or no model valid by `asOfDate`;
+`422` bad prediction input (lists every problem); `503` no model artifacts loaded
+or one failed to load (forecast endpoints keep working).
+
+---
+
+## Repository map
+
+### Deployment (root)
+
+| Path | Purpose |
+|------|---------|
+| `compose.sydag.yml` | Runs `sydag_frontend` (host `127.0.0.1:8188`) and `sydag_backend` (`127.0.0.1:8189`) on `lostnfound_network`; mounts `backend/artifacts` read-only |
+| `Dockerfile.sydag` | Frontend image: `npm ci` + Vite build → nginx. Build arg `VITE_DEMO_MODE` |
+| `nginx.sydag.conf` | Frontend nginx: SPA fallback, asset caching |
+| `.dockerignore` | Keeps `node_modules`, `dist`, env files, `backend/` out of the frontend image |
+| `.env.example` | Frontend env vars (see "Configuration") |
+| `package.json` / `package-lock.json` | Frontend deps (npm is the package manager; `bun.lock` is stale) |
+
+### Backend (`backend/`)
+
+| Path | Purpose |
+|------|---------|
+| `app/main.py` | FastAPI app; docs at `/api/docs` |
+| `app/routes.py` | All `/api` endpoints |
+| `app/schemas.py` | API response models; **mirror of `src/types/agricultural.ts`** |
+| `app/providers.py` | `ForecastProvider` protocol + `MockForecastProvider`; `get_registry()` loads models |
+| `app/config.py` | Settings (`YIELDLENS_*` env vars) |
+| `app/model/contract.py` | Model artifact format: `ModelMetadata`, `FeatureSchema` |
+| `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts; `ModelRegistry.for_date()` picks the point-in-time model |
+| `app/model/export.py` | `save_artifact()`: the only way the ML side should write models |
+| `artifacts/<model_id>/` | Deployed models (`model.joblib`, `metadata.json`, `feature_schema.json`); `dummy-*` is git-ignored |
+| `data/mock/fields.json` | Mock forecasts, generated from `src/mock/fieldsData.ts` |
+| `scripts/make_dummy_model.py` | Trains 3 synthetic cutoff models; export reference |
+| `tests/` | `test_api.py` (endpoints + contract), `test_model.py` (artifacts, predict, point-in-time) |
+| `Dockerfile` | Python 3.13 + uv, frozen lockfile, non-root, healthcheck |
+| `pyproject.toml` / `uv.lock` | Pinned deps. **Models must be trained with these versions** |
+| `README.md` | Backend details: running, testing, artifact format |
+
+### Frontend (`src/`)
+
+| Path | Purpose |
+|------|---------|
+| `types/agricultural.ts` | Frontend data contract (`FieldForecast` and friends) |
+| `services/*.ts` | The only code that fetches data: mock when demo mode is on, `/api` otherwise |
+| `services/apiClient.ts` | `apiGet()` JSON client |
+| `config/appConfig.ts` | Branding, `demoMode`, `apiBaseUrl`, defaults |
+| `mock/fieldsData.ts` | 5 mock fields (source of `backend/data/mock/fields.json`) |
+| `components/dashboard/DashboardView.tsx` | Dashboard state: selected field, active snapshot, shortcuts |
+| `components/dashboard/*` | One component per dashboard section |
+| `components/landing/`, `components/about/`, `components/common/` | Landing, methodology, nav/skeletons |
+| `utils/useSmoothNumber.ts` | Number animation (**known bug**: freezes mid-transition) |
+| `App.tsx` | Client-side routing (`/`, `/dashboard`, `/about`), presentation mode |
+
+### Tooling
+
+| Path | Purpose |
+|------|---------|
+| `scripts/export-mock-data.ts` | `npm run export:mock` → regenerates `backend/data/mock/fields.json` |
+| `vite.config.ts` | Dev server; proxies `/api` to `localhost:8000` |
+
+### Not built yet
+
+| Path | Purpose |
+|------|---------|
+| `ml/` | ML starter kit: profiler, splits, baselines, features, experiment log |
+
+---
+
+## Contracts that must stay in sync
+
+| If you change… | Also change… | Guard |
+|----------------|--------------|-------|
+| `src/types/agricultural.ts` | `backend/app/schemas.py` | `test_forecast_matches_frontend_mock_exactly` |
+| `src/mock/fieldsData.ts` | Run `npm run export:mock` | Same test |
+| Model artifact format | `backend/app/model/contract.py` only | `test_model.py` |
+| ML library versions | `backend/uv.lock` (train with the same versions) | Artifact fails to load |
+| An endpoint | `src/services/*.ts`, this file | — |
+
+---
+
+## Configuration
+
+| Variable | Where | Default | Effect |
+|----------|-------|---------|--------|
+| `VITE_DEMO_MODE` | Frontend build (compose arg) | `true` | `false` = fetch from `/api` instead of mocks |
+| `VITE_API_BASE_URL` | Frontend build | `/api` | API location |
+| `API_PROXY_TARGET` | Vite dev server | `http://localhost:8000` | Where `/api` goes in local dev |
+| `YIELDLENS_MODEL_DIR` | Backend | `backend/artifacts` | Where models are loaded from |
+| `YIELDLENS_MOCK_DATA_PATH` | Backend | `backend/data/mock/fields.json` | Mock forecast source |
+
+---
+
+## Local development
+
+```bash
+cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
+VITE_DEMO_MODE=false npm run dev          # dashboard against the local API
+cd backend && uv run pytest               # backend tests
+npm run lint && npm run build             # frontend checks
+```
