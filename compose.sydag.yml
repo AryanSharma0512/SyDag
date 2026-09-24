@@ -38,13 +38,18 @@ services:
     container_name: sydag_backend
     restart: unless-stopped
 
+    # Model artifacts live outside the image: drop a new model into
+    # backend/artifacts/<model_id>/ and `docker compose restart backend`.
+    volumes:
+      - ./backend/artifacts:/app/artifacts:ro
+
     ports:
       - "127.0.0.1:8189:8000"
 
-    cpus: 0.5
-    mem_limit: 512m
-    mem_reservation: 128m
-    pids_limit: 64
+    cpus: 1.0
+    mem_limit: 1g
+    mem_reservation: 256m
+    pids_limit: 256  # numeric libraries spawn a thread per core
 
     networks:
       - sydag_internal
