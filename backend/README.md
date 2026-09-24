@@ -115,9 +115,11 @@ calls USDA or NOAA itself; the backend fetches, normalizes and caches everything
   (default May 1).
 - **Soil:** the dominant soil component of the mapped unit; land cover such as
   "Urban land" or "Water" is skipped.
-- **County yields:** get a free key at https://quickstats.nass.usda.gov/api and set
-  `SOILSIGNAL_NASS_API_KEY` (compose passes it through from the environment or a `.env`
-  next to `compose.sydag.yml`). Without it the dashboard keeps its demo history.
+- **County yields:** need a free key from https://quickstats.nass.usda.gov/api in
+  `SOILSIGNAL_NASS_API_KEY`. Locally, put it in `backend/.env`; in Docker, compose passes
+  it through from the environment or a `.env` next to `compose.sydag.yml`. Both files are
+  git-ignored; never commit the key (the repository is public). Without a key the
+  dashboard keeps its demo history.
 - **Caching:** `cache/` (a named volume in Docker). Soil and counties never expire, county
   yields last 14 days, weather 6 hours while recent and 30 days once settled. If a source
   is down, the last good copy is served and flagged.

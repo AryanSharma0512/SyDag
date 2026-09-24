@@ -1,0 +1,113 @@
+{
+ "_note": "Recorded from USDA NASS Quick Stats on 2026-09-24 (Tippecanoe County, IN), trimmed to the fields the parser reads.",
+ "data": [
+  {
+   "year": 2025,
+   "Value": "233.4",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2024,
+   "Value": "220",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2023,
+   "Value": "222.4",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2022,
+   "Value": "188.6",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2021,
+   "Value": "207.2",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2020,
+   "Value": "207.1",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2019,
+   "Value": "180.4",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2018,
+   "Value": "201.1",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  },
+  {
+   "year": 2017,
+   "Value": "180.3",
+   "county_ansi": "157",
+   "county_name": "TIPPECANOE",
+   "state_alpha": "IN",
+   "agg_level_desc": "COUNTY",
+   "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
+   "reference_period_desc": "YEAR",
+   "source_desc": "SURVEY",
+   "unit_desc": "BU / ACRE"
+  }
+ ]
+}

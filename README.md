@@ -111,7 +111,7 @@ The competition dataset is the primary input. Around it, the backend looks up pu
 | Hackathon data | Crop observations | Challenge-provided |
 | NOAA NCEI (daily station observations) | Weather | Connected |
 | USDA NRCS SSURGO | Soil | Connected |
-| USDA NASS Quick Stats | County yield history | Supported, needs a free API key |
+| USDA NASS Quick Stats | County yield history | Connected |
 | Sentinel-2 | Spatial context | Candidate |
 
 Forecasts, explanations and crop observations are demo values until the challenge dataset and a trained model are connected. The spatial view is labeled as an illustrative demo layer.
