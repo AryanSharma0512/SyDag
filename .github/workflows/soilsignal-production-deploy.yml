@@ -1,0 +1,30 @@
+name: Deploy SoilSignal Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: soilsignal-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - sydag
+
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy SoilSignal
+        shell: bash
+        run: /var/www/sydag/deploy.sh
