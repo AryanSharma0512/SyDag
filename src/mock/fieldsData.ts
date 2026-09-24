@@ -8,9 +8,10 @@
 import { DataSource, FieldForecast, SpatialZone } from '../types/agricultural';
 
 /**
- * Provenance. Only the competition observations are challenge-provided; every
- * other source is a candidate enrichment that is not connected yet. The challenge
- * rules and the actual dataset will determine the final integrations.
+ * Provenance. The competition observations are challenge-provided. Soil (USDA
+ * SSURGO) and weather (NOAA NCEI) are public data the backend already fetches for
+ * each field's coordinates. The rest are candidate enrichments, not connected yet;
+ * the challenge rules and the actual dataset will determine the final integrations.
  */
 export const DATA_SOURCES: DataSource[] = [
   {
@@ -23,22 +24,22 @@ export const DATA_SOURCES: DataSource[] = [
     detail: 'Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released.',
   },
   {
-    id: 'prism-noaa',
-    name: 'PRISM / NOAA',
-    shortName: 'PRISM / NOAA',
+    id: 'noaa-ncei',
+    name: 'NOAA NCEI daily station observations',
+    shortName: 'NOAA NCEI',
     purpose: 'Weather',
-    role: 'candidate',
-    statusLabel: 'Candidate weather enrichment',
-    detail: 'Daily precipitation, temperature and growing degree days.',
+    role: 'public',
+    statusLabel: 'Connected',
+    detail: 'Daily rain and temperature from the nearest station. SoilSignal derives growing degree days, heat days and dry spells from them.',
   },
   {
     id: 'usda-ssurgo',
-    name: 'USDA SSURGO',
+    name: 'USDA NRCS SSURGO soil survey',
     shortName: 'USDA SSURGO',
     purpose: 'Soil',
-    role: 'candidate',
-    statusLabel: 'Candidate soil enrichment',
-    detail: 'Available water capacity, drainage class, organic matter and texture.',
+    role: 'public',
+    statusLabel: 'Connected',
+    detail: 'The soil mapped at each field: series, texture, drainage, available water, organic matter and pH.',
   },
   {
     id: 'usda-nass',
@@ -46,8 +47,8 @@ export const DATA_SOURCES: DataSource[] = [
     shortName: 'USDA NASS',
     purpose: 'Historical yield',
     role: 'candidate',
-    statusLabel: 'Candidate historical context',
-    detail: 'County-level yield history for regional baselines.',
+    statusLabel: 'Supported, needs an API key',
+    detail: 'County corn yields by year for historical context.',
   },
   {
     id: 'sentinel-2',
@@ -109,8 +110,8 @@ export const PURDUE_104_DATA: FieldForecast = {
     name: 'Purdue Plot 104',
     crop: 'Corn (Maize)',
     season: 2026,
-    latitude: 40.4237,
-    longitude: -86.9212,
+    latitude: 40.4883,
+    longitude: -86.9982,
     location: 'Tippecanoe County, Indiana (Purdue Agronomy Center)',
     acreage: 78.4,
     regionalBaseline: 176.0,
@@ -744,8 +745,8 @@ export const PURDUE_221_DATA: FieldForecast = {
     name: 'Purdue Plot 221',
     crop: 'Corn (Maize)',
     season: 2026,
-    latitude: 40.4312,
-    longitude: -86.9145,
+    latitude: 40.4612,
+    longitude: -86.9912,
     location: 'Tippecanoe County, Indiana (Upper Ridge)',
     acreage: 64.2,
     regionalBaseline: 176.0,
@@ -1290,8 +1291,8 @@ export const ILLINOIS_18_DATA: FieldForecast = {
     name: 'Illinois Field 18',
     crop: 'Corn (Maize)',
     season: 2026,
-    latitude: 40.1164,
-    longitude: -88.2434,
+    latitude: 40.185,
+    longitude: -88.339,
     location: 'Champaign County, Illinois (Central Corn Belt)',
     acreage: 120.0,
     regionalBaseline: 188.0,
@@ -1534,8 +1535,8 @@ export const NEBRASKA_42_DATA: FieldForecast = {
     name: 'Nebraska Plot 42',
     crop: 'Corn (Maize)',
     season: 2026,
-    latitude: 40.8524,
-    longitude: -98.3421,
+    latitude: 40.98117,
+    longitude: -98.66309,
     location: 'Hall County, Nebraska (Platte River Valley)',
     acreage: 95.0,
     regionalBaseline: 178.0,
@@ -1785,8 +1786,8 @@ export const IOWA_07_DATA: FieldForecast = {
     name: 'Iowa Field 07',
     crop: 'Corn (Maize)',
     season: 2026,
-    latitude: 42.0308,
-    longitude: -93.6319,
+    latitude: 42.00786,
+    longitude: -93.5588,
     location: 'Story County, Iowa (Des Moines Lobe)',
     acreage: 110.5,
     regionalBaseline: 192.0,

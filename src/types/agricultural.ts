@@ -138,10 +138,11 @@ export interface HistoricalContext {
 }
 
 /**
- * `challenge` sources are provided by the hackathon. `candidate` sources are
- * possible external enrichments that are not connected yet.
+ * `challenge` sources are provided by the hackathon. `public` sources are
+ * government datasets SoilSignal already pulls in for each field's location.
+ * `candidate` sources are possible enrichments that are not connected yet.
  */
-export type SourceRole = 'challenge' | 'candidate';
+export type SourceRole = 'challenge' | 'public' | 'candidate';
 
 export interface DataSource {
   id: string;
@@ -169,4 +170,88 @@ export interface FieldForecast {
     datasetVersion: string;
     lastSatellitePass?: string;
   };
+}
+
+// ---- Location context: public data for a field's coordinates ----------------
+// Served by /api/context/*. Mirrors backend/app/schemas.py. Values come from USDA
+// and NOAA services, normalized by the backend; `retrievedAt` is when it fetched them.
+
+export interface County {
+  name: string; // e.g. "Tippecanoe County"
+  stateCode: string; // e.g. "IN"
+  stateName: string;
+  fips: string; // e.g. "18157"
+}
+
+export interface SoilProfile {
+  mapUnitKey: string;
+  mapUnitName: string; // e.g. "Chalmers silty clay loam"
+  series: string; // dominant soil component, e.g. "Chalmers"
+  componentPercent: number; // share of the map unit, 0-100
+  taxonomicClass: string | null;
+  texture: string | null; // surface horizon, e.g. "Silty clay loam"
+  drainage: string | null; // e.g. "Poorly drained"
+  hydrologicGroup: string | null; // e.g. "B/D"
+  availableWaterCapacity: number | null; // cm of water per cm of soil, top 100 cm
+  availableWaterStorageCm: number | null; // plant-available water in the top 100 cm
+  availableWaterClass: 'Low' | 'Moderate' | 'High' | null;
+  organicMatter: number | null; // %, surface horizon
+  ph: number | null;
+  rootZoneDepthCm: number | null;
+  slopePercent: number | null;
+  source: string; // "USDA NRCS SSURGO"
+  retrievedAt: string;
+}
+
+export interface WeatherStation {
+  id: string; // GHCN-Daily id, e.g. "USC00129430"
+  name: string; // e.g. "West Lafayette 6 NW, IN"
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
+export interface WeatherSummary {
+  asOf: string; // ISO date the summary describes
+  observedThrough: string | null; // last day with observations on or before asOf
+  rainfallLast7DaysMm: number;
+  rainfallLast30DaysMm: number;
+  avgTempLast30DaysF: number | null;
+  seasonStart: string; // ISO date season totals count from
+  gddSinceSeasonStart: number; // growing degree days, base 50 °F, cap 86 °F
+  heatDays: number; // days reaching 95 °F or more since season start
+  longestDrySpellDays: number; // longest run of days under 1 mm of rain
+  dataCompleteness: number; // 0-1
+}
+
+export interface ObservedWeather {
+  station: WeatherStation;
+  summaries: WeatherSummary[]; // one per requested date, in request order
+  source: string; // "NOAA NCEI GHCN-Daily"
+  retrievedAt: string;
+}
+
+export interface YieldHistory {
+  county: County;
+  years: Array<{ year: number; yield: number }>; // oldest first
+  fiveYearAverage: number | null;
+  unit: string; // "bu/ac"
+  source: string; // "USDA NASS Quick Stats"
+  retrievedAt: string;
+}
+
+/** One source's result. Sources fail independently, so each reports its own status. */
+export interface ContextPart<T> {
+  status: 'ok' | 'unavailable' | 'not_configured';
+  data: T | null;
+  message: string | null; // why the data is missing, in plain language
+}
+
+export interface LocationContext {
+  latitude: number;
+  longitude: number;
+  county: County | null;
+  soil: ContextPart<SoilProfile>;
+  weather: ContextPart<ObservedWeather>;
+  yieldHistory: ContextPart<YieldHistory>;
 }

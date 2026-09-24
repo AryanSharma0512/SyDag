@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import type { DataSource, FieldForecast, FieldMeta } from '../../types/agricultural';
+import type { DataSource, FieldForecast, FieldMeta, LocationContext } from '../../types/agricultural';
 import { getFields } from '../../services/fields';
 import { getForecast } from '../../services/forecasts';
 import { getDataSources } from '../../services/sources';
+import { getLocationContext } from '../../services/context';
 import { APP_CONFIG } from '../../config/appConfig';
 import { isTypingTarget } from '../../utils/hooks';
 import { nearestIndex, toTime } from '../../utils/chart';
@@ -37,6 +38,8 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
   const [sources, setSources] = useState<DataSource[]>([]);
   const [fieldId, setFieldId] = useState(APP_CONFIG.defaultFieldId);
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
+  // Public data (soil, observed weather, county yields) for the loaded field's coordinates.
+  const [context, setContext] = useState<{ fieldId: string; data: LocationContext | null } | null>(null);
   const [index, setIndex] = useState(APP_CONFIG.defaultDateIndex);
   const [dim, setDim] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -100,6 +103,22 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     };
   }, [fieldId]);
 
+  // Load public data once per field, covering every forecast date so scrubbing stays instant.
+  useEffect(() => {
+    if (!forecast) return;
+    let active = true;
+    const { field: meta, snapshots } = forecast;
+    getLocationContext(
+      meta,
+      snapshots.map((s) => s.date),
+    )
+      .then((data) => active && setContext({ fieldId: meta.id, data }))
+      .catch(() => active && setContext({ fieldId: meta.id, data: null }));
+    return () => {
+      active = false;
+    };
+  }, [forecast]);
+
   const snapshotIndex = forecast ? Math.min(index, forecast.snapshots.length - 1) : 0;
   const snapshot = forecast?.snapshots[snapshotIndex];
 
@@ -154,6 +173,19 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
 
   const field = forecast?.field;
 
+  // Each source is used only when it loaded; otherwise panels keep the demo values and say why.
+  const live = context && field && context.fieldId === field.id ? context : null;
+  const unreachable = live && !live.data ? 'Public data could not be loaded.' : null;
+  const soilPart = live?.data?.soil;
+  const weatherPart = live?.data?.weather;
+  const yieldPart = live?.data?.yieldHistory;
+  const soilProfile = soilPart?.status === 'ok' ? soilPart.data : null;
+  const observedWeather = weatherPart?.status === 'ok' ? weatherPart.data : null;
+  const countyHistory = yieldPart?.status === 'ok' ? yieldPart.data : null;
+  const soilLabel = soilProfile
+    ? `${soilProfile.series} ${soilProfile.texture ? soilProfile.texture.toLowerCase() : 'soil'}`
+    : undefined;
+
   return (
     <div className={`mx-auto max-w-6xl px-4 pb-24 sm:px-6 ${isPresentationMode ? 'pt-6' : 'pt-8 sm:pt-10'}`}>
       <h1 className="sr-only">Yield forecast dashboard</h1>
@@ -165,6 +197,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
             snapshot={snapshot}
             onSelectField={setFieldId}
             isPresentationMode={isPresentationMode}
+            soilLabel={soilLabel}
           />
 
           <motion.div
@@ -213,7 +246,15 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                       onRetry={() => setWeatherError(false)}
                     />
                   ) : (
-                    <EnvironmentalContext weather={snapshot.weather} soil={snapshot.soil} />
+                    <EnvironmentalContext
+                      weather={snapshot.weather}
+                      soil={snapshot.soil}
+                      asOf={snapshot.date}
+                      observed={observedWeather}
+                      soilProfile={soilProfile}
+                      weatherNote={weatherPart?.message ?? unreachable}
+                      soilNote={soilPart?.message ?? unreachable}
+                    />
                   )}
                 </Reveal>
 
@@ -230,6 +271,8 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                     historical={forecast.historical}
                     currentForecastYield={snapshot.yield}
                     seasonYear={field.season}
+                    countyHistory={countyHistory}
+                    countyNote={yieldPart?.status === 'unavailable' ? yieldPart.message : null}
                   />
                   {!isPresentationMode && <DataSources sources={sources} />}
                 </Reveal>

@@ -6,11 +6,12 @@ interface DataSourcesProps {
 }
 
 /**
- * Provenance, stated plainly: what the challenge provides and which external
- * enrichments are only candidates. Nothing here claims a live connection.
+ * Provenance, stated plainly: what the challenge provides, which public datasets
+ * are already connected, and which enrichments are only candidates.
  */
 export function DataSources({ sources }: DataSourcesProps) {
   const challenge = sources.filter((s) => s.role === 'challenge');
+  const connected = sources.filter((s) => s.role === 'public');
   const candidates = sources.filter((s) => s.role === 'candidate');
 
   return (
@@ -34,6 +35,23 @@ export function DataSources({ sources }: DataSourcesProps) {
         </ul>
       </div>
 
+      {connected.length > 0 && (
+        <div className="mt-5">
+          <h3 className="text-[12px] font-medium tracking-wide text-muted uppercase">Connected public data</h3>
+          <ul className="mt-2">
+            {connected.map((s) => (
+              <li key={s.id} className="flex flex-col gap-1 border-t border-line py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div>
+                  <div className="text-[14px] font-medium text-ink">{s.name}</div>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{s.detail}</p>
+                </div>
+                <DataBadge variant="public" className="self-start" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mt-5">
         <h3 className="text-[12px] font-medium tracking-wide text-muted uppercase">Candidate external enrichment</h3>
         <ul className="mt-2">
@@ -47,8 +65,8 @@ export function DataSources({ sources }: DataSourcesProps) {
       </div>
 
       <p className="mt-4 text-[12px] leading-relaxed text-muted">
-        Candidate sources are not connected yet. The challenge rules and the actual dataset will determine the final
-        integrations.
+        Connected sources are looked up from each field's coordinates by the SoilSignal backend. Candidate sources are not
+        connected yet; the challenge rules and the actual dataset will determine the final integrations.
       </p>
     </section>
   );

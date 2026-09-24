@@ -26,3 +26,15 @@ export function shortCropName(crop: string): string {
 export function ratingLabel(rating: string): string {
   return rating.charAt(0) + rating.slice(1).toLowerCase();
 }
+
+/** "2026-05-01" → "May 1". Calendar dates are read as UTC so no time zone shifts the day. */
+export function formatDay(isoDate: string): string {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+/** ISO timestamp → "Sep 24, 2026" in the viewer's time zone. */
+export function formatRetrieved(isoTimestamp: string): string {
+  const d = new Date(isoTimestamp);
+  return Number.isNaN(d.getTime()) ? isoTimestamp : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}

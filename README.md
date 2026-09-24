@@ -104,17 +104,17 @@ scripts/                export-mock-data.ts (npm run export:mock)
 
 ## Data strategy
 
-The competition dataset is the primary input. External sources are listed as candidates only. None are connected yet, and the challenge rules and the actual dataset will determine the final integrations.
+The competition dataset is the primary input. Around it, the backend looks up public data for each field's coordinates, and the dashboard shows it with its source and retrieval date. The challenge rules and the actual dataset will determine any further integrations.
 
 | Source | Purpose | Status |
 | --- | --- | --- |
 | Hackathon data | Crop observations | Challenge-provided |
-| PRISM / NOAA | Weather | Candidate |
-| USDA SSURGO | Soil | Candidate |
-| USDA NASS | Historical yield | Candidate |
+| NOAA NCEI (daily station observations) | Weather | Connected |
+| USDA NRCS SSURGO | Soil | Connected |
+| USDA NASS Quick Stats | County yield history | Supported, needs a free API key |
 | Sentinel-2 | Spatial context | Candidate |
 
-All values in the interface are demo values until the challenge dataset and a trained model are connected. The spatial view is labeled as an illustrative demo layer.
+Forecasts, explanations and crop observations are demo values until the challenge dataset and a trained model are connected. The spatial view is labeled as an illustrative demo layer.
 
 ## Team
 
