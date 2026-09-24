@@ -97,6 +97,37 @@ uv run ruff check . && uv run ruff format --check .
 `tests/test_api.py` asserts each forecast response equals the mock JSON exactly,
 so the contract can't silently drift from the frontend types.
 
+## Location context (public data)
+
+`/api/context/*` looks up public agronomic data for a coordinate. The frontend never
+calls USDA or NOAA itself; the backend fetches, normalizes and caches everything.
+
+| Endpoint | Source | Key needed |
+| --- | --- | --- |
+| `GET /api/context/soil?lat=&lon=` | USDA NRCS SSURGO via Soil Data Access: series, texture, drainage, hydrologic group, available water (top 100 cm), organic matter, pH, root zone | No |
+| `GET /api/context/weather?lat=&lon=&date=` | NOAA NCEI daily summaries (GHCN-Daily) from the nearest station with rain and temperature records | No |
+| `GET /api/context/yield-history?lat=&lon=&throughYear=` | USDA NASS Quick Stats: county corn yields by year and the 5-year average | Yes |
+| `GET /api/context/all?lat=&lon=&date=&date=...` | All of the above in one response; each part reports `ok`, `unavailable` or `not_configured` | — |
+
+- **Derived here, not fetched:** rainfall over 7 and 30 days, 30-day mean temperature,
+  growing degree days (base 50 °F, cap 86 °F), days at 95 °F or hotter, and the longest
+  run of days under 1 mm of rain. Season totals count from `SOILSIGNAL_SEASON_START`
+  (default May 1).
+- **Soil:** the dominant soil component of the mapped unit; land cover such as
+  "Urban land" or "Water" is skipped.
+- **County yields:** get a free key at https://quickstats.nass.usda.gov/api and set
+  `SOILSIGNAL_NASS_API_KEY` (compose passes it through from the environment or a `.env`
+  next to `compose.sydag.yml`). Without it the dashboard keeps its demo history.
+- **Caching:** `cache/` (a named volume in Docker). Soil and counties never expire, county
+  yields last 14 days, weather 6 hours while recent and 30 days once settled. If a source
+  is down, the last good copy is served and flagged.
+- **Demo snapshot:** `uv run python -m scripts.snapshot_context` fetches public data for
+  every demo field, writes `src/mock/contextSnapshot.ts` (shown in demo mode) and warms
+  the cache. Rerun it after changing field coordinates or dates.
+- **Tests** replay responses recorded from the real services
+  (`tests/fixtures/context/`), so they never touch the network. The NASS fixture is a
+  synthetic example in the documented response shape.
+
 ## Mock data
 
 `data/mock/fields.json` is generated from `src/mock/fieldsData.ts`. After changing

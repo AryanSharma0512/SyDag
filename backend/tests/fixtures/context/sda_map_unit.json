@@ -1,0 +1,30 @@
+{
+ "Table": [
+  [
+   "mukey",
+   "muname",
+   "cokey",
+   "compname",
+   "comppct_r",
+   "compkind",
+   "drainagecl",
+   "hydgrp",
+   "taxclname",
+   "aws0100wta",
+   "slopegraddcp"
+  ],
+  [
+   "163904",
+   "Chalmers silty clay loam",
+   "26449614",
+   "Chalmers",
+   "100",
+   "Series",
+   "Poorly drained",
+   "B/D",
+   "Fine-silty, mixed, superactive, mesic Typic Endoaquolls",
+   "19.55",
+   "0.5"
+  ]
+ ]
+}

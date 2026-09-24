@@ -1,0 +1,22 @@
+{
+ "Block": {
+  "FIPS": "181570102012049",
+  "bbox": [
+   -87.001061,
+   40.46756,
+   -86.976983,
+   40.490274
+  ]
+ },
+ "County": {
+  "FIPS": "18157",
+  "name": "Tippecanoe County"
+ },
+ "State": {
+  "FIPS": "18",
+  "code": "IN",
+  "name": "Indiana"
+ },
+ "status": "OK",
+ "executionTime": "0"
+}

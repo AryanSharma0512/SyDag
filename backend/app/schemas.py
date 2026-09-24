@@ -166,9 +166,9 @@ class DataSource(ApiModel):
     name: str  # e.g. "Competition multispectral observations"
     short_name: str  # e.g. "Hackathon data", "PRISM / NOAA"
     purpose: str  # e.g. "Crop observations", "Weather"
-    # `challenge` sources are provided by the hackathon; `candidate` sources are
-    # possible external enrichments that are not connected yet.
-    role: Literal["challenge", "candidate"]
+    # `challenge` sources are provided by the hackathon; `public` sources are
+    # government data SoilSignal already fetches; `candidate` sources are not connected yet.
+    role: Literal["challenge", "public", "candidate"]
     status_label: str  # e.g. "Challenge-provided"
     detail: str
 
@@ -235,3 +235,95 @@ class PredictResponse(ApiModel):
     confidence: float
     confidence_rating: Literal["LOW", "MODERATE", "HIGH"]
     drivers: list[FeatureImportanceItem]
+
+
+# ---- Location context: public data for a field's coordinates -----------------
+# Served by /api/context/*. Values are normalized from USDA and NOAA services;
+# `retrievedAt` is when SoilSignal fetched them.
+
+
+class County(ApiModel):
+    name: str  # e.g. "Tippecanoe County"
+    state_code: str  # e.g. "IN"
+    state_name: str
+    fips: str  # 5-digit state + county code, e.g. "18157"
+
+
+class SoilProfile(ApiModel):
+    map_unit_key: str
+    map_unit_name: str  # e.g. "Chalmers silty clay loam"
+    series: str  # dominant soil component, e.g. "Chalmers"
+    component_percent: float  # share of the map unit, 0-100
+    taxonomic_class: str | None
+    texture: str | None  # surface horizon, e.g. "Silty clay loam"
+    drainage: str | None  # e.g. "Poorly drained"
+    hydrologic_group: str | None  # e.g. "B/D"
+    available_water_capacity: float | None  # cm of water per cm of soil, top 100 cm
+    available_water_storage_cm: float | None  # total plant-available water, top 100 cm
+    available_water_class: Literal["Low", "Moderate", "High"] | None
+    organic_matter: float | None  # %, surface horizon
+    ph: float | None  # surface horizon, 1:1 water
+    root_zone_depth_cm: float | None  # to the first restrictive layer, else profile depth
+    slope_percent: float | None
+    source: str
+    retrieved_at: str
+
+
+class WeatherStation(ApiModel):
+    id: str  # GHCN-Daily station id, e.g. "USC00129430"
+    name: str
+    latitude: float
+    longitude: float
+    distance_km: float
+
+
+class WeatherSummary(ApiModel):
+    as_of: str  # ISO date the summary describes
+    observed_through: str | None  # last day with observations on or before as_of
+    rainfall_last_7_days_mm: float
+    rainfall_last_30_days_mm: float
+    avg_temp_last_30_days_f: float | None
+    season_start: str  # ISO date the season totals count from
+    gdd_since_season_start: float  # growing degree days, base 50 °F, cap 86 °F
+    heat_days: int  # days reaching 95 °F or more since season start
+    longest_dry_spell_days: int  # longest run of days under 1 mm of rain since season start
+    data_completeness: float  # share of season days with rain and temperature records, 0-1
+
+
+class ObservedWeather(ApiModel):
+    station: WeatherStation
+    summaries: list[WeatherSummary]  # one per requested date, in request order
+    source: str
+    retrieved_at: str
+
+
+class YieldYear(ApiModel):
+    year: int
+    yield_: float
+
+
+class YieldHistory(ApiModel):
+    county: County
+    years: list[YieldYear]  # oldest first
+    five_year_average: float | None  # mean of the 5 most recent years
+    unit: str
+    source: str
+    retrieved_at: str
+
+
+class ContextPart[T](ApiModel):
+    """One data source's result. The sources fail independently, so a missing
+    key or an unresponsive service affects only its own part."""
+
+    status: Literal["ok", "unavailable", "not_configured"]
+    data: T | None = None
+    message: str | None = None  # why the data is missing, in plain language
+
+
+class LocationContext(ApiModel):
+    latitude: float
+    longitude: float
+    county: County | None
+    soil: ContextPart[SoilProfile]
+    weather: ContextPart[ObservedWeather]
+    yield_history: ContextPart[YieldHistory]
