@@ -8,7 +8,7 @@ types exactly. If you change a model here, change the TS type too (and vice vers
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -195,3 +195,41 @@ class Health(ApiModel):
     status: Literal["ok"]
     version: str
     data_source: str
+    models_loaded: int
+
+
+class ModelInfo(ApiModel):
+    model_id: str
+    algorithm: str
+    target: str
+    unit: str
+    validation: str
+    rmse: float
+    mae: float
+    r2: float
+    trained_at: str
+    as_of: str | None
+    interval_level: float
+    features: list[str]
+
+
+FeatureInput = float | int | str | None
+
+
+class PredictRequest(ApiModel):
+    features: dict[str, FeatureInput]
+    # Pick a model explicitly, or let the API choose the model valid on this ISO date.
+    model_id: str | None = None
+    as_of_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class PredictResponse(ApiModel):
+    model_id: str
+    yield_: float
+    unit: str
+    lower_bound: float
+    upper_bound: float
+    interval_level: float
+    confidence: float
+    confidence_rating: Literal["LOW", "MODERATE", "HIGH"]
+    drivers: list[FeatureImportanceItem]

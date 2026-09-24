@@ -14,7 +14,12 @@ FIELD_IDS = [f["field"]["id"] for f in MOCK_DATA]
 def test_health():
     res = client.get("/api/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "version": get_settings().version, "dataSource": "mock"}
+    assert res.json() == {
+        "status": "ok",
+        "version": get_settings().version,
+        "dataSource": "mock",
+        "modelsLoaded": 0,
+    }
 
 
 def test_list_fields_returns_every_mock_field():

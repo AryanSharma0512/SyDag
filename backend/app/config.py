@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     version: str = "0.1.0"
     mock_data_path: Path = BACKEND_ROOT / "data" / "mock" / "fields.json"
+    # One subdirectory per exported model (see app/model/contract.py).
+    model_dir: Path = BACKEND_ROOT / "artifacts"
 
 
 @lru_cache
