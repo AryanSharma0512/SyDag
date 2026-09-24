@@ -1,171 +1,153 @@
-import React, { useState } from 'react';
-import { ModelExplanation as IModelExplanation, FeatureImportanceItem } from '../../types/agricultural';
-import { ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, HelpCircle, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { ArrowDown, ArrowUp, ChevronDown, MoveHorizontal, type LucideIcon } from 'lucide-react';
+import type { FeatureImportanceItem, ModelExplanation as Driver } from '../../types/agricultural';
+import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
 
 interface ModelExplanationProps {
-  explanations: IModelExplanation[];
+  drivers: Driver[];
   featureImportance: FeatureImportanceItem[];
 }
 
-export const ModelExplanation: React.FC<ModelExplanationProps> = ({
-  explanations,
-  featureImportance,
-}) => {
-  const [detailsOpen, setDetailsOpen] = useState(false);
+const INFLUENCE: Record<
+  Driver['influence'],
+  {
+    label: string;
+    Icon: LucideIcon;
+    tone: string;
+    text: string;
+    from: { x?: number; y?: number };
+    to: { x?: number | number[]; y?: number };
+  }
+> = {
+  positive: {
+    label: 'Positive influence',
+    Icon: ArrowUp,
+    tone: 'bg-leaf-50 text-leaf-700 ring-leaf-200',
+    text: 'text-leaf-700',
+    from: { y: 7 },
+    to: { y: 0 },
+  },
+  negative: {
+    label: 'Negative influence',
+    Icon: ArrowDown,
+    tone: 'bg-stress-50 text-stress-600 ring-stress-100',
+    text: 'text-stress-600',
+    from: { y: -7 },
+    to: { y: 0 },
+  },
+  neutral: {
+    label: 'Buffering influence',
+    Icon: MoveHorizontal,
+    tone: 'bg-soil-50 text-soil-600 ring-soil-200',
+    text: 'text-soil-600',
+    from: { x: -4 },
+    to: { x: [-4, 3, 0] },
+  },
+};
 
-  const getInfluenceBadge = (influence: IModelExplanation['influence']) => {
-    switch (influence) {
-      case 'positive':
-        return {
-          icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-800 shrink-0" />,
-          label: 'Positive influence',
-          classes: 'text-emerald-900 bg-emerald-50/80 border-emerald-200/60',
-        };
-      case 'negative':
-        return {
-          icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-800 shrink-0" />,
-          label: 'Negative influence',
-          classes: 'text-amber-900 bg-amber-50/80 border-amber-200/60',
-        };
-      case 'neutral':
-      default:
-        return {
-          icon: <HelpCircle className="w-3.5 h-3.5 text-slate-600 shrink-0" />,
-          label: 'Neutral / buffering influence',
-          classes: 'text-slate-800 bg-slate-100 border-slate-200',
-        };
-    }
-  };
+export function ModelExplanation({ drivers, featureImportance }: ModelExplanationProps) {
+  const reduce = useReducedMotion();
+  const [open, setOpen] = useState(false);
+  const top = drivers.slice(0, 3);
+  const features = [...featureImportance].sort((a, b) => b.weight - a.weight);
+  const maxWeight = Math.max(1, ...features.map((f) => f.weight));
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-xs transition-all">
-      {/* Section Header */}
-      <div className="pb-3 border-b border-slate-100">
-        <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          Why is the model predicting this?
-        </h3>
-        <p className="text-[11px] text-slate-500 mt-0.5">
-          Key agro-environmental signals associated with current projection, synthesized across satellite, weather, and soil horizons.
-        </p>
-      </div>
+    <section aria-labelledby="drivers-heading">
+      <h2 id="drivers-heading" className="text-[20px] font-semibold tracking-[-0.02em] text-ink">
+        What is shaping this forecast?
+      </h2>
+      <p className="mt-1.5 text-[14px] text-muted">
+        Signals associated with the current forecast. Associations, not proof of cause.
+      </p>
 
-      {/* Influence Cards (Item 19: Non-causal wording, domain rigor) */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        {explanations.map((item) => {
-          const badge = getInfluenceBadge(item.influence);
-
-          return (
-            <div
-              key={item.id}
-              className="p-3.5 rounded-lg border border-slate-200/80 bg-[#FBFBFA] flex flex-col justify-between hover:border-slate-300 transition-colors"
-            >
-              <div>
-                {/* Influence Status Row */}
-                <div className="flex items-center justify-between mb-2">
-                  <div
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border ${badge.classes}`}
+      <div className="mt-6 grid gap-6 md:grid-cols-3 md:gap-0 md:divide-x md:divide-line">
+        <AnimatePresence initial={false} mode="popLayout">
+          {top.map((driver, i) => {
+            const style = INFLUENCE[driver.influence];
+            const Icon = style.Icon;
+            return (
+              <motion.article
+                key={`${driver.id}-${driver.title}`}
+                className="md:px-7 md:first:pl-0 md:last:pr-0"
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                transition={{ duration: 0.32, ease: EASE_OUT, delay: i * 0.05 }}
+              >
+                <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 ${style.tone}`}>
+                  <motion.span
+                    className="inline-flex"
+                    initial={reduce ? false : { ...style.from, opacity: 0 }}
+                    whileInView={{ ...style.to, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.55, ease: EASE_OUT, delay: 0.1 + i * 0.08 }}
                   >
-                    {badge.icon}
-                    <span>{item.influenceLabel}</span>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <h4 className="text-xs font-semibold text-slate-900 mb-1.5 leading-snug">
-                  {item.title}
-                </h4>
-
-                {/* Body Explanation */}
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {item.description}
-                </p>
-              </div>
-
-              {item.metricReference && (
-                <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-mono text-slate-600">
-                  {item.metricReference}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
+                  </motion.span>
+                </span>
+                <h3 className="mt-4 text-[15px] leading-snug font-semibold text-ink">{driver.title}</h3>
+                <p className={`mt-1 text-[13px] font-medium ${style.text}`}>{style.label}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-pretty text-muted">{driver.description}</p>
+              </motion.article>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
-      {/* Technical Details Toggle (Item 20 of Brief) */}
-      <div className="mt-4 pt-3 border-t border-slate-100">
+      <div className="mt-8 border-t border-line pt-4">
         <button
-          onClick={() => setDetailsOpen(!detailsOpen)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 focus:outline-none cursor-pointer"
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls="model-signals"
+          className="group inline-flex items-center gap-2 rounded-md py-1 text-[14px] font-medium text-ink-soft hover:text-ink"
         >
-          <Activity className="w-3.5 h-3.5 text-emerald-800" />
-          <span>{detailsOpen ? 'Hide technical details' : 'View technical details'}</span>
-          {detailsOpen ? (
-            <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-          )}
+          {open ? 'Hide model signals' : 'Show model signals'}
+          <ChevronDown className={`h-4 w-4 text-faint transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </button>
 
-        {/* Collapsed/Expanded Feature Importance Drawer */}
-        {detailsOpen && (
-          <div className="mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200/80 animate-in fade-in duration-150">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-3 border-b border-slate-200 gap-1">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
-                Model Signals & Feature Weight Distribution
-              </span>
-              <span className="text-[11px] text-slate-600">
-                Feature contribution values derived from model explainability analysis.
-              </span>
-            </div>
-
-            {/* Horizontal Feature Importance Bars */}
-            <div className="space-y-2.5">
-              {featureImportance.map((feat) => {
-                const barColor =
-                  feat.category === 'Vegetation'
-                    ? 'bg-emerald-600'
-                    : feat.category === 'Weather'
-                    ? 'bg-blue-600'
-                    : feat.category === 'Soil'
-                    ? 'bg-amber-600'
-                    : 'bg-slate-500';
-
-                return (
-                  <div key={feat.name} className="flex items-center gap-3 text-xs">
-                    {/* Feature Label */}
-                    <div className="w-44 sm:w-52 shrink-0 flex items-center justify-between">
-                      <span className="font-mono text-slate-800 truncate" title={feat.name}>
-                        {feat.name}
-                      </span>
-                      <span className="text-[10px] text-slate-600 font-mono hidden sm:inline ml-1">
-                        [{feat.category}]
-                      </span>
-                    </div>
-
-                    {/* Bar Track */}
-                    <div className="flex-1 bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                        style={{ width: `${Math.min(100, Math.max(4, feat.weight * 2.8))}%` }}
-                      />
-                    </div>
-
-                    {/* Value */}
-                    <span className="w-10 text-right font-mono font-semibold text-slate-900 tabular-nums">
-                      {feat.weight}%
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 pt-2 text-[10px] text-slate-600 font-mono flex items-center justify-between">
-              <span>Method: Gradient feature attribution across temporal lag sequence</span>
-              <span>Model baseline: 10-year county historical distribution</span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              id="model-signals"
+              className="overflow-hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: EASE_OUT }}
+            >
+              <div className="pt-5">
+                <ul className="space-y-3.5">
+                  {features.map((feature, i) => (
+                    <li key={feature.name} className="grid grid-cols-[minmax(0,11rem)_1fr_3rem] items-center gap-4 sm:grid-cols-[14rem_1fr_3rem]">
+                      <div className="min-w-0">
+                        <div className="truncate text-[14px] text-ink" title={feature.name}>
+                          {feature.name}
+                        </div>
+                        <div className="text-[12px] text-faint">{feature.category}</div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-mist" aria-hidden="true">
+                        <motion.div
+                          className="h-full w-full origin-left rounded-full bg-leaf-600"
+                          initial={reduce ? false : { scaleX: 0 }}
+                          animate={{ scaleX: feature.weight / maxWeight }}
+                          transition={reduce ? { duration: 0 } : { ...DATA_TRANSITION, duration: 0.6, delay: 0.08 + i * 0.06 }}
+                        />
+                      </div>
+                      <div className="data text-right text-[13px] text-ink-soft tabular-nums">{feature.weight}%</div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-[12px] text-muted">
+                  Relative contribution of each input to this forecast. Illustrative weights from the demo model.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </section>
   );
-};
+}

@@ -1,227 +1,264 @@
-import React, { useState, useEffect } from 'react';
-import { FieldMeta, FieldForecast } from '../../types/agricultural';
-import { ALL_FIELDS, PURDUE_104_DATA } from '../../mock/fieldsData';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import type { DataSource, FieldForecast, FieldMeta } from '../../types/agricultural';
+import { getFields } from '../../services/fields';
 import { getForecast } from '../../services/forecasts';
-import { FieldContextBar } from './FieldContextBar';
-import { ForecastOverview } from './ForecastOverview';
+import { getDataSources } from '../../services/sources';
+import { APP_CONFIG } from '../../config/appConfig';
+import { isTypingTarget } from '../../utils/hooks';
+import { nearestIndex, toTime } from '../../utils/chart';
+import { DashboardSkeleton, EmptyState, ErrorState } from '../common/SkeletonLoader';
+import { Reveal } from '../common/Reveal';
+import { DebugPanel } from '../debug/DebugPanel';
+import { FieldContext } from './FieldContext';
+import { ForecastSummary } from './ForecastSummary';
 import { ForecastTimeline } from './ForecastTimeline';
+import { GrowthStageRail } from './GrowthStageRail';
 import { CropDevelopment } from './CropDevelopment';
 import { EnvironmentalContext } from './EnvironmentalContext';
 import { SpatialFieldView } from './SpatialFieldView';
 import { ModelExplanation } from './ModelExplanation';
 import { HistoricalComparison } from './HistoricalComparison';
 import { DataSources } from './DataSources';
-import { DemoControlRibbon } from './DemoControlRibbon';
-import { ModuleSkeleton, ErrorCard, EmptyModuleState } from '../common/SkeletonLoader';
 
 interface DashboardViewProps {
   isPresentationMode: boolean;
+  isDebugMode: boolean;
   onTogglePresentationMode: () => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({
-  isPresentationMode,
-  onTogglePresentationMode,
-}) => {
-  // Current active field (defaults to Purdue 104)
-  const [selectedField, setSelectedField] = useState<FieldMeta>(PURDUE_104_DATA.field);
-  const [fieldData, setFieldData] = useState<FieldForecast>(PURDUE_104_DATA);
+/** Field switch choreography: fade out, swap data, let values move, fade back in. */
+const FADE_OUT_MS = 150;
+const DATA_HOLD_MS = 200;
 
-  // Active snapshot index along growing season (defaults to index 4: July 22)
-  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState<number>(4);
+export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresentationMode }: DashboardViewProps) {
+  const reduce = useReducedMotion();
+  const [fields, setFields] = useState<FieldMeta[]>([]);
+  const [sources, setSources] = useState<DataSource[]>([]);
+  const [fieldId, setFieldId] = useState(APP_CONFIG.defaultFieldId);
+  const [forecast, setForecast] = useState<FieldForecast | null>(null);
+  const [index, setIndex] = useState(APP_CONFIG.defaultDateIndex);
+  const [dim, setDim] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(false);
 
-  // Simulation states for hackathon judging & testing (items 24, 25)
-  const [simulateLoading, setSimulateLoading] = useState<boolean>(false);
-  const [simulateMissingSatellite, setSimulateMissingSatellite] = useState<boolean>(false);
-  const [simulateWeatherError, setSimulateWeatherError] = useState<boolean>(false);
+  const [simulateLoading, setSimulateLoading] = useState(false);
+  const [missingSatellite, setMissingSatellite] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
 
-  // Load field forecast when selected field changes
+  const forecastRef = useRef<FieldForecast | null>(null);
+  const activeDateRef = useRef<string | null>(null);
+  const resetPendingRef = useRef(false);
+  const reduceRef = useRef(reduce);
+  reduceRef.current = reduce;
+
   useEffect(() => {
-    let isMounted = true;
-    getForecast(selectedField.id).then((data) => {
-      if (isMounted) {
-        setFieldData(data);
-        // Keep active index within bounds
-        setActiveSnapshotIndex((prev) => Math.min(prev, data.snapshots.length - 1));
-      }
-    });
+    let active = true;
+    getFields().then((list) => active && setFields(list));
+    getDataSources().then((list) => active && setSources(list));
+    const id = window.setTimeout(() => setShowSkeleton(true), 250);
     return () => {
-      isMounted = false;
+      active = false;
+      window.clearTimeout(id);
     };
-  }, [selectedField.id]);
+  }, []);
 
-  // Reset to default Purdue 104 July 22 snapshot
-  const handleResetDemo = () => {
-    setSelectedField(PURDUE_104_DATA.field);
-    setFieldData(PURDUE_104_DATA);
-    setActiveSnapshotIndex(4); // July 22
-    setSimulateLoading(false);
-    setSimulateMissingSatellite(false);
-    setSimulateWeatherError(false);
-  };
-
-  // Keyboard shortcut listener (Item 26)
+  // Load the selected field through the service layer. Switching keeps the same point in the season.
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
-        return;
-      }
+    let cancelled = false;
+    const timers: number[] = [];
+    const animate = forecastRef.current !== null && !reduceRef.current;
+    const started = performance.now();
+    if (animate) setDim(true);
 
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setActiveSnapshotIndex((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        setActiveSnapshotIndex((prev) =>
-          Math.min(fieldData.snapshots.length - 1, prev + 1)
-        );
-      } else if (e.key === 'r' || e.key === 'R') {
-        e.preventDefault();
-        handleResetDemo();
-      } else if (e.key === 'p' || e.key === 'P' || e.key === 'f' || e.key === 'F') {
-        e.preventDefault();
-        onTogglePresentationMode();
-      } else if (['1', '2', '3', '4', '5'].includes(e.key)) {
-        const num = parseInt(e.key, 10) - 1;
-        if (ALL_FIELDS[num]) {
-          setSelectedField(ALL_FIELDS[num].field);
+    getForecast(fieldId).then((data) => {
+      if (cancelled) return;
+      const swap = () => {
+        if (cancelled) return;
+        let nextIndex = Math.min(APP_CONFIG.defaultDateIndex, data.snapshots.length - 1);
+        if (resetPendingRef.current) {
+          resetPendingRef.current = false;
+        } else if (activeDateRef.current) {
+          nextIndex = nearestIndex(
+            data.snapshots.map((s) => toTime(s.date)),
+            toTime(activeDateRef.current),
+          );
         }
+        forecastRef.current = data;
+        setForecast(data);
+        setIndex(nextIndex);
+        if (animate) timers.push(window.setTimeout(() => !cancelled && setDim(false), DATA_HOLD_MS));
+        else setDim(false);
+      };
+      const elapsed = performance.now() - started;
+      if (animate && elapsed < FADE_OUT_MS) timers.push(window.setTimeout(swap, FADE_OUT_MS - elapsed));
+      else swap();
+    });
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [fieldId]);
+
+  const snapshotIndex = forecast ? Math.min(index, forecast.snapshots.length - 1) : 0;
+  const snapshot = forecast?.snapshots[snapshotIndex];
+
+  useEffect(() => {
+    activeDateRef.current = snapshot?.date ?? null;
+  }, [snapshot]);
+
+  const reset = useCallback(() => {
+    setSimulateLoading(false);
+    setMissingSatellite(false);
+    setWeatherError(false);
+    if (fieldId === APP_CONFIG.defaultFieldId) {
+      setIndex(APP_CONFIG.defaultDateIndex);
+    } else {
+      resetPendingRef.current = true;
+      setFieldId(APP_CONFIG.defaultFieldId);
+    }
+  }, [fieldId]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[role="slider"], [role="tablist"], [role="menu"], [role="group"]')) return;
+      const count = forecastRef.current?.snapshots.length ?? 0;
+      if (!count) return;
+      const facilitator = isDebugMode || isPresentationMode;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setIndex((i) => Math.max(0, Math.min(i, count - 1) - 1));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setIndex((i) => Math.min(count - 1, i + 1));
+      } else if (facilitator && /^[1-5]$/.test(event.key)) {
+        const next = fields[Number(event.key) - 1];
+        if (next) setFieldId(next.id);
+      } else if (facilitator && (event.key === 'r' || event.key === 'R')) {
+        event.preventDefault();
+        reset();
       }
     };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [fields, isDebugMode, isPresentationMode, reset]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fieldData.snapshots.length, onTogglePresentationMode]);
+  const seasonDomain = useMemo<[number, number]>(() => {
+    if (!forecast) return [0, 1];
+    const lo = Math.min(...forecast.snapshots.map((s) => s.lowerBound));
+    const hi = Math.max(...forecast.snapshots.map((s) => s.upperBound));
+    return [lo - 6, hi + 6];
+  }, [forecast]);
 
-  const activeSnapshot = fieldData.snapshots[activeSnapshotIndex] || fieldData.snapshots[0];
+  const field = forecast?.field;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FBFBFA]">
-      {/* 1. Field Context Bar */}
-      <FieldContextBar
-        fields={ALL_FIELDS.map((f) => f.field)}
-        selectedField={selectedField}
-        onSelectField={(f) => setSelectedField(f)}
-        activeDateDisplay={activeSnapshot.displayDate}
-        stageName={activeSnapshot.stage}
-        isPresentationMode={isPresentationMode}
-      />
+    <div className={`mx-auto max-w-6xl px-4 pb-24 sm:px-6 ${isPresentationMode ? 'pt-6' : 'pt-8 sm:pt-10'}`}>
+      <h1 className="sr-only">Yield forecast dashboard</h1>
+      {forecast && field && snapshot ? (
+        <>
+          <FieldContext
+            fields={fields.length ? fields : [field]}
+            field={field}
+            snapshot={snapshot}
+            onSelectField={setFieldId}
+            isPresentationMode={isPresentationMode}
+          />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {/* Loading Shimmer Simulation */}
-        {simulateLoading ? (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <ModuleSkeleton height="h-36" />
-              <ModuleSkeleton height="h-36" />
-              <ModuleSkeleton height="h-36" />
-            </div>
-            <ModuleSkeleton height="h-96" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <ModuleSkeleton height="h-80" />
-              <ModuleSkeleton height="h-80" />
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* 2. Primary Forecast Cards (Predicted Yield, Forecast Range, Confidence) */}
-            <ForecastOverview
-              snapshot={activeSnapshot}
-              field={selectedField}
-              isPresentationMode={isPresentationMode}
-            />
+          <motion.div
+            className="mt-8"
+            initial={false}
+            animate={{ opacity: dim ? 0.4 : 1 }}
+            transition={{ duration: FADE_OUT_MS / 1000, ease: 'easeOut' }}
+          >
+            {simulateLoading ? (
+              <DashboardSkeleton />
+            ) : (
+              <>
+                <ForecastSummary snapshot={snapshot} seasonDomain={seasonDomain} isPresentationMode={isPresentationMode} />
 
-            {/* 3. Main Feature: Growing-Season Forecast Timeline & Interactive Date Slider */}
-            <ForecastTimeline
-              snapshots={fieldData.snapshots}
-              activeSnapshotIndex={activeSnapshotIndex}
-              onSelectSnapshotIndex={(idx) => setActiveSnapshotIndex(idx)}
-              isPresentationMode={isPresentationMode}
-            />
+                <section className="mt-8 rounded-2xl border border-line bg-surface transition-colors duration-300 hover:border-line-strong p-5 sm:p-7">
+                  <ForecastTimeline
+                    fieldKey={field.id}
+                    snapshots={forecast.snapshots}
+                    activeIndex={snapshotIndex}
+                    onSelectIndex={setIndex}
+                    isPresentationMode={isPresentationMode}
+                  />
+                  <div className="mt-2 border-t border-line pt-5">
+                    <GrowthStageRail stage={snapshot.stage} detail={snapshot.stageSubtext} compact={isPresentationMode} />
+                  </div>
+                </section>
 
-            {/* 4. Side-by-Side: Crop Development Signal & Environmental Context */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-              {/* Crop Signal Chart (NDVI / NDRE + Event Markers) */}
-              {simulateMissingSatellite ? (
-                <EmptyModuleState
-                  title="No satellite observations available for this period"
-                  subtext="Cloud obstruction or orbital gap on this date. Weather and soil context remain fully synchronized."
-                />
-              ) : (
-                <CropDevelopment
-                  timeline={fieldData.fullVegetationSeries || fieldData.vegetationTimeline || []}
-                  events={fieldData.events}
-                  activeDateDisplay={activeSnapshot.displayDate}
-                  activeDateIso={activeSnapshot.date}
-                />
-              )}
+                <Reveal className="mt-6 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+                  {missingSatellite ? (
+                    <EmptyState
+                      title="No satellite observations for this period"
+                      message="Cloud cover or an orbital gap left this window without imagery. Weather and soil context are unaffected."
+                    />
+                  ) : (
+                    <CropDevelopment
+                      fieldKey={field.id}
+                      timeline={forecast.fullVegetationSeries}
+                      events={forecast.events}
+                      activeDate={snapshot.date}
+                    />
+                  )}
+                  {weatherError ? (
+                    <ErrorState
+                      title="Weather context is unavailable"
+                      message="The weather service did not respond. The forecast and crop observations are unaffected."
+                      onRetry={() => setWeatherError(false)}
+                    />
+                  ) : (
+                    <EnvironmentalContext weather={snapshot.weather} soil={snapshot.soil} />
+                  )}
+                </Reveal>
 
-              {/* Environmental Context (Weather / Soil) */}
-              {simulateWeatherError ? (
-                <ErrorCard
-                  title="Environmental Telemetry Gateway Error"
-                  message="Failed to fetch latest PRISM grid cell telemetry. Regional historical averages loaded as fallback."
-                  onRetry={() => setSimulateWeatherError(false)}
-                />
-              ) : (
-                <EnvironmentalContext
-                  weather={activeSnapshot.weather}
-                  soil={activeSnapshot.soil}
-                />
-              )}
-            </div>
+                <Reveal className="mt-6">
+                  <SpatialFieldView spatial={forecast.spatial ?? snapshot.spatial} fieldName={field.name} />
+                </Reveal>
 
-            {/* 5. Spatial Field View (Polygonal Zones Matrix + Inspector HUD) */}
-            <SpatialFieldView
-              spatial={fieldData.spatial || activeSnapshot.spatial}
-              fieldName={selectedField.name}
-            />
+                <Reveal className="mt-16">
+                  <ModelExplanation drivers={snapshot.explanations} featureImportance={snapshot.featureImportance} />
+                </Reveal>
 
-            {/* 6. Explainability Section (Why is the model predicting this? + Feature Weights) */}
-            <ModelExplanation
-              explanations={activeSnapshot.explanations}
-              featureImportance={fieldData.featureImportance || activeSnapshot.featureImportance}
-            />
+                <Reveal className="mt-16 grid gap-12 border-t border-line pt-10 lg:grid-cols-2 lg:gap-16">
+                  <HistoricalComparison
+                    historical={forecast.historical}
+                    currentForecastYield={snapshot.yield}
+                    seasonYear={field.season}
+                  />
+                  {!isPresentationMode && <DataSources sources={sources} />}
+                </Reveal>
+              </>
+            )}
+          </motion.div>
+        </>
+      ) : showSkeleton ? (
+        <DashboardSkeleton />
+      ) : (
+        <div className="min-h-[70vh]" />
+      )}
 
-            {/* 7. Historical Comparison (USDA NASS County Benchmark) */}
-            <HistoricalComparison
-              historical={fieldData.historical}
-              currentForecastYield={activeSnapshot.yield}
-            />
-
-            {/* 8. Data Provenance & Freshness (Transparent source badges) */}
-            <DataSources
-              sources={fieldData.sources}
-              forecastGeneratedAt={
-                fieldData.metadata?.forecastGeneratedAt ||
-                `${activeSnapshot.displayDate}, 2026 · ${activeSnapshot.generatedAt}`
-              }
-            />
-          </>
-        )}
-      </main>
-
-      {/* 9. Demo Control Ribbon & Presentation Facilitator */}
-      <DemoControlRibbon
-        fields={ALL_FIELDS.map((f) => f.field)}
-        selectedField={selectedField}
-        onSelectField={(f) => setSelectedField(f)}
-        isPresentationMode={isPresentationMode}
-        onTogglePresentationMode={onTogglePresentationMode}
-        onResetDemo={handleResetDemo}
-        simulateLoading={simulateLoading}
-        onToggleSimulateLoading={() => setSimulateLoading(!simulateLoading)}
-        simulateMissingSatellite={simulateMissingSatellite}
-        onToggleSimulateMissingSatellite={() =>
-          setSimulateMissingSatellite(!simulateMissingSatellite)
-        }
-        simulateWeatherError={simulateWeatherError}
-        onToggleSimulateWeatherError={() =>
-          setSimulateWeatherError(!simulateWeatherError)
-        }
-      />
+      {isDebugMode && fields.length > 0 && (
+        <DebugPanel
+          fields={fields}
+          selectedFieldId={fieldId}
+          onSelectField={setFieldId}
+          simulateLoading={simulateLoading}
+          onToggleLoading={() => setSimulateLoading((v) => !v)}
+          simulateMissingSatellite={missingSatellite}
+          onToggleMissingSatellite={() => setMissingSatellite((v) => !v)}
+          simulateWeatherError={weatherError}
+          onToggleWeatherError={() => setWeatherError((v) => !v)}
+          onReset={reset}
+          isPresentationMode={isPresentationMode}
+          onTogglePresentationMode={onTogglePresentationMode}
+        />
+      )}
     </div>
   );
-};
+}

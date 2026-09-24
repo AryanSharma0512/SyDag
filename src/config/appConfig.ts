@@ -1,18 +1,34 @@
 /**
  * Application Configuration
- * Centralized branding and demo settings so the application can be renamed or reconfigured instantly.
+ * Centralized branding and demo settings.
  */
 
 export const APP_CONFIG = {
-  name: 'YieldLens',
-  tagline: 'Precision Crop Yield Forecasting & Agricultural Intelligence',
-  subtitle: 'Understand where yield is heading, how confident the forecast is, and what is influencing it.',
+  name: 'SoilSignal',
+  tagline: 'See the season before harvest.',
+  subtitle:
+    'Progressive crop yield forecasting powered by field observations, environmental context, and interpretable models.',
   version: '1.0.0-hackathon',
-  datasetLabel: 'Demo Dataset', // Will become 'Purdue 2026 Dataset' when competition data arrives
+  datasetLabel: 'Demo Data',
   demoMode: true,
   defaultFieldId: 'purdue-104',
-  defaultDateIndex: 4, // July 22, 2026
+  defaultDateIndex: 4,
   seasonYear: 2026,
-  supportedCrops: ['Corn (Maize)', 'Soybeans', 'Winter Wheat'],
-  contactEmail: 'iot4ag-team@hackathon.org',
 };
+
+export const EVENT_CONTEXT = {
+  name: 'SyDAg26 IoT4Ag Hackathon',
+  host: 'Purdue University',
+};
+
+export interface TeamMember {
+  name: string;
+  initials: string;
+  degree: string;
+}
+
+export const TEAM: TeamMember[] = [
+  { name: 'Aryan Sharma', initials: 'AS', degree: 'B.S. Agriculture' },
+  { name: 'Sahil Jain', initials: 'SJ', degree: 'B.S. Computer Science' },
+  { name: 'Shashwat Goel', initials: 'SG', degree: 'B.S. Computer Science' },
+];

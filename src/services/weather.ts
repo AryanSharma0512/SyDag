@@ -1,6 +1,7 @@
 /**
  * Weather Context Service
- * Supplies meteorological enrichment and historical anomaly metrics.
+ * Weather summaries and anomalies for a field and forecast date. Demo values
+ * today; PRISM / NOAA are candidate sources once the backend API is in place.
  */
 
 import { WeatherContext } from '../types/agricultural';

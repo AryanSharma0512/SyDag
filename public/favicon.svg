@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <style>
+    .soil { stroke: #A66A3F; }
+    .leaf { fill: #086C4C; }
+    .arc { stroke: #086C4C; }
+    @media (prefers-color-scheme: dark) {
+      .soil { stroke: #D3A882; }
+      .leaf { fill: #5FBF95; }
+      .arc { stroke: #5FBF95; }
+    }
+  </style>
+  <path class="soil" d="M10.5 24.6H26" stroke-width="3" stroke-linecap="round"/>
+  <path class="soil" d="M6 29.1H19" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+  <path class="leaf" d="M9.6 14C14.4 12.7 21.8 15.1 23.4 20.4C18.6 21.7 11.2 19.3 9.6 14Z"/>
+  <path class="arc" d="M22.38 8.61A7 7 0 0 0 9.27 10.93" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

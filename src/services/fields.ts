@@ -1,14 +1,13 @@
 /**
  * Fields Service
- * Decouples field metadata access. Currently resolves centralized mock data,
- * ready to be swapped with GET /api/fields when backend arrives.
+ * Field metadata for the field selector. Resolves demo data today and is ready
+ * to be swapped for GET /api/fields.
  */
 
 import { FieldMeta } from '../types/agricultural';
 import { ALL_FIELDS } from '../mock/fieldsData';
 
 export async function getFields(): Promise<FieldMeta[]> {
-  // Simulates instant or fast network response without artificial delays
   return ALL_FIELDS.map((f) => f.field);
 }
 

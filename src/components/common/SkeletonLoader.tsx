@@ -1,66 +1,71 @@
-import React from 'react';
-import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { CloudOff, RefreshCw, SatelliteDish } from 'lucide-react';
 
-export const ModuleSkeleton: React.FC<{ className?: string; height?: string }> = ({
-  className = '',
-  height = 'h-48',
-}) => {
+function Block({ className = '' }: { className?: string }) {
+  return <div className={`ss-skeleton rounded-lg ${className}`} />;
+}
+
+/** Placeholder layout shown while a forecast loads. Mirrors the real dashboard so nothing jumps. */
+export function DashboardSkeleton() {
   return (
-    <div
-      className={`bg-white rounded-lg border border-slate-200/80 p-5 animate-pulse flex flex-col justify-between ${height} ${className}`}
-    >
-      <div className="space-y-3">
-        <div className="h-4 bg-slate-200/70 rounded w-1/4"></div>
-        <div className="h-3 bg-slate-100 rounded w-3/4"></div>
+    <div className="space-y-8" aria-busy="true" aria-label="Loading forecast">
+      <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={i === 0 ? 'col-span-2 sm:col-span-1' : ''}>
+            <Block className="h-12 w-40" />
+            <Block className="mt-3 h-3 w-16" />
+            <Block className="mt-3 h-3 w-28" />
+          </div>
+        ))}
       </div>
-      <div className="space-y-2">
-        <div className="h-8 bg-slate-100 rounded w-1/2"></div>
-        <div className="h-3 bg-slate-100 rounded w-full"></div>
+      <div className="rounded-2xl border border-line bg-surface p-6">
+        <Block className="h-4 w-72" />
+        <Block className="mt-3 h-3 w-96 max-w-full" />
+        <Block className="mt-6 h-72 w-full" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-line bg-surface p-6">
+          <Block className="h-4 w-40" />
+          <Block className="mt-6 h-52 w-full" />
+        </div>
+        <div className="rounded-2xl border border-line bg-surface p-6">
+          <Block className="h-4 w-48" />
+          <Block className="mt-6 h-52 w-full" />
+        </div>
       </div>
     </div>
   );
-};
+}
 
-export const ErrorCard: React.FC<{
-  title: string;
-  message: string;
-  onRetry?: () => void;
-  className?: string;
-}> = ({ title, message, onRetry, className = '' }) => {
+export function EmptyState({ title, message }: { title: string; message: string }) {
   return (
-    <div
-      className={`bg-white rounded-lg border border-amber-200/80 p-5 flex flex-col items-start gap-3 shadow-xs ${className}`}
-    >
-      <div className="flex items-center gap-2.5 text-amber-800 font-medium text-sm">
-        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-        <span>{title}</span>
-      </div>
-      <p className="text-xs text-slate-600 leading-relaxed">{message}</p>
+    <section className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong bg-surface/60 p-8 text-center">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-mist text-muted">
+        <SatelliteDish className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <h2 className="mt-4 text-[15px] font-semibold text-ink">{title}</h2>
+      <p className="mt-1.5 max-w-sm text-[14px] leading-relaxed text-muted">{message}</p>
+    </section>
+  );
+}
+
+export function ErrorState({ title, message, onRetry }: { title: string; message: string; onRetry?: () => void }) {
+  return (
+    <section className="flex h-full min-h-[320px] flex-col items-start justify-center rounded-2xl border border-sun-300/70 bg-surface p-6 sm:p-8">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sun-50 text-sun-700">
+        <CloudOff className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <h2 className="mt-4 text-[15px] font-semibold text-ink">{title}</h2>
+      <p className="mt-1.5 max-w-md text-[14px] leading-relaxed text-muted">{message}</p>
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
-          className="mt-1 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 border border-slate-300 rounded hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer"
+          className="lift mt-5 inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-4 py-2 text-[14px] font-medium text-ink hover:border-faint"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Retry</span>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Retry
         </button>
       )}
-    </div>
+    </section>
   );
-};
-
-export const EmptyModuleState: React.FC<{
-  title: string;
-  subtext: string;
-  className?: string;
-}> = ({ title, subtext, className = '' }) => {
-  return (
-    <div
-      className={`bg-white rounded-lg border border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center text-slate-500 ${className}`}
-    >
-      <Layers className="w-8 h-8 text-slate-300 mb-2" />
-      <h4 className="text-sm font-medium text-slate-700 mb-1">{title}</h4>
-      <p className="text-xs text-slate-500 max-w-sm">{subtext}</p>
-    </div>
-  );
-};
+}

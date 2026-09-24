@@ -1,11 +1,64 @@
 /**
- * Centralized Realistic Mock Data for 5 Agricultural Fields
- * Adheres strictly to Section 41 and 42 of the Developer Brief.
- * Provides realistic time-series snapshots, vegetation curves, environmental context,
- * spatial grid zones, and explainability feature weights.
+ * Demo data for five fields.
+ * Realistic but illustrative: forecast snapshots, vegetation curves, environmental
+ * context, spatial zones and explanation weights. Only the service layer reads this
+ * file; components receive the same normalized shapes a backend would return.
  */
 
-import { FieldForecast, SpatialZone } from '../types/agricultural';
+import { DataSource, FieldForecast, SpatialZone } from '../types/agricultural';
+
+/**
+ * Provenance. Only the competition observations are challenge-provided; every
+ * other source is a candidate enrichment that is not connected yet. The challenge
+ * rules and the actual dataset will determine the final integrations.
+ */
+export const DATA_SOURCES: DataSource[] = [
+  {
+    id: 'challenge-observations',
+    name: 'Competition multispectral observations',
+    shortName: 'Hackathon data',
+    purpose: 'Crop observations',
+    role: 'challenge',
+    statusLabel: 'Challenge-provided',
+    detail: 'Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released.',
+  },
+  {
+    id: 'prism-noaa',
+    name: 'PRISM / NOAA',
+    shortName: 'PRISM / NOAA',
+    purpose: 'Weather',
+    role: 'candidate',
+    statusLabel: 'Candidate weather enrichment',
+    detail: 'Daily precipitation, temperature and growing degree days.',
+  },
+  {
+    id: 'usda-ssurgo',
+    name: 'USDA SSURGO',
+    shortName: 'USDA SSURGO',
+    purpose: 'Soil',
+    role: 'candidate',
+    statusLabel: 'Candidate soil enrichment',
+    detail: 'Available water capacity, drainage class, organic matter and texture.',
+  },
+  {
+    id: 'usda-nass',
+    name: 'USDA NASS',
+    shortName: 'USDA NASS',
+    purpose: 'Historical yield',
+    role: 'candidate',
+    statusLabel: 'Candidate historical context',
+    detail: 'County-level yield history for regional baselines.',
+  },
+  {
+    id: 'sentinel-2',
+    name: 'Sentinel-2',
+    shortName: 'Sentinel-2',
+    purpose: 'Spatial context',
+    role: 'candidate',
+    statusLabel: 'Candidate spatial enrichment',
+    detail: 'Multispectral imagery for within-field variability.',
+  },
+];
 
 const createSpatialGrid = (
   baseYield: number,
@@ -339,7 +392,7 @@ export const PURDUE_104_DATA: FieldForecast = {
         zones: createSpatialGrid(179, 0.81, 46, 'Silt loam', 1.05),
       },
     },
-    // DEFAULT SNAPSHOT: July 22, 2026
+    // Default snapshot: July 22, 2026
     {
       id: 'snap-5',
       date: '2026-07-22',
@@ -422,7 +475,7 @@ export const PURDUE_104_DATA: FieldForecast = {
       id: 'snap-6',
       date: '2026-07-30',
       displayDate: 'Jul 30',
-      stage: 'Reproductive',
+      stage: 'Grain Fill',
       stageSubtext: 'R3 - Milk stage; kernel starch accumulation begins',
       yield: 184.0,
       unit: 'bu/ac',
@@ -490,7 +543,7 @@ export const PURDUE_104_DATA: FieldForecast = {
       id: 'snap-7',
       date: '2026-08-15',
       displayDate: 'Aug 15',
-      stage: 'Reproductive',
+      stage: 'Grain Fill',
       stageSubtext: 'R4 / R5 - Dough to early dent; late summer rainfall replenished soil reserves',
       yield: 186.2,
       unit: 'bu/ac',
@@ -681,53 +734,7 @@ export const PURDUE_104_DATA: FieldForecast = {
       { year: 2026, yield: 184.3, type: 'forecast' },
     ],
   },
-  sources: [
-    {
-      id: 'src-1',
-      name: 'Multispectral Observations',
-      source: 'Challenge Dataset (PlanetScope & Sentinel-2)',
-      resolution: '3m - 10m / 5-day cadence',
-      lastObservation: 'July 21, 2026',
-      status: 'active',
-      badge: 'Challenge Dataset',
-    },
-    {
-      id: 'src-2',
-      name: 'Meteorological Enrichment',
-      source: 'PRISM / NOAA HRRR Analysis',
-      resolution: '800m gridded / hourly reanalysis',
-      lastObservation: '2 hours ago',
-      status: 'active',
-      badge: 'PRISM / NOAA',
-    },
-    {
-      id: 'src-3',
-      name: 'Soil Taxonomy & Hydraulic Properties',
-      source: 'USDA NRCS SSURGO Database',
-      resolution: '1:24,000 tabular pedon survey',
-      lastObservation: 'Baseline 2026 Release',
-      status: 'active',
-      badge: 'USDA NRCS SSURGO',
-    },
-    {
-      id: 'src-4',
-      name: 'Historical Agricultural Benchmark',
-      source: 'USDA NASS Quick Stats',
-      resolution: 'County-level 10-year yield distributions',
-      lastObservation: '2021 - 2025 Benchmarks',
-      status: 'active',
-      badge: 'USDA NASS',
-    },
-    {
-      id: 'src-5',
-      name: 'Satellite Surface Context',
-      source: 'Copernicus Sentinel-2 Level-2A',
-      resolution: '10m surface reflectance (B2, B3, B4, B8, B8A)',
-      lastObservation: 'July 21, 2026 (0.8% cloud cover)',
-      status: 'active',
-      badge: 'Sentinel-2',
-    },
-  ],
+  sources: DATA_SOURCES,
 };
 
 // FIELD 2: Purdue Plot 221 (Rainfall Stress)
@@ -1055,7 +1062,7 @@ export const PURDUE_221_DATA: FieldForecast = {
       id: 'p221-snap-6',
       date: '2026-07-30',
       displayDate: 'Jul 30',
-      stage: 'Reproductive',
+      stage: 'Grain Fill',
       stageSubtext: 'R3 - Kernel abortion fixed',
       yield: 152.8,
       unit: 'bu/ac',
@@ -1112,7 +1119,7 @@ export const PURDUE_221_DATA: FieldForecast = {
       id: 'p221-snap-7',
       date: '2026-08-15',
       displayDate: 'Aug 15',
-      stage: 'Reproductive',
+      stage: 'Grain Fill',
       stageSubtext: 'R4 - Modest late rain too late to restore ear size',
       yield: 150.1,
       unit: 'bu/ac',
@@ -1273,7 +1280,7 @@ export const PURDUE_221_DATA: FieldForecast = {
       { year: 2026, yield: 154.2, type: 'forecast' },
     ],
   },
-  sources: PURDUE_104_DATA.sources,
+  sources: DATA_SOURCES,
 };
 
 // FIELD 3: Illinois Field 18 (Average / Baseline Benchmark)
@@ -1517,7 +1524,7 @@ export const ILLINOIS_18_DATA: FieldForecast = {
       { year: 2026, yield: 189.5, type: 'forecast' },
     ],
   },
-  sources: PURDUE_104_DATA.sources,
+  sources: DATA_SOURCES,
 };
 
 // FIELD 4: Nebraska Plot 42 (Heat Stress & Vapor Pressure Deficit)
@@ -1768,7 +1775,7 @@ export const NEBRASKA_42_DATA: FieldForecast = {
       { year: 2026, yield: 162.4, type: 'forecast' },
     ],
   },
-  sources: PURDUE_104_DATA.sources,
+  sources: DATA_SOURCES,
 };
 
 // FIELD 5: Iowa Field 07 (Early Surge, Late Waterlogging / Disease Pressure)
@@ -2019,7 +2026,7 @@ export const IOWA_07_DATA: FieldForecast = {
       { year: 2026, yield: 174.5, type: 'forecast' },
     ],
   },
-  sources: PURDUE_104_DATA.sources,
+  sources: DATA_SOURCES,
 };
 
 export const ALL_FIELDS: FieldForecast[] = [
