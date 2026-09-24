@@ -1,24 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
-import type { HistoricalContext } from '../../types/agricultural';
+import type { HistoricalContext, YieldHistory } from '../../types/agricultural';
 import { AnimatedNumber } from '../common/AnimatedNumber';
 import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
-import { formatSignedPercent } from '../../utils/formatters';
+import { formatRetrieved, formatSignedPercent } from '../../utils/formatters';
 
 interface HistoricalComparisonProps {
+  /** Demo scenario values, shown when county yields aren't available. */
   historical: HistoricalContext;
   currentForecastYield: number;
   seasonYear: number;
+  /** County yields from USDA NASS for the field's county, when connected. */
+  countyHistory?: YieldHistory | null;
+  /** Why county yields are missing, e.g. no API key yet. */
+  countyNote?: string | null;
 }
 
-export function HistoricalComparison({ historical, currentForecastYield, seasonYear }: HistoricalComparisonProps) {
+export function HistoricalComparison({ historical, currentForecastYield, seasonYear, countyHistory, countyNote }: HistoricalComparisonProps) {
   const reduce = useReducedMotion();
-  const average = historical.regional5YearAvg;
+  const county = countyHistory && countyHistory.fiveYearAverage !== null ? countyHistory : null;
+  const average = county ? (county.fiveYearAverage as number) : historical.regional5YearAvg;
   const delta = ((currentForecastYield - average) / average) * 100;
-  const rows = historical.yearlyYields.map((item) => ({
-    ...item,
-    value: item.type === 'forecast' ? currentForecastYield : item.yield,
-  }));
+  const rows = county
+    ? [
+        ...county.years.slice(-5).map((y) => ({ year: y.year, type: 'historical' as const, value: y.yield })),
+        { year: seasonYear, type: 'forecast' as const, value: currentForecastYield },
+      ]
+    : historical.yearlyYields.map((item) => ({
+        ...item,
+        value: item.type === 'forecast' ? currentForecastYield : item.yield,
+      }));
   const max = Math.max(...rows.map((r) => r.value), average) * 1.04;
   const listRef = useRef<HTMLUListElement>(null);
   const inView = useInView(listRef, { once: true, margin: '0px 0px -10% 0px' });
@@ -45,7 +56,7 @@ export function HistoricalComparison({ historical, currentForecastYield, seasonY
           </dd>
         </div>
         <div>
-          <dt className="text-[13px] text-muted">5-year average</dt>
+          <dt className="text-[13px] text-muted">{county ? '5-year county average' : '5-year average'}</dt>
           <dd className="data-tight mt-1 text-[24px] font-medium text-ink">{average.toFixed(0)}</dd>
         </div>
         <div>
@@ -89,8 +100,14 @@ export function HistoricalComparison({ historical, currentForecastYield, seasonY
         </div>
       </div>
 
-      <p className="mt-6 text-[12px] text-muted">
-        {seasonYear} value is the current forecast · Demo values · Candidate source: USDA NASS
+      <p className="mt-6 flex items-baseline gap-2 text-[12px] leading-relaxed text-muted">
+        {county && <span className="mt-[5px] h-1.5 w-1.5 shrink-0 self-start rounded-full bg-rain-500" aria-hidden="true" />}
+        <span>
+          {seasonYear} value is the current forecast ·{' '}
+          {county
+            ? `USDA NASS corn yields for ${county.county.name}, ${county.county.stateCode} · retrieved ${formatRetrieved(county.retrievedAt)}`
+            : `Demo values · ${countyNote ?? 'County yields from USDA NASS are not connected yet.'}`}
+        </span>
       </p>
     </section>
   );

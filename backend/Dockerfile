@@ -16,7 +16,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY data ./data
 
-RUN useradd --system --uid 10001 soilsignal
+RUN useradd --system --uid 10001 soilsignal \
+ && mkdir -p /app/cache \
+ && chown soilsignal /app/cache
 USER soilsignal
 
 EXPOSE 8000

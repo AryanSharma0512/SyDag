@@ -12,6 +12,8 @@ interface FieldContextProps {
   snapshot: ForecastSnapshot;
   onSelectField: (fieldId: string) => void;
   isPresentationMode?: boolean;
+  /** Soil mapped at the field's coordinates, when public data has loaded. */
+  soilLabel?: string;
 }
 
 const swap = {
@@ -21,7 +23,7 @@ const swap = {
   transition: { duration: 0.15, ease: EASE_OUT },
 };
 
-export function FieldContext({ fields, field, snapshot, onSelectField, isPresentationMode = false }: FieldContextProps) {
+export function FieldContext({ fields, field, snapshot, onSelectField, isPresentationMode = false, soilLabel }: FieldContextProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -160,7 +162,7 @@ export function FieldContext({ fields, field, snapshot, onSelectField, isPresent
             </AnimatePresence>
           </span>
           {' · '}
-          {field.soilClassification} · Regional baseline <span className="data">{field.regionalBaseline}</span> bu/ac
+          {soilLabel ?? field.soilClassification} · Regional baseline <span className="data">{field.regionalBaseline}</span> bu/ac
         </p>
       )}
     </header>

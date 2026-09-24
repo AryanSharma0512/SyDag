@@ -1,0 +1,1867 @@
+{
+ "results": [
+  {
+   "endDate": "2026-09-20T23:59:59",
+   "stations": [
+    {
+     "dataTypes": [
+      {
+       "coverage": 8.91641085353375,
+       "endDate": "2026-09-19T23:59:59",
+       "dateRange": {
+        "start": "1949-02-14T00:00:00",
+        "end": "2026-09-19T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT03",
+       "startDate": "1949-02-14T00:00:00"
+      },
+      {
+       "coverage": 0.5720864965998632,
+       "endDate": "2025-02-14T23:59:59",
+       "dateRange": {
+        "start": "1949-01-11T00:00:00",
+        "end": "2025-02-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT04",
+       "startDate": "1949-01-11T00:00:00"
+      },
+      {
+       "coverage": 9.04109589041096,
+       "endDate": "2001-06-12T23:59:59",
+       "dateRange": {
+        "start": "2000-06-12T00:00:00",
+        "end": "2001-06-12T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WV03",
+       "startDate": "2000-06-12T00:00:00"
+      },
+      {
+       "coverage": 0.24228835931002063,
+       "endDate": "2026-02-06T23:59:59",
+       "dateRange": {
+        "start": "1950-05-23T00:00:00",
+        "end": "2026-02-06T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT05",
+       "startDate": "1950-05-23T00:00:00"
+      },
+      {
+       "coverage": 93.32383539858193,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1944-02-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PRCP",
+       "startDate": "1944-02-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1988-12-26T23:59:59",
+       "dateRange": {
+        "start": "1988-12-26T00:00:00",
+        "end": "1988-12-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WSFM",
+       "startDate": "1988-12-26T00:00:00"
+      },
+      {
+       "coverage": 0.9023090586145649,
+       "endDate": "2026-02-06T23:59:59",
+       "dateRange": {
+        "start": "1949-01-11T00:00:00",
+        "end": "2026-02-06T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT06",
+       "startDate": "1949-01-11T00:00:00"
+      },
+      {
+       "coverage": 0.09362043600374481,
+       "endDate": "1989-03-15T23:59:59",
+       "dateRange": {
+        "start": "1968-09-24T00:00:00",
+        "end": "1989-03-15T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT07",
+       "startDate": "1968-09-24T00:00:00"
+      },
+      {
+       "coverage": 26.81887045062185,
+       "endDate": "2026-09-17T23:59:59",
+       "dateRange": {
+        "start": "1949-01-01T00:00:00",
+        "end": "2026-09-17T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT08",
+       "startDate": "1949-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.8629746360498274,
+       "endDate": "2022-12-24T23:59:59",
+       "dateRange": {
+        "start": "1950-01-04T00:00:00",
+        "end": "2022-12-24T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT09",
+       "startDate": "1950-01-04T00:00:00"
+      },
+      {
+       "coverage": 61.976118797145084,
+       "endDate": "2024-12-09T23:59:59",
+       "dateRange": {
+        "start": "1944-01-01T00:00:00",
+        "end": "2024-12-09T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNWD",
+       "startDate": "1944-01-01T00:00:00"
+      },
+      {
+       "coverage": 58.86312640239342,
+       "endDate": "1989-04-30T23:59:59",
+       "dateRange": {
+        "start": "1985-09-01T00:00:00",
+        "end": "1989-04-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WDF1",
+       "startDate": "1985-09-01T00:00:00"
+      },
+      {
+       "coverage": 99.74035964996635,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WDF2",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "2006-06-25T23:59:59",
+       "dateRange": {
+        "start": "2006-06-25T00:00:00",
+        "end": "2006-06-25T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT10",
+       "startDate": "2006-06-25T00:00:00"
+      },
+      {
+       "coverage": 99.57688239253774,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WDF5",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 48.486362273953446,
+       "endDate": "2025-08-26T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2025-08-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PGTM",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 0.16933698059137683,
+       "endDate": "2001-05-26T23:59:59",
+       "dateRange": {
+        "start": "1959-05-13T00:00:00",
+        "end": "2001-05-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT11",
+       "startDate": "1959-05-13T00:00:00"
+      },
+      {
+       "coverage": 64.27732079905994,
+       "endDate": "2001-06-30T23:59:59",
+       "dateRange": {
+        "start": "1999-03-02T00:00:00",
+        "end": "2001-06-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT13",
+       "startDate": "1999-03-02T00:00:00"
+      },
+      {
+       "coverage": 74.44146559428061,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1944-01-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMAX",
+       "startDate": "1944-01-01T00:00:00"
+      },
+      {
+       "coverage": 99.74035964996635,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WSF2",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 48.59951521680582,
+       "endDate": "2005-12-31T23:59:59",
+       "dateRange": {
+        "start": "1985-09-01T00:00:00",
+        "end": "2005-12-31T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "FMTM",
+       "startDate": "1985-09-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1958-02-14T23:59:59",
+       "dateRange": {
+        "start": "1958-02-14T00:00:00",
+        "end": "1958-02-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAPR",
+       "startDate": "1958-02-14T00:00:00"
+      },
+      {
+       "coverage": 99.58649870179825,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WSF5",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 58.86312640239342,
+       "endDate": "1989-04-30T23:59:59",
+       "dateRange": {
+        "start": "1985-09-01T00:00:00",
+        "end": "1989-04-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "ACMH",
+       "startDate": "1985-09-01T00:00:00"
+      },
+      {
+       "coverage": 61.685214626391094,
+       "endDate": "2024-12-09T23:59:59",
+       "dateRange": {
+        "start": "1944-01-01T00:00:00",
+        "end": "2024-12-09T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNOW",
+       "startDate": "1944-01-01T00:00:00"
+      },
+      {
+       "coverage": 2.32226643701372,
+       "endDate": "2001-03-12T23:59:59",
+       "dateRange": {
+        "start": "1955-02-05T00:00:00",
+        "end": "2001-03-12T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT14",
+       "startDate": "1955-02-05T00:00:00"
+      },
+      {
+       "coverage": 58.937920718025424,
+       "endDate": "1989-04-30T23:59:59",
+       "dateRange": {
+        "start": "1985-09-01T00:00:00",
+        "end": "1989-04-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "ACSH",
+       "startDate": "1985-09-01T00:00:00"
+      },
+      {
+       "coverage": 0.3546099290780142,
+       "endDate": "2001-01-04T23:59:59",
+       "dateRange": {
+        "start": "1984-01-10T00:00:00",
+        "end": "2001-01-04T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT15",
+       "startDate": "1984-01-10T00:00:00"
+      },
+      {
+       "coverage": 24.20843983099473,
+       "endDate": "2001-06-30T23:59:59",
+       "dateRange": {
+        "start": "1949-01-03T00:00:00",
+        "end": "2001-06-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT16",
+       "startDate": "1949-01-03T00:00:00"
+      },
+      {
+       "coverage": 0.32102728731942215,
+       "endDate": "2001-01-29T23:59:59",
+       "dateRange": {
+        "start": "1984-01-09T00:00:00",
+        "end": "2001-01-29T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT17",
+       "startDate": "1984-01-09T00:00:00"
+      },
+      {
+       "coverage": 10.321257689678742,
+       "endDate": "1956-02-07T23:59:59",
+       "dateRange": {
+        "start": "1944-02-01T00:00:00",
+        "end": "1956-02-07T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TOBS",
+       "startDate": "1944-02-01T00:00:00"
+      },
+      {
+       "coverage": 9.23044685420923,
+       "endDate": "2001-04-17T23:59:59",
+       "dateRange": {
+        "start": "1949-01-11T00:00:00",
+        "end": "2001-04-17T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT18",
+       "startDate": "1949-01-11T00:00:00"
+      },
+      {
+       "coverage": 1.8567639257294428,
+       "endDate": "2001-03-29T23:59:59",
+       "dateRange": {
+        "start": "1999-03-06T00:00:00",
+        "end": "2001-03-29T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT19",
+       "startDate": "1999-03-06T00:00:00"
+      },
+      {
+       "coverage": 58.86312640239342,
+       "endDate": "1989-04-30T23:59:59",
+       "dateRange": {
+        "start": "1985-09-01T00:00:00",
+        "end": "1989-04-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WSF1",
+       "startDate": "1985-09-01T00:00:00"
+      },
+      {
+       "coverage": 99.65381286662179,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "AWND",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 0.7518796992481203,
+       "endDate": "2000-05-01T23:59:59",
+       "dateRange": {
+        "start": "1999-03-29T00:00:00",
+        "end": "2000-05-01T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT21",
+       "startDate": "1999-03-29T00:00:00"
+      },
+      {
+       "coverage": 0.3405994550408719,
+       "endDate": "2001-02-07T23:59:59",
+       "dateRange": {
+        "start": "1985-01-10T00:00:00",
+        "end": "2001-02-07T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT22",
+       "startDate": "1985-01-10T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1949-08-23T23:59:59",
+       "dateRange": {
+        "start": "1949-08-23T00:00:00",
+        "end": "1949-08-23T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WSFG",
+       "startDate": "1949-08-23T00:00:00"
+      },
+      {
+       "coverage": 35.609343621181694,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1949-01-04T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT01",
+       "startDate": "1949-01-04T00:00:00"
+      },
+      {
+       "coverage": 5.351586807716242,
+       "endDate": "2026-08-27T23:59:59",
+       "dateRange": {
+        "start": "1965-01-21T00:00:00",
+        "end": "2026-08-27T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT02",
+       "startDate": "1965-01-21T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1952-10-31T23:59:59",
+       "dateRange": {
+        "start": "1952-07-01T00:00:00",
+        "end": "1952-10-31T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WESD",
+       "startDate": "1952-07-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "2015-08-26T23:59:59",
+       "dateRange": {
+        "start": "2015-08-26T00:00:00",
+        "end": "2015-08-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PSUN",
+       "startDate": "2015-08-26T00:00:00"
+      },
+      {
+       "coverage": 99.25317401045557,
+       "endDate": "2005-07-31T23:59:59",
+       "dateRange": {
+        "start": "1998-04-01T00:00:00",
+        "end": "2005-07-31T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TAVG",
+       "startDate": "1998-04-01T00:00:00"
+      },
+      {
+       "coverage": 74.4282262602191,
+       "endDate": "2026-09-20T23:59:59",
+       "dateRange": {
+        "start": "1944-01-01T00:00:00",
+        "end": "2026-09-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMIN",
+       "startDate": "1944-01-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1988-12-26T23:59:59",
+       "dateRange": {
+        "start": "1988-12-26T00:00:00",
+        "end": "1988-12-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WDFM",
+       "startDate": "1988-12-26T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1958-02-14T23:59:59",
+       "dateRange": {
+        "start": "1958-02-14T00:00:00",
+        "end": "1958-02-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDPR",
+       "startDate": "1958-02-14T00:00:00"
+      },
+      {
+       "coverage": 0.33783783783783783,
+       "endDate": "2015-08-26T23:59:59",
+       "dateRange": {
+        "start": "2005-02-11T00:00:00",
+        "end": "2015-08-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TSUN",
+       "startDate": "2005-02-11T00:00:00"
+      }
+     ],
+     "name": "LAFAYETTE PURDUE UNIVERSITY AIRPORT, IN US",
+     "id": "USW00014835",
+     "platforms": [
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "AIRWAYS",
+       "startDate": "0001-01-01T00:00:00"
+      },
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "ASOS",
+       "startDate": "0001-01-01T00:00:00"
+      },
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "WXSVC",
+       "startDate": "0001-01-01T00:00:00"
+      }
+     ]
+    }
+   ],
+   "dataTypes": [
+    {
+     "id": "WT03"
+    },
+    {
+     "id": "WT04"
+    },
+    {
+     "id": "WV03"
+    },
+    {
+     "id": "WT05"
+    },
+    {
+     "id": "PRCP"
+    },
+    {
+     "id": "WSFM"
+    },
+    {
+     "id": "WT06"
+    },
+    {
+     "id": "WT07"
+    },
+    {
+     "id": "WT08"
+    },
+    {
+     "id": "WT09"
+    },
+    {
+     "id": "SNWD"
+    },
+    {
+     "id": "WDF1"
+    },
+    {
+     "id": "WDF2"
+    },
+    {
+     "id": "WT10"
+    },
+    {
+     "id": "WDF5"
+    },
+    {
+     "id": "PGTM"
+    },
+    {
+     "id": "WT11"
+    },
+    {
+     "id": "WT13"
+    },
+    {
+     "id": "TMAX"
+    },
+    {
+     "id": "WSF2"
+    },
+    {
+     "id": "FMTM"
+    },
+    {
+     "id": "DAPR"
+    },
+    {
+     "id": "WSF5"
+    },
+    {
+     "id": "ACMH"
+    },
+    {
+     "id": "SNOW"
+    },
+    {
+     "id": "WT14"
+    },
+    {
+     "id": "ACSH"
+    },
+    {
+     "id": "WT15"
+    },
+    {
+     "id": "WT16"
+    },
+    {
+     "id": "WT17"
+    },
+    {
+     "id": "TOBS"
+    },
+    {
+     "id": "WT18"
+    },
+    {
+     "id": "WT19"
+    },
+    {
+     "id": "WSF1"
+    },
+    {
+     "id": "AWND"
+    },
+    {
+     "id": "WT21"
+    },
+    {
+     "id": "WT22"
+    },
+    {
+     "id": "WSFG"
+    },
+    {
+     "id": "WT01"
+    },
+    {
+     "id": "WT02"
+    },
+    {
+     "id": "WESD"
+    },
+    {
+     "id": "PSUN"
+    },
+    {
+     "id": "TAVG"
+    },
+    {
+     "id": "TMIN"
+    },
+    {
+     "id": "WDFM"
+    },
+    {
+     "id": "MDPR"
+    },
+    {
+     "id": "TSUN"
+    }
+   ],
+   "location": {
+    "coordinates": [
+     -86.94739,
+     40.41236
+    ],
+    "type": "point"
+   },
+   "startDate": "1944-01-01T00:00:00"
+  },
+  {
+   "endDate": "2026-09-18T23:59:59",
+   "stations": [
+    {
+     "dataTypes": [
+      {
+       "coverage": 53.26499471810321,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1956-09-05T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "EVAP",
+       "startDate": "1956-09-05T00:00:00"
+      },
+      {
+       "coverage": 0.03494147303267028,
+       "endDate": "2020-03-28T23:59:59",
+       "dateRange": {
+        "start": "1910-07-17T00:00:00",
+        "end": "2020-03-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT03",
+       "startDate": "1910-07-17T00:00:00"
+      },
+      {
+       "coverage": 0.07829910257182436,
+       "endDate": "2004-04-14T23:59:59",
+       "dateRange": {
+        "start": "1958-10-30T00:00:00",
+        "end": "2004-04-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDWM",
+       "startDate": "1958-10-30T00:00:00"
+      },
+      {
+       "coverage": 0.1457725947521866,
+       "endDate": "2024-01-12T23:59:59",
+       "dateRange": {
+        "start": "1901-12-13T00:00:00",
+        "end": "2024-01-12T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT04",
+       "startDate": "1901-12-13T00:00:00"
+      },
+      {
+       "coverage": 0.04068542982959985,
+       "endDate": "2017-03-07T23:59:59",
+       "dateRange": {
+        "start": "1902-10-13T00:00:00",
+        "end": "2017-03-07T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT05",
+       "startDate": "1902-10-13T00:00:00"
+      },
+      {
+       "coverage": 97.84388884049133,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PRCP",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.10724961778061748,
+       "endDate": "2021-01-02T23:59:59",
+       "dateRange": {
+        "start": "1901-01-09T00:00:00",
+        "end": "2021-01-02T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT06",
+       "startDate": "1901-01-09T00:00:00"
+      },
+      {
+       "coverage": 0.07829910257182436,
+       "endDate": "2004-04-14T23:59:59",
+       "dateRange": {
+        "start": "1958-10-30T00:00:00",
+        "end": "2004-04-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAWM",
+       "startDate": "1958-10-30T00:00:00"
+      },
+      {
+       "coverage": 52.11022732211935,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1963-09-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MXPN",
+       "startDate": "1963-09-01T00:00:00"
+      },
+      {
+       "coverage": 0.07878358150161507,
+       "endDate": "1935-12-25T23:59:59",
+       "dateRange": {
+        "start": "1901-03-25T00:00:00",
+        "end": "1935-12-25T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT09",
+       "startDate": "1901-03-25T00:00:00"
+      },
+      {
+       "coverage": 92.84563115253943,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNWD",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.08041170794467674,
+       "endDate": "2020-11-15T23:59:59",
+       "dateRange": {
+        "start": "1901-09-15T00:00:00",
+        "end": "2020-11-15T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT11",
+       "startDate": "1901-09-15T00:00:00"
+      },
+      {
+       "coverage": 95.39811830298807,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMAX",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 99.0630681023633,
+       "endDate": "2001-07-31T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2001-07-31T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SN12",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 93.23727774371551,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SN32",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 92.93684855916615,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SN33",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 87.91220790565626,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "2001-08-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SN52",
+       "startDate": "2001-08-01T00:00:00"
+      },
+      {
+       "coverage": 50.88573959255979,
+       "endDate": "2018-07-02T23:59:59",
+       "dateRange": {
+        "start": "1956-09-05T00:00:00",
+        "end": "2018-07-02T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WDMV",
+       "startDate": "1956-09-05T00:00:00"
+      },
+      {
+       "coverage": 93.06560392397303,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SN31",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.4315033722532453,
+       "endDate": "2024-07-29T23:59:59",
+       "dateRange": {
+        "start": "1949-01-26T00:00:00",
+        "end": "2024-07-29T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAPR",
+       "startDate": "1949-01-26T00:00:00"
+      },
+      {
+       "coverage": 99.0630681023633,
+       "endDate": "2001-07-31T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2001-07-31T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SX12",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 92.93071735131821,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SX33",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 93.25567136725935,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SX32",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 93.07173513182096,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1982-01-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SX31",
+       "startDate": "1982-01-01T00:00:00"
+      },
+      {
+       "coverage": 87.91220790565626,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "2001-08-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SX52",
+       "startDate": "2001-08-01T00:00:00"
+      },
+      {
+       "coverage": 93.68629671574179,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNOW",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 84.32572523739002,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TOBS",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.14939212858025963,
+       "endDate": "2010-06-23T23:59:59",
+       "dateRange": {
+        "start": "1957-04-30T00:00:00",
+        "end": "2010-06-23T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDEV",
+       "startDate": "1957-04-30T00:00:00"
+      },
+      {
+       "coverage": 0.14939212858025963,
+       "endDate": "2010-06-23T23:59:59",
+       "dateRange": {
+        "start": "1957-04-30T00:00:00",
+        "end": "2010-06-23T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAEV",
+       "startDate": "1957-04-30T00:00:00"
+      },
+      {
+       "coverage": 0.35798731575807125,
+       "endDate": "2024-12-16T23:59:59",
+       "dateRange": {
+        "start": "1901-01-23T00:00:00",
+        "end": "2024-12-16T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT01",
+       "startDate": "1901-01-23T00:00:00"
+      },
+      {
+       "coverage": 95.46345500479136,
+       "endDate": "2026-09-18T23:59:59",
+       "dateRange": {
+        "start": "1901-01-01T00:00:00",
+        "end": "2026-09-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMIN",
+       "startDate": "1901-01-01T00:00:00"
+      },
+      {
+       "coverage": 52.11892032859564,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1963-09-01T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MNPN",
+       "startDate": "1963-09-01T00:00:00"
+      },
+      {
+       "coverage": 0.4315033722532453,
+       "endDate": "2024-07-29T23:59:59",
+       "dateRange": {
+        "start": "1949-01-26T00:00:00",
+        "end": "2024-07-29T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDPR",
+       "startDate": "1949-01-26T00:00:00"
+      }
+     ],
+     "name": "WEST LAFAYETTE 6 NW, IN US",
+     "id": "USC00129430",
+     "platforms": [
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "COOP",
+       "startDate": "0001-01-01T00:00:00"
+      },
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "UNKNOWN",
+       "startDate": "0001-01-01T00:00:00"
+      }
+     ]
+    }
+   ],
+   "dataTypes": [
+    {
+     "id": "EVAP"
+    },
+    {
+     "id": "WT03"
+    },
+    {
+     "id": "MDWM"
+    },
+    {
+     "id": "WT04"
+    },
+    {
+     "id": "WT05"
+    },
+    {
+     "id": "PRCP"
+    },
+    {
+     "id": "WT06"
+    },
+    {
+     "id": "DAWM"
+    },
+    {
+     "id": "MXPN"
+    },
+    {
+     "id": "WT09"
+    },
+    {
+     "id": "SNWD"
+    },
+    {
+     "id": "WT11"
+    },
+    {
+     "id": "TMAX"
+    },
+    {
+     "id": "SN12"
+    },
+    {
+     "id": "SN32"
+    },
+    {
+     "id": "SN33"
+    },
+    {
+     "id": "SN52"
+    },
+    {
+     "id": "WDMV"
+    },
+    {
+     "id": "SN31"
+    },
+    {
+     "id": "DAPR"
+    },
+    {
+     "id": "SX12"
+    },
+    {
+     "id": "SX33"
+    },
+    {
+     "id": "SX32"
+    },
+    {
+     "id": "SX31"
+    },
+    {
+     "id": "SX52"
+    },
+    {
+     "id": "SNOW"
+    },
+    {
+     "id": "TOBS"
+    },
+    {
+     "id": "MDEV"
+    },
+    {
+     "id": "DAEV"
+    },
+    {
+     "id": "WT01"
+    },
+    {
+     "id": "TMIN"
+    },
+    {
+     "id": "MNPN"
+    },
+    {
+     "id": "MDPR"
+    }
+   ],
+   "location": {
+    "coordinates": [
+     -86.9919,
+     40.475
+    ],
+    "type": "point"
+   },
+   "startDate": "1901-01-01T00:00:00"
+  },
+  {
+   "endDate": "2026-09-21T23:59:59",
+   "stations": [
+    {
+     "dataTypes": [
+      {
+       "coverage": 0.08269930532583526,
+       "endDate": "2026-08-16T23:59:59",
+       "dateRange": {
+        "start": "1993-07-08T00:00:00",
+        "end": "2026-08-16T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAPR",
+       "startDate": "1993-07-08T00:00:00"
+      },
+      {
+       "coverage": 97.73601992302467,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNOW",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "1976-07-28T23:59:59",
+       "dateRange": {
+        "start": "1976-07-28T00:00:00",
+        "end": "1976-07-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT14",
+       "startDate": "1976-07-28T00:00:00"
+      },
+      {
+       "coverage": 5.548206659359764,
+       "endDate": "2026-08-27T23:59:59",
+       "dateRange": {
+        "start": "1954-03-19T00:00:00",
+        "end": "2026-08-27T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT03",
+       "startDate": "1954-03-19T00:00:00"
+      },
+      {
+       "coverage": 0.33781066516528596,
+       "endDate": "2022-04-09T23:59:59",
+       "dateRange": {
+        "start": "1954-03-11T00:00:00",
+        "end": "2022-04-09T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT04",
+       "startDate": "1954-03-11T00:00:00"
+      },
+      {
+       "coverage": 0.25110098122537283,
+       "endDate": "2026-04-28T23:59:59",
+       "dateRange": {
+        "start": "1955-06-14T00:00:00",
+        "end": "2026-04-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT05",
+       "startDate": "1955-06-14T00:00:00"
+      },
+      {
+       "coverage": 99.35099237793375,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PRCP",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 0.33067182837325587,
+       "endDate": "2022-02-18T23:59:59",
+       "dateRange": {
+        "start": "1954-03-29T00:00:00",
+        "end": "2022-02-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT06",
+       "startDate": "1954-03-29T00:00:00"
+      },
+      {
+       "coverage": 99.0755414685684,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TOBS",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 0.059008654602675056,
+       "endDate": "2008-12-07T23:59:59",
+       "dateRange": {
+        "start": "1995-01-06T00:00:00",
+        "end": "2008-12-07T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDSF",
+       "startDate": "1995-01-06T00:00:00"
+      },
+      {
+       "coverage": 96.95494679646819,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNWD",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 0.2762430939226519,
+       "endDate": "1996-12-30T23:59:59",
+       "dateRange": {
+        "start": "1995-01-06T00:00:00",
+        "end": "1996-12-30T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DASF",
+       "startDate": "1995-01-06T00:00:00"
+      },
+      {
+       "coverage": 0.140148713356951,
+       "endDate": "2024-07-16T23:59:59",
+       "dateRange": {
+        "start": "1954-03-19T00:00:00",
+        "end": "2024-07-16T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT11",
+       "startDate": "1954-03-19T00:00:00"
+      },
+      {
+       "coverage": 3.283085874041331,
+       "endDate": "2026-08-28T23:59:59",
+       "dateRange": {
+        "start": "1954-03-10T00:00:00",
+        "end": "2026-08-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT01",
+       "startDate": "1954-03-10T00:00:00"
+      },
+      {
+       "coverage": 99.2264734737001,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMAX",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 99.23024677382838,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1954-03-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMIN",
+       "startDate": "1954-03-01T00:00:00"
+      },
+      {
+       "coverage": 0.09923916639100232,
+       "endDate": "2026-08-16T23:59:59",
+       "dateRange": {
+        "start": "1993-07-08T00:00:00",
+        "end": "2026-08-16T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDPR",
+       "startDate": "1993-07-08T00:00:00"
+      }
+     ],
+     "name": "LAFAYETTE 8 S, IN US",
+     "id": "USC00124715",
+     "platforms": [
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "COOP",
+       "startDate": "0001-01-01T00:00:00"
+      }
+     ]
+    }
+   ],
+   "dataTypes": [
+    {
+     "id": "DAPR"
+    },
+    {
+     "id": "SNOW"
+    },
+    {
+     "id": "WT14"
+    },
+    {
+     "id": "WT03"
+    },
+    {
+     "id": "WT04"
+    },
+    {
+     "id": "WT05"
+    },
+    {
+     "id": "PRCP"
+    },
+    {
+     "id": "WT06"
+    },
+    {
+     "id": "TOBS"
+    },
+    {
+     "id": "MDSF"
+    },
+    {
+     "id": "SNWD"
+    },
+    {
+     "id": "DASF"
+    },
+    {
+     "id": "WT11"
+    },
+    {
+     "id": "WT01"
+    },
+    {
+     "id": "TMAX"
+    },
+    {
+     "id": "TMIN"
+    },
+    {
+     "id": "MDPR"
+    }
+   ],
+   "location": {
+    "coordinates": [
+     -86.9027,
+     40.2963
+    ],
+    "type": "point"
+   },
+   "startDate": "1954-03-01T00:00:00"
+  },
+  {
+   "endDate": "2026-09-21T23:59:59",
+   "stations": [
+    {
+     "dataTypes": [
+      {
+       "coverage": 99.9528042161567,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1991-12-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNOW",
+       "startDate": "1991-12-01T00:00:00"
+      },
+      {
+       "coverage": 10.08615919690143,
+       "endDate": "2026-07-28T23:59:59",
+       "dateRange": {
+        "start": "1991-12-08T00:00:00",
+        "end": "2026-07-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT03",
+       "startDate": "1991-12-08T00:00:00"
+      },
+      {
+       "coverage": 0.38073166694255917,
+       "endDate": "2025-02-09T23:59:59",
+       "dateRange": {
+        "start": "1992-01-12T00:00:00",
+        "end": "2025-02-09T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT04",
+       "startDate": "1992-01-12T00:00:00"
+      },
+      {
+       "coverage": 0.2545155993431855,
+       "endDate": "2026-02-17T23:59:59",
+       "dateRange": {
+        "start": "1992-10-13T00:00:00",
+        "end": "2026-02-17T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT05",
+       "startDate": "1992-10-13T00:00:00"
+      },
+      {
+       "coverage": 99.99213403602612,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1991-12-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PRCP",
+       "startDate": "1991-12-01T00:00:00"
+      },
+      {
+       "coverage": 98.92830188679245,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "2008-08-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TOBS",
+       "startDate": "2008-08-01T00:00:00"
+      },
+      {
+       "coverage": 0.8213883072958608,
+       "endDate": "2025-12-01T23:59:59",
+       "dateRange": {
+        "start": "1991-12-02T00:00:00",
+        "end": "2025-12-01T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT06",
+       "startDate": "1991-12-02T00:00:00"
+      },
+      {
+       "coverage": 99.68536144104459,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "1991-12-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNWD",
+       "startDate": "1991-12-01T00:00:00"
+      },
+      {
+       "coverage": 0.3083157152924595,
+       "endDate": "2025-05-17T23:59:59",
+       "dateRange": {
+        "start": "1994-04-18T00:00:00",
+        "end": "2025-05-17T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT11",
+       "startDate": "1994-04-18T00:00:00"
+      },
+      {
+       "coverage": 10.925764882599415,
+       "endDate": "2026-07-28T23:59:59",
+       "dateRange": {
+        "start": "1991-12-10T00:00:00",
+        "end": "2026-07-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT01",
+       "startDate": "1991-12-10T00:00:00"
+      },
+      {
+       "coverage": 0.7316627034936893,
+       "endDate": "2026-01-26T23:59:59",
+       "dateRange": {
+        "start": "2011-02-07T00:00:00",
+        "end": "2026-01-26T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WESD",
+       "startDate": "2011-02-07T00:00:00"
+      },
+      {
+       "coverage": 99.00377358490566,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "2008-08-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMAX",
+       "startDate": "2008-08-01T00:00:00"
+      },
+      {
+       "coverage": 98.7622641509434,
+       "endDate": "2026-09-21T23:59:59",
+       "dateRange": {
+        "start": "2008-08-01T00:00:00",
+        "end": "2026-09-21T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMIN",
+       "startDate": "2008-08-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "2010-03-20T23:59:59",
+       "dateRange": {
+        "start": "2010-03-20T00:00:00",
+        "end": "2010-03-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDPR",
+       "startDate": "2010-03-20T00:00:00"
+      }
+     ],
+     "name": "CHALMERS 5 W, IN US",
+     "id": "USC00121417",
+     "platforms": [
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "COOP",
+       "startDate": "0001-01-01T00:00:00"
+      }
+     ]
+    }
+   ],
+   "dataTypes": [
+    {
+     "id": "SNOW"
+    },
+    {
+     "id": "WT03"
+    },
+    {
+     "id": "WT04"
+    },
+    {
+     "id": "WT05"
+    },
+    {
+     "id": "PRCP"
+    },
+    {
+     "id": "TOBS"
+    },
+    {
+     "id": "WT06"
+    },
+    {
+     "id": "SNWD"
+    },
+    {
+     "id": "WT11"
+    },
+    {
+     "id": "WT01"
+    },
+    {
+     "id": "WESD"
+    },
+    {
+     "id": "TMAX"
+    },
+    {
+     "id": "TMIN"
+    },
+    {
+     "id": "MDPR"
+    }
+   ],
+   "location": {
+    "coordinates": [
+     -86.955,
+     40.6653
+    ],
+    "type": "point"
+   },
+   "startDate": "1991-12-01T00:00:00"
+  },
+  {
+   "endDate": "2026-09-08T23:59:59",
+   "stations": [
+    {
+     "dataTypes": [
+      {
+       "coverage": 0.3289473684210526,
+       "endDate": "2026-07-20T23:59:59",
+       "dateRange": {
+        "start": "2022-05-22T00:00:00",
+        "end": "2026-07-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "DAPR",
+       "startDate": "2022-05-22T00:00:00"
+      },
+      {
+       "coverage": 86.4406779661017,
+       "endDate": "2026-09-08T23:59:59",
+       "dateRange": {
+        "start": "2011-01-07T00:00:00",
+        "end": "2026-09-08T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNOW",
+       "startDate": "2011-01-07T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "2015-10-18T23:59:59",
+       "dateRange": {
+        "start": "2015-10-18T00:00:00",
+        "end": "2015-10-18T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WT01",
+       "startDate": "2015-10-18T00:00:00"
+      },
+      {
+       "coverage": 1.723779854620976,
+       "endDate": "2025-09-17T23:59:59",
+       "dateRange": {
+        "start": "2012-07-12T00:00:00",
+        "end": "2025-09-17T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "WESD",
+       "startDate": "2012-07-12T00:00:00"
+      },
+      {
+       "coverage": 6.64451827242525,
+       "endDate": "2013-06-28T23:59:59",
+       "dateRange": {
+        "start": "1975-08-01T00:00:00",
+        "end": "2013-06-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMAX",
+       "startDate": "1975-08-01T00:00:00"
+      },
+      {
+       "coverage": 100.0,
+       "endDate": "2015-09-14T23:59:59",
+       "dateRange": {
+        "start": "2015-09-14T00:00:00",
+        "end": "2015-09-14T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "THIC",
+       "startDate": "2015-09-14T00:00:00"
+      },
+      {
+       "coverage": 6.64451827242525,
+       "endDate": "2013-06-28T23:59:59",
+       "dateRange": {
+        "start": "1975-08-01T00:00:00",
+        "end": "2013-06-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TMIN",
+       "startDate": "1975-08-01T00:00:00"
+      },
+      {
+       "coverage": 29.07425265188042,
+       "endDate": "2026-09-08T23:59:59",
+       "dateRange": {
+        "start": "1975-08-01T00:00:00",
+        "end": "2026-09-08T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "PRCP",
+       "startDate": "1975-08-01T00:00:00"
+      },
+      {
+       "coverage": 97.9097909790979,
+       "endDate": "2013-06-28T23:59:59",
+       "dateRange": {
+        "start": "2011-01-01T00:00:00",
+        "end": "2013-06-28T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "TOBS",
+       "startDate": "2011-01-01T00:00:00"
+      },
+      {
+       "coverage": 0.3289473684210526,
+       "endDate": "2026-07-20T23:59:59",
+       "dateRange": {
+        "start": "2022-05-22T00:00:00",
+        "end": "2026-07-20T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "MDPR",
+       "startDate": "2022-05-22T00:00:00"
+      },
+      {
+       "coverage": 87.26192556351565,
+       "endDate": "2026-09-08T23:59:59",
+       "dateRange": {
+        "start": "2011-01-07T00:00:00",
+        "end": "2026-09-08T23:59:59"
+       },
+       "searchWeight": 1,
+       "id": "SNWD",
+       "startDate": "2011-01-07T00:00:00"
+      }
+     ],
+     "name": "W LAFAYETTE SEW PLANT, IN US",
+     "id": "USC00129435",
+     "platforms": [
+      {
+       "endDate": "9996-12-31T23:59:59",
+       "id": "COOP",
+       "startDate": "0001-01-01T00:00:00"
+      }
+     ]
+    }
+   ],
+   "dataTypes": [
+    {
+     "id": "DAPR"
+    },
+    {
+     "id": "SNOW"
+    },
+    {
+     "id": "WT01"
+    },
+    {
+     "id": "WESD"
+    },
+    {
+     "id": "TMAX"
+    },
+    {
+     "id": "THIC"
+    },
+    {
+     "id": "TMIN"
+    },
+    {
+     "id": "PRCP"
+    },
+    {
+     "id": "TOBS"
+    },
+    {
+     "id": "MDPR"
+    },
+    {
+     "id": "SNWD"
+    }
+   ],
+   "location": {
+    "coordinates": [
+     -86.9058,
+     40.4169
+    ],
+    "type": "point"
+   },
+   "startDate": "1975-08-01T00:00:00"
+  }
+ ]
+}

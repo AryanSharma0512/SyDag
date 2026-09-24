@@ -163,6 +163,12 @@ function rangeLabel(s: ForecastSnapshot | undefined) {
   return s ? `±${((s.upperBound - s.lowerBound) / 2).toFixed(1)}` : '';
 }
 
+const SOURCE_BADGE: Record<DataSource['role'], string> = {
+  challenge: 'Challenge',
+  public: 'Connected',
+  candidate: 'Candidate',
+};
+
 export function MethodologyPage() {
   const reduce = useReducedMotion();
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
@@ -282,7 +288,8 @@ export function MethodologyPage() {
             Data sources
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
-            What the challenge provides, and what could enrich it. Candidate sources are not connected yet.
+            What the challenge provides, the public data SoilSignal already looks up for each field, and what could
+            enrich it further.
           </p>
         </Reveal>
         <Reveal className="mt-6 overflow-x-auto">
@@ -300,7 +307,7 @@ export function MethodologyPage() {
                   <td className="py-3.5 pr-6 text-[15px] font-medium text-ink">{s.shortName}</td>
                   <td className="py-3.5 pr-6 text-[15px] text-ink-soft">{s.purpose}</td>
                   <td className="py-3.5">
-                    <DataBadge variant={s.role === 'challenge' ? 'challenge' : 'candidate'} label={s.role === 'challenge' ? 'Challenge' : 'Candidate'} />
+                    <DataBadge variant={s.role} label={SOURCE_BADGE[s.role]} />
                   </td>
                 </tr>
               ))}

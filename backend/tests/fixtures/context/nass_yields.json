@@ -1,0 +1,12 @@
+{
+  "_note": "Synthetic example in the documented USDA NASS Quick Stats response shape (values are made up; a real key is needed to record live data).",
+  "data": [
+    {"year": 2025, "Value": "205.4", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2024, "Value": "198.9", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2023, "Value": "202.1", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2022, "Value": "(D)", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2021, "Value": "194.0", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2020, "Value": "187.6", "county_ansi": "157", "county_name": "TIPPECANOE", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"},
+    {"year": 2025, "Value": "181.0", "county_ansi": "", "county_name": "OTHER (COMBINED) COUNTIES", "state_alpha": "IN", "agg_level_desc": "COUNTY", "short_desc": "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE", "reference_period_desc": "YEAR", "unit_desc": "BU / ACRE"}
+  ]
+}

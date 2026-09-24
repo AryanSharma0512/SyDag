@@ -40,8 +40,15 @@ services:
 
     # Model artifacts live outside the image: drop a new model into
     # backend/artifacts/<model_id>/ and `docker compose restart backend`.
+    # Public-data responses (soil, weather, yields) are cached in a named volume
+    # so they survive restarts and outages of the USDA / NOAA services.
     volumes:
       - ./backend/artifacts:/app/artifacts:ro
+      - context_cache:/app/cache
+
+    environment:
+      # Optional: free key from https://quickstats.nass.usda.gov/api enables county yields.
+      SOILSIGNAL_NASS_API_KEY: ${SOILSIGNAL_NASS_API_KEY:-}
 
     ports:
       - "127.0.0.1:8189:8000"
@@ -69,3 +76,7 @@ networks:
   lostnfound_network:
     external: true
     name: lostnfound_network
+
+volumes:
+  context_cache:
+    name: sydag_context_cache

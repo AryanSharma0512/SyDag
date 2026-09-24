@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
+from app.context_routes import router as context_router
 from app.routes import router
 
 app = FastAPI(
@@ -11,3 +12,4 @@ app = FastAPI(
     redoc_url=None,
 )
 app.include_router(router)
+app.include_router(context_router)
