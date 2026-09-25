@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import type { DataSource, FieldForecast, FieldMeta, LocationContext } from '../../types/agricultural';
+import type { DataSource, FieldForecast, FieldMeta } from '../../types/agricultural';
 import { getFields } from '../../services/fields';
 import { getForecast } from '../../services/forecasts';
 import { getDataSources } from '../../services/sources';
-import { getLocationContext } from '../../services/context';
 import { APP_CONFIG } from '../../config/appConfig';
 import { isTypingTarget } from '../../utils/hooks';
+import { useLocationContext } from '../../utils/useLocationContext';
 import { nearestIndex, toTime } from '../../utils/chart';
 import { DashboardSkeleton, EmptyState, ErrorState } from '../common/SkeletonLoader';
 import { Reveal } from '../common/Reveal';
@@ -38,8 +38,6 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
   const [sources, setSources] = useState<DataSource[]>([]);
   const [fieldId, setFieldId] = useState(APP_CONFIG.defaultFieldId);
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
-  // Public data (soil, observed weather, county yields) for the loaded field's coordinates.
-  const [context, setContext] = useState<{ fieldId: string; data: LocationContext | null } | null>(null);
   const [index, setIndex] = useState(APP_CONFIG.defaultDateIndex);
   const [dim, setDim] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -103,21 +101,9 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     };
   }, [fieldId]);
 
-  // Load public data once per field, covering every forecast date so scrubbing stays instant.
-  useEffect(() => {
-    if (!forecast) return;
-    let active = true;
-    const { field: meta, snapshots } = forecast;
-    getLocationContext(
-      meta,
-      snapshots.map((s) => s.date),
-    )
-      .then((data) => active && setContext({ fieldId: meta.id, data }))
-      .catch(() => active && setContext({ fieldId: meta.id, data: null }));
-    return () => {
-      active = false;
-    };
-  }, [forecast]);
+  // Public data (soil, observed weather, county yields) for every forecast date of the loaded field.
+  const forecastDates = useMemo(() => forecast?.snapshots.map((s) => s.date) ?? [], [forecast]);
+  const context = useLocationContext(forecast?.field ?? null, forecastDates);
 
   const snapshotIndex = forecast ? Math.min(index, forecast.snapshots.length - 1) : 0;
   const snapshot = forecast?.snapshots[snapshotIndex];

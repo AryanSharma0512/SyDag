@@ -25,3 +25,13 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+/** A file download (e.g. CSV). Errors carry the API's `detail` message, as with apiGet. */
+export async function apiGetFile(path: string): Promise<Blob> {
+  const res = await fetch(`${APP_CONFIG.apiBaseUrl}${path}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body?.detail ?? `GET ${path} failed with ${res.status}`);
+  }
+  return res.blob();
+}

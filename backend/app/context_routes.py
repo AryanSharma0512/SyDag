@@ -7,8 +7,10 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 
 from app.config import get_settings
+from app.context import export
 from app.context.cache import get_context_cache
 from app.context.http import NoData, NotConfigured, UpstreamError, get_http_client
 from app.context.service import LocationContextService
@@ -89,3 +91,36 @@ def all_context(
     """Soil, weather for each date, and county yield history in one response. Sources
     fail independently: each part reports its own status."""
     return service.location_context(lat, lon, dates)
+
+
+@router.get("/export", response_class=Response)
+def export_csv(
+    lat: Lat,
+    lon: Lon,
+    service: Service,
+    type_: Annotated[export.ExportType, Query(alias="type", description="Which dataset")],
+    dates: Annotated[
+        list[date],
+        Query(alias="date", min_length=1, max_length=24, description="Repeat for several dates"),
+    ],
+) -> Response:
+    """The normalized data behind /all as a CSV download, one dataset or all of them.
+    County yields cover the seasons before the earliest date, as in /all."""
+    try:
+        if type_ == "weather":
+            body = export.weather_csv(lat, lon, service.weather(lat, lon, dates)[0])
+        elif type_ == "soil":
+            body = export.soil_csv(lat, lon, service.soil(lat, lon)[0])
+        elif type_ == "yield-history":
+            history = service.yield_history(lat, lon, min(dates).year - 1)[0]
+            body = export.yield_history_csv(lat, lon, history)
+        else:
+            body = export.all_csv(service.location_context(lat, lon, dates))
+    except (NotConfigured, NoData, UpstreamError) as err:
+        raise _http_error(err) from err
+    filename = f"soilsignal-{type_}-{lat:.4f}_{lon:.4f}.csv"
+    return Response(
+        content=body,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

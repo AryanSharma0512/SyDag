@@ -64,7 +64,7 @@ export function SegmentedControl<T extends string>({
             aria-selected={active}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(option.value)}
-            className={`relative rounded-md font-medium transition-colors duration-150 ${pad} ${mono ? 'data' : ''} ${
+            className={`relative rounded-md font-medium whitespace-nowrap transition-colors duration-150 ${pad} ${mono ? 'data' : ''} ${
               active ? 'text-ink' : 'text-muted hover:text-ink'
             }`}
           >

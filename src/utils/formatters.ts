@@ -38,3 +38,11 @@ export function formatRetrieved(isoTimestamp: string): string {
   const d = new Date(isoTimestamp);
   return Number.isNaN(d.getTime()) ? isoTimestamp : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
+/** ISO timestamp → "Sep 24, 2026, 9:42 PM" in the viewer's time zone. */
+export function formatRetrievedTime(isoTimestamp: string): string {
+  const d = new Date(isoTimestamp);
+  return Number.isNaN(d.getTime())
+    ? isoTimestamp
+    : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
