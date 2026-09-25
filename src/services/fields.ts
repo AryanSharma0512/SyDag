@@ -26,3 +26,9 @@ export async function getFieldById(fieldId: string): Promise<FieldMeta | null> {
   const found = ALL_FIELDS.find((f) => f.field.id === fieldId);
   return found ? found.field : null;
 }
+
+/** The configured default field when it exists in this dataset, otherwise the first field. */
+export function pickDefaultFieldId(fields: FieldMeta[]): string | null {
+  if (fields.some((f) => f.id === APP_CONFIG.defaultFieldId)) return APP_CONFIG.defaultFieldId;
+  return fields[0]?.id ?? null;
+}

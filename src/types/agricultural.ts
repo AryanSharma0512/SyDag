@@ -40,7 +40,7 @@ export interface SoilContext {
   organicMatter: number; // % (e.g. 3.1)
   ph: number; // e.g. 6.4
   dominantTexture: string; // e.g. "Silt loam"
-  cationExchangeCapacity: number; // meq/100g
+  cationExchangeCapacity?: number; // meq/100g; not every source reports it
   rootZoneDepthCm: number;
   source: string; // "USDA NRCS SSURGO"
 }
@@ -85,6 +85,10 @@ export interface SpatialContext {
     east: number;
     west: number;
   };
+  /** What the 16 cells are, e.g. "16 neighbouring trial plots, each forecast by the model". */
+  description?: string;
+  /** 'model': every cell comes from data or the model; 'illustrative': demo layer. */
+  provenance?: 'illustrative' | 'model';
 }
 
 export interface ForecastSnapshot {
@@ -104,7 +108,8 @@ export interface ForecastSnapshot {
   soil: SoilContext;
   explanations: ModelExplanation[];
   featureImportance: FeatureImportanceItem[];
-  spatial: SpatialContext;
+  /** Absent before the first crop image: there is nothing to map yet. */
+  spatial?: SpatialContext;
 }
 
 export interface EventMarker {
@@ -121,7 +126,7 @@ export interface VegetationObservation {
   displayDate: string;
   ndvi: number;
   ndre: number;
-  regionalBaselineNdvi: number;
+  regionalBaselineNdvi: number; // demo: 5-yr regional curve; API: same-day mean of the site's plots
   gndvi?: number;
   evi?: number;
   isForecastDatePoint?: boolean;
@@ -142,7 +147,7 @@ export interface HistoricalContext {
  * government datasets SoilSignal already pulls in for each field's location.
  * `candidate` sources are possible enrichments that are not connected yet.
  */
-export type SourceRole = 'challenge' | 'public' | 'candidate';
+export type SourceRole = 'challenge' | 'practice' | 'public' | 'model' | 'candidate';
 
 export interface DataSource {
   id: string;

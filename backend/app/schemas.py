@@ -58,7 +58,7 @@ class SoilContext(ApiModel):
     organic_matter: float  # %
     ph: float
     dominant_texture: str
-    cation_exchange_capacity: float  # meq/100g
+    cation_exchange_capacity: float | None = None  # meq/100g; not every source reports it
     root_zone_depth_cm: float
     source: str
 
@@ -107,6 +107,10 @@ class SpatialContext(ApiModel):
     tile_date: str
     satellite_platform: str
     bounds: Bounds
+    # What the 16 cells are, e.g. "16 neighbouring trial plots, each forecast by the model".
+    description: str | None = None
+    # "model": every zone value comes from data or the model; "illustrative": demo layer.
+    provenance: Literal["illustrative", "model"] | None = None
 
 
 class ForecastSnapshot(ApiModel):
@@ -126,7 +130,8 @@ class ForecastSnapshot(ApiModel):
     soil: SoilContext
     explanations: list[ModelExplanation]
     feature_importance: list[FeatureImportanceItem]
-    spatial: SpatialContext
+    # Absent before the first crop image: there is nothing to map yet.
+    spatial: SpatialContext | None = None
 
 
 class EventMarker(ApiModel):
@@ -166,9 +171,10 @@ class DataSource(ApiModel):
     name: str  # e.g. "Competition multispectral observations"
     short_name: str  # e.g. "Hackathon data", "PRISM / NOAA"
     purpose: str  # e.g. "Crop observations", "Weather"
-    # `challenge` sources are provided by the hackathon; `public` sources are
-    # government data SoilSignal already fetches; `candidate` sources are not connected yet.
-    role: Literal["challenge", "public", "candidate"]
+    # `challenge` sources are provided by the hackathon; `practice` is the public research
+    # dataset used until then; `public` sources are government data SoilSignal fetches;
+    # `model` is SoilSignal's own model output; `candidate` sources are not connected yet.
+    role: Literal["challenge", "practice", "public", "model", "candidate"]
     status_label: str  # e.g. "Challenge-provided"
     detail: str
 
@@ -198,6 +204,8 @@ class Health(ApiModel):
     version: str
     data_source: str
     models_loaded: int
+    # Plain label for the data behind the forecasts, e.g. "Practice data" or "Demo data".
+    dataset_label: str
 
 
 class ModelInfo(ApiModel):

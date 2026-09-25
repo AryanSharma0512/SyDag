@@ -13,7 +13,8 @@ Last updated: 2026-09-24
 Browser ──► sydag.aboutsharma.com (Cloudflare → Aryan's reverse proxy)
               ├── /*      → sydag_frontend  (nginx serving the Vite build)
               └── /api/*  → sydag_backend   (FastAPI, port 8000)
-                              ├── forecasts  ← ForecastProvider  (mock data today)
+                              ├── forecasts  ← ModelForecastProvider: backend/data/practice + backend/artifacts
+                              │                 (SOILSIGNAL_DATA_SOURCE=mock serves the demo data instead)
                               ├── predictions ← ModelRegistry    (backend/artifacts/)
                               │                   features ← backend/app/features (build_features)
                               └── /api/context/* ← USDA SSURGO, NOAA NCEI, USDA NASS
@@ -40,8 +41,8 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 5 | Test the model locally | `cd backend && uv run uvicorn app.main:app --port 8000`, then `GET /api/models` and `POST /api/predict` | Ready |
 | 6 | Deploy the model | Copy `backend/artifacts/<model_id>/` to the server, then `docker compose -f compose.sydag.yml restart backend`. Check `/api/health` shows `modelsLoaded > 0` | Ready |
 | 7 | Get predictions | `POST /api/predict` with `features` + `asOfDate` | Ready |
-| 8 | Show real forecasts in the dashboard | Model-backed `ForecastProvider` in `backend/app/providers.py`; likely contract changes (see "Contracts") | Not built (needs dataset shape) |
-| 9 | Switch the live site off mock data | Build frontend with `VITE_DEMO_MODE=false` (compose build arg) | Ready (needs `/api` proxy rule live) |
+| 8 | Give the API the fields to show | `... -m soilsignal_ml showcase` writes raw inputs for the held-out plots to `backend/data/practice/<dataset>.json` (inputs only; the API computes every forecast). For challenge data, point `showcase.py` at the plots the dashboard should show | Ready |
+| 9 | Real forecasts on the live site | Default already: compose builds the frontend with `VITE_DEMO_MODE=false` and runs the backend with `SOILSIGNAL_DATA_SOURCE=model`. `deploy.sh` rebuilds both and fails unless `/api/health` reports `"dataSource":"model"` with models loaded | Ready |
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server (the registry would mix them with real cutoffs) | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
 | 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
@@ -54,10 +55,10 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 
 | Method | Endpoint | Called by / when | Returns |
 |--------|----------|------------------|---------|
-| GET | `/api/health` | Deploy checks, Docker healthcheck | `status`, `version`, `dataSource`, `modelsLoaded` |
+| GET | `/api/health` | Deploy checks, Docker healthcheck, navigation badge | `status`, `version`, `dataSource` (`model`, `mock`, or `unavailable`), `modelsLoaded`, `datasetLabel` ("Practice data") |
 | GET | `/api/fields` | Frontend `getFields()` | `FieldMeta[]` |
 | GET | `/api/fields/{id}` | Frontend `getFieldById()` | `FieldMeta` |
-| GET | `/api/fields/{id}/forecast` | Dashboard on load and on field switch (`getForecast()`) | `FieldForecast`: all snapshots, vegetation, events, history, sources |
+| GET | `/api/fields/{id}/forecast` | Dashboard on load and on field switch (`getForecast()`) | `FieldForecast`: one snapshot per model cutoff (point-in-time features + model), vegetation, events, history, sources. `503` if the model data source can't serve |
 | GET | `/api/fields/{id}/weather?snapshotId=` | Frontend `getWeatherContext()` | `WeatherContext` (latest snapshot by default) |
 | GET | `/api/fields/{id}/soil` | Frontend `getSoilContext()` | `SoilContext` |
 | GET | `/api/models` | After deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list |
@@ -67,15 +68,17 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/context/weather?lat=&lon=&date=` | Observed weather as of a date | `ObservedWeather`: nearest NOAA station, rainfall, growing degree days, heat days, dry spells |
 | GET | `/api/context/yield-history?lat=&lon=&throughYear=` | County corn yields | `YieldHistory` from USDA NASS (needs `SOILSIGNAL_NASS_API_KEY`) |
 
-Data provenance (`getDataSources()` in `src/services/sources.ts`) has no endpoint yet: it
-always returns the list in `src/mock/fieldsData.ts`, in both modes.
+Data provenance (`getDataSources()` in `src/services/sources.ts`): in API mode it is the
+forecast's own `sources` (practice/challenge data, connected public data, model output); in
+demo mode, the list in `src/mock/fieldsData.ts`.
 
 Context sources are cached on disk (soil forever, county yields 14 days, weather 6 hours
 while recent and 30 days once settled). If a source is down, the last good copy is served.
 
 Errors: `404` unknown field/model/snapshot, or no model valid by `asOfDate`;
 `422` bad prediction input (lists every problem); `503` no model artifacts loaded
-or one failed to load (forecast endpoints keep working).
+or one failed to load, and for forecast endpoints when `SOILSIGNAL_DATA_SOURCE=model` has
+no bundles or models. There is no fallback to demo data; the dashboard shows an error.
 
 ---
 
@@ -87,7 +90,8 @@ or one failed to load (forecast endpoints keep working).
 |------|---------|
 | `compose.sydag.yml` | Runs `sydag_frontend` (host `127.0.0.1:8188`) and `sydag_backend` (`127.0.0.1:8189`) on `lostnfound_network`; mounts `backend/artifacts` read-only |
 | `Dockerfile.sydag` | Frontend image: `npm ci` + Vite build → nginx. Build arg `VITE_DEMO_MODE` |
-| `nginx.sydag.conf` | Frontend nginx: SPA fallback, asset caching |
+| `nginx.sydag.conf` | Frontend nginx: SPA fallback, asset caching, `/api/` proxied to the backend container |
+| `deploy.sh` | Production deploy, run on the server by `.github/workflows/` on every push to `main`: pull, rebuild frontend **and** backend, wait for the page and for `/api/health` to report model forecasts |
 | `.dockerignore` | Keeps `node_modules`, `dist`, env files, `backend/` out of the frontend image |
 | `.env.example` | Frontend env vars (see "Configuration") |
 | `package.json` / `package-lock.json` | Frontend deps. npm is the production package manager (Docker runs `npm ci`) |
@@ -101,7 +105,9 @@ or one failed to load (forecast endpoints keep working).
 | `app/main.py` | FastAPI app; docs at `/api/docs` |
 | `app/routes.py` | All `/api` endpoints |
 | `app/schemas.py` | API response models; **mirror of `src/types/agricultural.ts`** |
-| `app/providers.py` | `ForecastProvider` protocol + `MockForecastProvider`; `get_registry()` loads models |
+| `app/providers.py` | `ForecastProvider` protocol, `ModelForecastProvider` (production), `MockForecastProvider`; `get_provider()` picks by `SOILSIGNAL_DATA_SOURCE`, no fallback; `get_registry()` loads models |
+| `app/forecast/bundle.py` | Loads a showcase bundle (raw inputs for the dashboard's fields) into `FieldInputs` |
+| `app/forecast/builder.py` | `FieldForecast` from inputs + models: per-cutoff snapshots, weather vs normals, soil, drivers as plain-language explanations, neighbouring-plot map, events, history, provenance |
 | `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
 | `app/model/contract.py` | Model artifact format: `ModelMetadata` (incl. held-out evaluation), `FeatureSchema` (incl. typical values, training ranges, driver phrases) |
 | `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts, confidence; `ModelRegistry.for_date()` picks the point-in-time model |
@@ -119,9 +125,10 @@ or one failed to load (forecast endpoints keep working).
 | `cache/` | Cached public data (git-ignored; a named Docker volume in production) |
 | `artifacts/<model_id>/` | Deployed models (`model.joblib`, `metadata.json`, `feature_schema.json`). `soilsignal-maize-0531` … `-1015` are the practice-data models, committed so a pull deploys them; `dummy-*` is git-ignored |
 | `data/mock/fields.json` | Mock forecasts, generated from `src/mock/fieldsData.ts` |
+| `data/practice/<dataset>.json` | Showcase bundle: raw inputs (images, weather, soil, management, county history, climate normals) for the held-out plots the dashboard shows. Written by `ml ... showcase`; holds no yields |
 | `scripts/make_dummy_model.py` | Trains 3 synthetic cutoff models; export reference |
 | `scripts/snapshot_context.py` | Fetches public data for every demo field; writes `src/mock/contextSnapshot.ts` and warms the cache |
-| `tests/` | `test_api.py` (endpoints + contract), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
+| `tests/` | `test_api.py` (endpoints + contract, no-fallback), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_forecast.py` (model-backed forecasts recomputed from raw inputs), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
 | `Dockerfile` | Python 3.13 + uv, frozen lockfile, non-root, healthcheck |
 | `pyproject.toml` / `uv.lock` | Pinned deps. **Models must be trained with these versions**. Training-only libraries are the `ml` dependency group (not installed in Docker) |
 | `README.md` | Backend details: running, testing, artifact format |
@@ -132,7 +139,8 @@ or one failed to load (forecast endpoints keep working).
 |------|---------|
 | `types/agricultural.ts` | Frontend data contract (`FieldForecast` and friends) |
 | `services/*.ts` | The only code that fetches data: demo data in demo mode, `/api` otherwise |
-| `services/sources.ts` | Data provenance list (demo data in both modes; no endpoint yet) |
+| `services/sources.ts` | Data provenance: the forecast's `sources` in API mode, the demo list in demo mode |
+| `services/dataset.ts` | Dataset label for the navigation badge ("Practice data" from `/api/health` in API mode) |
 | `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field |
 | `services/apiClient.ts` | `apiGet()` JSON client |
 | `config/appConfig.ts` | Branding, event, team, `demoMode`, `apiBaseUrl`, defaults |
@@ -171,6 +179,7 @@ Details in `ml/README.md`.
 | `soilsignal_ml/models/` | Mean, Ridge, Random Forest, HistGradientBoosting, CatBoost; `train.py` runs screening, tuning, selection, held-out scoring |
 | `soilsignal_ml/evaluation/` | Metrics, intervals, drivers, sensitivity checks, report |
 | `soilsignal_ml/export/export_to_backend.py` | Writes `backend/artifacts/` with `save_artifact()` |
+| `soilsignal_ml/export/showcase.py` | Writes the showcase bundle for the held-out plots, with 1991–2020 rain normals and a 10-year GDD pace from NOAA |
 | `configs/` | `project.yaml` (held-out site, seed, trials) and one file per cutoff (`may` … `full`) |
 | `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results) |
 | `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report) |
@@ -178,11 +187,7 @@ Details in `ml/README.md`.
 | `tests/` | Data checks, leakage, splits, models + artifact round trip, research ↔ code |
 | `data/` | Git-ignored datasets (`processed/` canonical tables, `interim/` feature tables) |
 
-### Not built yet
 
-| Path | Purpose |
-|------|---------|
-| `backend/app/providers.py` | Model-backed `ForecastProvider` so the dashboard's forecasts come from the models (next PR) |
 
 ---
 
@@ -199,6 +204,8 @@ Details in `ml/README.md`.
 | A threshold in `backend/app/features/thresholds.py` | `ml/research/agronomy_thresholds.yaml` and `.md` | `ml/tests/test_research.py` |
 | A new feature in `backend/app/features/` | Its entry in `app/features/catalog.py`; retrain and re-export | `test_every_built_feature_is_described_in_the_catalog` |
 | Driver categories (`FeatureImportanceItem.category`) | `src/types/agricultural.ts`, `backend/app/schemas.py`, `app/model/contract.py` | — |
+| Source roles, `SpatialContext.description`/`provenance`, optional `ForecastSnapshot.spatial` | `src/types/agricultural.ts` ↔ `backend/app/schemas.py`; `DataSources.tsx`, `DataBadge.tsx` | `test_forecast.py` |
+| Forecast cutoffs (`ml/configs/*.yaml`) | Re-export models and re-run `showcase` (the bundle's dates) | `ml/tests/test_end_to_end.py` |
 | An endpoint | `src/services/*.ts`, this file | — |
 
 ---
@@ -207,11 +214,13 @@ Details in `ml/README.md`.
 
 | Variable | Where | Default | Effect |
 |----------|-------|---------|--------|
-| `VITE_DEMO_MODE` | Frontend build (compose arg) | `true` | `false` = fetch from `/api` instead of mocks |
+| `VITE_DEMO_MODE` | Frontend build (compose arg) | `false` in compose/Docker; unset (`npm run dev`) means demo | `false` = fetch from `/api` instead of mocks |
 | `VITE_API_BASE_URL` | Frontend build | `/api` | API location |
 | `API_PROXY_TARGET` | Vite dev server | `http://localhost:8000` | Where `/api` goes in local dev |
 | `SOILSIGNAL_MODEL_DIR` | Backend | `backend/artifacts` | Where models are loaded from |
-| `SOILSIGNAL_MOCK_DATA_PATH` | Backend | `backend/data/mock/fields.json` | Mock forecast source |
+| `SOILSIGNAL_DATA_SOURCE` | Backend (compose passes it) | `model` | `model` = forecasts from models + practice bundles; `mock` = demo data. No fallback between them |
+| `SOILSIGNAL_PRACTICE_DATA_DIR` | Backend | `backend/data/practice` | Showcase bundles (`*.json`) |
+| `SOILSIGNAL_MOCK_DATA_PATH` | Backend | `backend/data/mock/fields.json` | Mock forecast source (`SOILSIGNAL_DATA_SOURCE=mock`) |
 | `SOILSIGNAL_NASS_API_KEY` | Backend (compose passes it through) | unset | Enables county yields from USDA NASS |
 | `SOILSIGNAL_CACHE_DIR` | Backend | `backend/cache` | Public-data cache |
 | `SOILSIGNAL_CONTEXT_TIMEOUT_SECONDS` | Backend | `20` | Timeout for USDA / NOAA requests |
@@ -222,8 +231,9 @@ Details in `ml/README.md`.
 ## Local development
 
 ```bash
-cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
+cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000   # model-backed
 VITE_DEMO_MODE=false npm run dev          # dashboard against the local API
+SOILSIGNAL_DATA_SOURCE=mock uv run uvicorn app.main:app --port 8000        # API on demo data
 cd backend && uv run pytest               # backend tests
 cd ml && uv run --project ../backend --group ml pytest   # ML tests
 npm run lint && npm run build             # frontend checks

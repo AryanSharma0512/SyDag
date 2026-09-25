@@ -5,6 +5,7 @@ import { AnimatedNumber } from '../common/AnimatedNumber';
 import { SegmentedControl } from '../common/SegmentedControl';
 import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
 import { formatDay, formatNumber, formatRetrieved } from '../../utils/formatters';
+import { APP_CONFIG } from '../../config/appConfig';
 
 interface EnvironmentalContextProps {
   /** Demo scenario values, shown when public data for the field isn't available. */
@@ -270,7 +271,10 @@ export function EnvironmentalContext({ weather, soil, asOf, observed, soilProfil
           {weatherNote && ` · ${weatherNote}`}
         </SourceNote>
       ) : (
-        <SourceNote live={false}>Demo values{weatherNote && ` · ${weatherNote}`}</SourceNote>
+        <SourceNote live={false}>
+          {APP_CONFIG.demoMode ? 'Demo values' : 'Values the forecast used (NOAA GHCN-Daily)'}
+          {weatherNote && ` · ${weatherNote}`}
+        </SourceNote>
       )
     ) : soilProfile ? (
       <SourceNote live>
@@ -278,7 +282,10 @@ export function EnvironmentalContext({ weather, soil, asOf, observed, soilProfil
         {soilNote && ` · ${soilNote}`}
       </SourceNote>
     ) : (
-      <SourceNote live={false}>Demo values{soilNote && ` · ${soilNote}`}</SourceNote>
+      <SourceNote live={false}>
+        {APP_CONFIG.demoMode ? 'Demo values' : 'Values the forecast used (USDA NRCS SSURGO)'}
+        {soilNote && ` · ${soilNote}`}
+      </SourceNote>
     );
 
   return (

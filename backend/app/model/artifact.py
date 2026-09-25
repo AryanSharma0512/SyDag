@@ -46,6 +46,10 @@ class Driver:
     weight: float  # percent of total importance, 0-100
     category: FeatureCategory
     direction: Direction
+    # Set for per-prediction drivers: which feature, this field's value, the typical value.
+    feature: str | None = None
+    value: FeatureValue = None
+    typical: FeatureValue = None
 
 
 @dataclass(frozen=True)
@@ -230,7 +234,17 @@ class ModelArtifact:
                 direction: Direction = (
                     "positive" if delta > 0 else "negative" if delta < 0 else "neutral"
                 )
-                drivers.append(Driver(label, round(weight, 1), f.category, direction))
+                drivers.append(
+                    Driver(
+                        label,
+                        round(weight, 1),
+                        f.category,
+                        direction,
+                        feature=f.name,
+                        value=None if pd.isna(value) else value,
+                        typical=f.typical,
+                    )
+                )
             out.append(sorted(drivers, key=lambda d: d.weight, reverse=True)[:MAX_DRIVERS])
         return out
 
@@ -242,7 +256,8 @@ class ModelArtifact:
         results = []
         for i, point in enumerate(self.estimator.predict(frame)):
             point = float(point)
-            lower = point + interval.lower_offset
+            # Yield can't be negative; wide early-season ranges are cut at zero.
+            lower = max(0.0, point + interval.lower_offset)
             upper = point + interval.upper_offset
             confidence, rating = confidence_from_interval(point, lower, upper, shares[i])
             results.append(

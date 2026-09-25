@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { DataSource, FieldForecast, FieldMeta, LocationContext } from '../../types/agricultural';
-import { getFields } from '../../services/fields';
+import { getFields, pickDefaultFieldId } from '../../services/fields';
 import { getForecast } from '../../services/forecasts';
 import { getDataSources } from '../../services/sources';
 import { getLocationContext } from '../../services/context';
@@ -36,7 +36,12 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
   const reduce = useReducedMotion();
   const [fields, setFields] = useState<FieldMeta[]>([]);
   const [sources, setSources] = useState<DataSource[]>([]);
-  const [fieldId, setFieldId] = useState(APP_CONFIG.defaultFieldId);
+  // Chosen once the field list loads: the configured default if this dataset has it.
+  const [defaultFieldId, setDefaultFieldId] = useState<string | null>(null);
+  const [fieldId, setFieldId] = useState<string | null>(null);
+  // A failed API call is shown as an error; the dashboard never falls back to demo data.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
   // Public data (soil, observed weather, county yields) for the loaded field's coordinates.
   const [context, setContext] = useState<{ fieldId: string; data: LocationContext | null } | null>(null);
@@ -56,24 +61,34 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
 
   useEffect(() => {
     let active = true;
-    getFields().then((list) => active && setFields(list));
-    getDataSources().then((list) => active && setSources(list));
+    getFields()
+      .then((list) => {
+        if (!active) return;
+        const id = pickDefaultFieldId(list);
+        if (!id) throw new Error('The forecast service returned no fields.');
+        setFields(list);
+        setDefaultFieldId(id);
+        setFieldId((current) => current ?? id);
+      })
+      .catch((err: unknown) => active && setLoadError(err instanceof Error ? err.message : String(err)));
     const id = window.setTimeout(() => setShowSkeleton(true), 250);
     return () => {
       active = false;
       window.clearTimeout(id);
     };
-  }, []);
+  }, [attempt]);
 
   // Load the selected field through the service layer. Switching keeps the same point in the season.
   useEffect(() => {
+    if (!fieldId) return;
     let cancelled = false;
     const timers: number[] = [];
     const animate = forecastRef.current !== null && !reduceRef.current;
     const started = performance.now();
     if (animate) setDim(true);
 
-    getForecast(fieldId).then((data) => {
+    getForecast(fieldId)
+      .then((data) => {
       if (cancelled) return;
       const swap = () => {
         if (cancelled) return;
@@ -95,13 +110,19 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
       const elapsed = performance.now() - started;
       if (animate && elapsed < FADE_OUT_MS) timers.push(window.setTimeout(swap, FADE_OUT_MS - elapsed));
       else swap();
-    });
+      getDataSources(data).then((list) => !cancelled && setSources(list));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setDim(false);
+        setLoadError(err instanceof Error ? err.message : String(err));
+      });
 
     return () => {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [fieldId]);
+  }, [fieldId, attempt]);
 
   // Load public data once per field, covering every forecast date so scrubbing stays instant.
   useEffect(() => {
@@ -130,13 +151,13 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     setSimulateLoading(false);
     setMissingSatellite(false);
     setWeatherError(false);
-    if (fieldId === APP_CONFIG.defaultFieldId) {
+    if (!defaultFieldId || fieldId === defaultFieldId) {
       setIndex(APP_CONFIG.defaultDateIndex);
     } else {
       resetPendingRef.current = true;
-      setFieldId(APP_CONFIG.defaultFieldId);
+      setFieldId(defaultFieldId);
     }
-  }, [fieldId]);
+  }, [fieldId, defaultFieldId]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -189,7 +210,16 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
   return (
     <div className={`mx-auto max-w-6xl px-4 pb-24 sm:px-6 ${isPresentationMode ? 'pt-6' : 'pt-8 sm:pt-10'}`}>
       <h1 className="sr-only">Yield forecast dashboard</h1>
-      {forecast && field && snapshot ? (
+      {loadError ? (
+        <ErrorState
+          title="Forecasts are unavailable"
+          message={`The SoilSignal API did not return forecasts (${loadError}). No demo data is shown in their place.`}
+          onRetry={() => {
+            setLoadError(null);
+            setAttempt((n) => n + 1);
+          }}
+        />
+      ) : forecast && field && snapshot ? (
         <>
           <FieldContext
             fields={fields.length ? fields : [field]}
@@ -259,7 +289,14 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 </Reveal>
 
                 <Reveal className="mt-6">
-                  <SpatialFieldView spatial={forecast.spatial ?? snapshot.spatial} fieldName={field.name} />
+                  {(forecast.spatial ?? snapshot.spatial) ? (
+                    <SpatialFieldView spatial={(forecast.spatial ?? snapshot.spatial)!} fieldName={field.name} />
+                  ) : (
+                    <EmptyState
+                      title="Nothing to map yet"
+                      message={`As of ${snapshot.displayDate} there is no satellite image of this field; the map appears with the first one.`}
+                    />
+                  )}
                 </Reveal>
 
                 <Reveal className="mt-16">
@@ -289,7 +326,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
       {isDebugMode && fields.length > 0 && (
         <DebugPanel
           fields={fields}
-          selectedFieldId={fieldId}
+          selectedFieldId={fieldId ?? ''}
           onSelectField={setFieldId}
           simulateLoading={simulateLoading}
           onToggleLoading={() => setSimulateLoading((v) => !v)}

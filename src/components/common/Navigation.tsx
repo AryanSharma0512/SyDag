@@ -5,6 +5,7 @@ import { AnimatedLogo } from '../brand/AnimatedLogo';
 import { DataBadge } from './DataBadge';
 import { Link, ROUTE_ORDER, ROUTES, useRouter } from '../../utils/router';
 import { EASE_OUT, GLIDE } from '../../utils/motion';
+import { getDatasetLabel } from '../../services/dataset';
 
 interface NavigationProps {
   isPresentationMode: boolean;
@@ -15,6 +16,18 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
   const { route } = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // What the forecasts run on, from the backend in API mode; hidden until known.
+  const [datasetLabel, setDatasetLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getDatasetLabel()
+      .then((label) => active && setDatasetLabel(label))
+      .catch(() => active && setDatasetLabel('Data unavailable'));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 6);
@@ -93,7 +106,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <DataBadge variant="demo" className="hidden sm:inline-flex" />
+          {datasetLabel && <DataBadge variant="demo" label={datasetLabel} className="hidden sm:inline-flex" />}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -142,7 +155,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
                 );
               })}
               <li className="mt-2 border-t border-line px-2 pt-4 pb-1">
-                <DataBadge variant="demo" />
+                {datasetLabel && <DataBadge variant="demo" label={datasetLabel} />}
               </li>
             </ul>
           </motion.nav>

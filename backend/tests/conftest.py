@@ -18,6 +18,8 @@ def isolated_model_dir(tmp_path, monkeypatch):
     model_dir = tmp_path / "artifacts"
     model_dir.mkdir()
     monkeypatch.setenv("SOILSIGNAL_MODEL_DIR", str(model_dir))
+    # Endpoint tests use the demo dataset; model-backed forecasts opt in (test_forecast.py).
+    monkeypatch.setenv("SOILSIGNAL_DATA_SOURCE", "mock")
     monkeypatch.setenv("SOILSIGNAL_CACHE_DIR", str(tmp_path / "context-cache"))
     monkeypatch.delenv("SOILSIGNAL_NASS_API_KEY", raising=False)
     _clear_caches()

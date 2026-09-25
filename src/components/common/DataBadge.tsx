@@ -1,6 +1,6 @@
 import { APP_CONFIG } from '../../config/appConfig';
 
-type BadgeVariant = 'demo' | 'challenge' | 'public' | 'candidate' | 'illustrative';
+type BadgeVariant = 'demo' | 'challenge' | 'practice' | 'public' | 'model' | 'candidate' | 'illustrative';
 
 const VARIANTS: Record<BadgeVariant, { label: string; dot: string; tone: string }> = {
   demo: {
@@ -10,6 +10,16 @@ const VARIANTS: Record<BadgeVariant, { label: string; dot: string; tone: string 
   },
   challenge: {
     label: 'Challenge-provided',
+    dot: 'bg-leaf-600',
+    tone: 'border-leaf-200 bg-leaf-50 text-leaf-800',
+  },
+  practice: {
+    label: 'Practice data',
+    dot: 'bg-soil-500',
+    tone: 'border-line bg-surface/80 text-ink-soft',
+  },
+  model: {
+    label: 'Model-derived',
     dot: 'bg-leaf-600',
     tone: 'border-leaf-200 bg-leaf-50 text-leaf-800',
   },

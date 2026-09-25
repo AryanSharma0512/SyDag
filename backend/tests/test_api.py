@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.config import get_settings
 from app.main import app
+from app.providers import get_provider
 
 client = TestClient(app)
 MOCK_DATA = json.loads(get_settings().mock_data_path.read_text())
@@ -19,7 +20,22 @@ def test_health():
         "version": get_settings().version,
         "dataSource": "mock",
         "modelsLoaded": 0,
+        "datasetLabel": "Demo data",
     }
+
+
+def test_model_source_without_models_fails_loudly(monkeypatch, tmp_path):
+    """No silent fallback: a model data source that can't serve returns 503, and
+    health says so instead of pretending to be mock or model."""
+    monkeypatch.setenv("SOILSIGNAL_DATA_SOURCE", "model")
+    monkeypatch.setenv("SOILSIGNAL_PRACTICE_DATA_DIR", str(tmp_path / "none"))
+    get_settings.cache_clear()
+    get_provider.cache_clear()
+    res = client.get("/api/fields")
+    assert res.status_code == 503
+    assert "Forecasts are unavailable" in res.json()["detail"]
+    health = client.get("/api/health").json()
+    assert (health["dataSource"], health["modelsLoaded"]) == ("unavailable", 0)
 
 
 def test_list_fields_returns_every_mock_field():

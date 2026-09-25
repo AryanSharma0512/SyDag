@@ -8,7 +8,8 @@ SoilSignal ML command line. Run from ml/:
     profile   write the dataset profile report
     train     cross-validate, tune and evaluate every model at every season cutoff
     report    write the experiment report from the training summaries
-    export    write the selected models to backend/artifacts and the showcase bundle
+    export    write the selected models to backend/artifacts
+    showcase  write the held-out plots' raw inputs to backend/data/practice for the API
 """
 
 import argparse
@@ -28,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     train.add_argument("--cutoffs", nargs="*", help="config names, e.g. july august")
     sub.add_parser("report")
     sub.add_parser("export")
+    sub.add_parser("showcase")
     args = parser.parse_args(argv)
 
     if args.command == "ingest":
@@ -67,6 +69,10 @@ def main(argv: list[str] | None = None) -> int:
         from soilsignal_ml.export.export_to_backend import export
 
         export(args.dataset)
+    elif args.command == "showcase":
+        from soilsignal_ml.export.showcase import write_bundle
+
+        print(f"wrote {write_bundle(args.dataset)}")
     return 0
 
 

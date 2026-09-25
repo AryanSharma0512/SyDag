@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,6 +14,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SOILSIGNAL_", env_file=".env", extra="ignore")
 
     version: str = "0.1.0"
+    # "model": forecasts come from the exported models and the input bundles in
+    # practice_data_dir. "mock": the frontend's demo dataset (tests, local UI work).
+    # There is no automatic fallback from one to the other.
+    data_source: Literal["model", "mock"] = "model"
+    practice_data_dir: Path = BACKEND_ROOT / "data" / "practice"
     mock_data_path: Path = BACKEND_ROOT / "data" / "mock" / "fields.json"
     # One subdirectory per exported model (see app/model/contract.py).
     model_dir: Path = BACKEND_ROOT / "artifacts"

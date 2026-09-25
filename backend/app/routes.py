@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.config import get_settings
 from app.model.artifact import ArtifactError, FeatureValidationError, ModelArtifact, ModelRegistry
-from app.providers import ForecastProvider, get_provider, get_registry
+from app.providers import ForecastProvider, ProviderError, get_provider, get_registry
 from app.schemas import (
     FeatureImportanceItem,
     FieldForecast,
@@ -19,7 +19,15 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api")
 
-Provider = Annotated[ForecastProvider, Depends(get_provider)]
+
+def _provider() -> ForecastProvider:
+    try:
+        return get_provider()
+    except (ProviderError, ArtifactError) as err:
+        raise HTTPException(status_code=503, detail=f"Forecasts are unavailable: {err}") from err
+
+
+Provider = Annotated[ForecastProvider, Depends(_provider)]
 
 
 def _registry() -> ModelRegistry:
@@ -45,16 +53,24 @@ def _forecast_or_404(provider: ForecastProvider, field_id: str) -> FieldForecast
 
 
 @router.get("/health")
-def health(provider: Provider) -> Health:
+def health() -> Health:
+    """Always answers, so a broken data source shows up here instead of as a dead API:
+    dataSource "unavailable" and modelsLoaded 0 mean forecasts will return 503."""
     try:
         models_loaded = len(get_registry().artifacts)
     except ArtifactError:
         models_loaded = 0
+    try:
+        provider = get_provider()
+        source, label = provider.name, provider.dataset_label
+    except (ProviderError, ArtifactError):
+        source, label = "unavailable", "Unavailable"
     return Health(
         status="ok",
         version=get_settings().version,
-        data_source=provider.name,
+        data_source=source,
         models_loaded=models_loaded,
+        dataset_label=label,
     )
 
 

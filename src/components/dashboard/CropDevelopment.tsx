@@ -7,6 +7,7 @@ import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
 import { useElementWidth, useIsMobile } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
 import { SegmentedControl } from '../common/SegmentedControl';
+import { APP_CONFIG } from '../../config/appConfig';
 
 type Signal = 'ndvi' | 'ndre';
 
@@ -133,7 +134,7 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
               transition={{ duration: 0.2 }}
             >
               <span className="h-[2px] w-4 rounded-full bg-[#B4BAC2]" aria-hidden="true" />
-              5-yr regional baseline
+              {APP_CONFIG.demoMode ? '5-yr regional baseline' : 'Site average, same image'}
             </motion.span>
           )}
         </AnimatePresence>
