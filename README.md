@@ -20,6 +20,7 @@ This repository holds the front end and the backend API (`backend/`). By default
 | --- | --- |
 | `/` | Overview with the animated field-to-forecast story |
 | `/dashboard` | Forecast dashboard: predicted yield, range and confidence, a scrubbable season timeline, growth stages, crop development (NDVI / NDRE), weather and soil context, an illustrative spatial layer, forecast drivers, historical context and data provenance |
+| `/data` | Data Explorer: the public data behind each field (NOAA NCEI weather, USDA SSURGO soil, USDA NASS county yields) with live source status, observed vs. derived values, retrieval times, tables and CSV downloads |
 | `/methodology` | How SoilSignal works: pipeline, seasonal forecasting, an interactive uncertainty example, and data sources |
 | `/about` | The team |
 
@@ -73,7 +74,7 @@ npm run build    # outputs static files to dist/
 npm run preview  # serve the production build locally
 ```
 
-Production runs at [sydag.aboutsharma.com](https://sydag.aboutsharma.com) as two containers from `compose.sydag.yml`: the front end as static files behind Nginx (`Dockerfile.sydag`, `nginx.sydag.conf`) and the API (`backend/Dockerfile`), with the reverse proxy sending `/api/*` to the API. Nginx falls back to `index.html`, so `/`, `/dashboard`, `/methodology` and `/about` all load directly.
+Production runs at [sydag.aboutsharma.com](https://sydag.aboutsharma.com) as two containers from `compose.sydag.yml`: the front end as static files behind Nginx (`Dockerfile.sydag`, `nginx.sydag.conf`) and the API (`backend/Dockerfile`), with the reverse proxy sending `/api/*` to the API. Nginx falls back to `index.html`, so `/`, `/dashboard`, `/data`, `/methodology` and `/about` all load directly.
 
 ```bash
 docker compose -f compose.sydag.yml up -d --build
@@ -88,6 +89,7 @@ src/
 │   ├── common/         Navigation, footer, page transitions, badges, shared controls
 │   ├── overview/       Overview page, hero system animation, forecast preview, principles
 │   ├── dashboard/      Dashboard sections (summary, timeline, stages, crop, environment, spatial, drivers, history, provenance)
+│   ├── data/           Data Explorer: source status, weather / soil / yield panels, tables, CSV downloads
 │   ├── methodology/    Methodology page, pipeline animation, uncertainty demo
 │   ├── about/          About page and team
 │   └── debug/          Diagnostics panel (only with ?debug=true)

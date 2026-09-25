@@ -5,6 +5,7 @@ import { Footer } from './components/common/Footer';
 import { PageTransition } from './components/common/PageTransition';
 import { OverviewPage } from './components/overview/OverviewPage';
 import { DashboardView } from './components/dashboard/DashboardView';
+import { DataExplorerPage } from './components/data/DataExplorerPage';
 import { MethodologyPage } from './components/methodology/MethodologyPage';
 import { AboutPage } from './components/about/AboutPage';
 import { ROUTES, RouterProvider, routeFromPath, type Route } from './utils/router';
@@ -94,6 +95,9 @@ export default function App() {
           onTogglePresentationMode={togglePresentation}
         />
       );
+      break;
+    case 'data':
+      page = <DataExplorerPage />;
       break;
     case 'methodology':
       page = <MethodologyPage />;

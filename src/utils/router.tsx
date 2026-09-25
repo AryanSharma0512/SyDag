@@ -1,20 +1,21 @@
 import { createContext, useContext, type AnchorHTMLAttributes, type MouseEvent, type ReactNode } from 'react';
 
 /**
- * Minimal client-side routing for four static destinations. Nginx (and the Vite
+ * Minimal client-side routing for a handful of static destinations. Nginx (and the Vite
  * dev/preview servers) fall back to index.html, so every path can be opened directly.
  */
 
-export type Route = 'overview' | 'dashboard' | 'methodology' | 'about';
+export type Route = 'overview' | 'dashboard' | 'data' | 'methodology' | 'about';
 
 export const ROUTES: Record<Route, { path: string; label: string; title: string }> = {
   overview: { path: '/', label: 'Overview', title: 'SoilSignal · See the season before harvest' },
   dashboard: { path: '/dashboard', label: 'Dashboard', title: 'Dashboard · SoilSignal' },
+  data: { path: '/data', label: 'Data', title: 'Data Explorer · SoilSignal' },
   methodology: { path: '/methodology', label: 'Methodology', title: 'Methodology · SoilSignal' },
   about: { path: '/about', label: 'About', title: 'About · SoilSignal' },
 };
 
-export const ROUTE_ORDER: Route[] = ['overview', 'dashboard', 'methodology', 'about'];
+export const ROUTE_ORDER: Route[] = ['overview', 'dashboard', 'data', 'methodology', 'about'];
 
 export function routeFromPath(pathname: string): Route | null {
   const normalized = pathname.replace(/\/+$/, '').toLowerCase() || '/';

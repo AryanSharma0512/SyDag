@@ -67,10 +67,13 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/context/soil?lat=&lon=` | Soil for one point | `SoilProfile` from USDA NRCS SSURGO |
 | GET | `/api/context/weather?lat=&lon=&date=` | Observed weather as of a date | `ObservedWeather`: nearest NOAA station, rainfall, growing degree days, heat days, dry spells |
 | GET | `/api/context/yield-history?lat=&lon=&throughYear=` | County corn yields | `YieldHistory` from USDA NASS (needs `SOILSIGNAL_NASS_API_KEY`) |
+| GET | `/api/context/export?lat=&lon=&type=&date=` | Data Explorer downloads (`getLocationContextCsv()`); `type` is `weather`, `soil`, `yield-history` or `all` | CSV of the normalized values (never raw upstream responses); `all` is a long table that includes each source's status |
 
 Data provenance (`getDataSources()` in `src/services/sources.ts`): in API mode it is the
 forecast's own `sources` (practice/challenge data, connected public data, model output); in
-demo mode, the list in `src/mock/fieldsData.ts`.
+demo mode, the list in `src/mock/fieldsData.ts`. It describes the sources; it is not live
+connectivity. The Data Explorer's "Connected" means the latest `/api/context/all` response
+reported `status: ok` for that source.
 
 Context sources are cached on disk (soil forever, county yields 14 days, weather 6 hours
 while recent and 30 days once settled). If a source is down, the last good copy is served.
@@ -141,15 +144,18 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `services/*.ts` | The only code that fetches data: demo data in demo mode, `/api` otherwise |
 | `services/sources.ts` | Data provenance: the forecast's `sources` in API mode, the demo list in demo mode |
 | `services/dataset.ts` | Dataset label for the navigation badge ("Practice data" from `/api/health` in API mode) |
-| `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field |
+| `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field; `getLocationContextCsv()` for downloads |
+| `services/contextCsv.ts` | Demo-build CSV from the snapshot, mirroring `backend/app/context/export.py` |
+| `utils/useLocationContext.ts` | Hook that loads a field's location context once for all its forecast dates (dashboard and Data Explorer) |
 | `services/apiClient.ts` | `apiGet()` JSON client |
 | `config/appConfig.ts` | Branding, event, team, `demoMode`, `apiBaseUrl`, defaults |
 | `mock/fieldsData.ts` | 5 demo fields and `DATA_SOURCES` (source of `backend/data/mock/fields.json`). Coordinates are real farmland whose SSURGO soil matches each field; yields are scaled to each county's real NASS five-year average |
 | `mock/contextSnapshot.ts` | Generated snapshot of the public data for the demo fields, used in demo mode |
 | `App.tsx` | Page shell: route transitions, presentation (`?presentation=true`, `F`) and debug (`?debug=true`) flags |
-| `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/methodology`, `/about` |
+| `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/data`, `/methodology`, `/about` |
 | `components/dashboard/DashboardView.tsx` | Dashboard state: fields, selected field, active date, field-switch transition, shortcuts |
 | `components/dashboard/*` | One component per dashboard section; hand-built SVG charts |
+| `components/data/*` | Data Explorer (`/data`): source status, weather, soil and county-yield panels, Visual/Data views, CSV menu |
 | `components/overview/`, `components/methodology/`, `components/about/` | The other three pages |
 | `components/brand/` | SoilSignal mark, lockup and animated logo |
 | `components/common/` | Navigation, footer, page transitions, animated numbers, shared controls |

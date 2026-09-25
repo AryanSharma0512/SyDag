@@ -121,6 +121,7 @@ calls USDA or NOAA itself; the backend fetches, normalizes and caches everything
 | `GET /api/context/weather?lat=&lon=&date=` | NOAA NCEI daily summaries (GHCN-Daily) from the nearest station with rain and temperature records | No |
 | `GET /api/context/yield-history?lat=&lon=&throughYear=` | USDA NASS Quick Stats: county corn yields by year and the 5-year average | Yes |
 | `GET /api/context/all?lat=&lon=&date=&date=...` | All of the above in one response; each part reports `ok`, `unavailable` or `not_configured` | — |
+| `GET /api/context/export?lat=&lon=&type=&date=...` | The same normalized data as a CSV download (`type`: `weather`, `soil`, `yield-history`, `all`) | — |
 
 - **Derived here, not fetched:** rainfall over 7 and 30 days, 30-day mean temperature,
   growing degree days (base 50 °F, cap 86 °F), days at 95 °F or hotter, and the longest

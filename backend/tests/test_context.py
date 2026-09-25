@@ -3,6 +3,8 @@ Location context (/api/context/*). Upstream services are replayed from responses
 recorded for Purdue Plot 104 (tests/fixtures/context), so no test touches the network.
 """
 
+import csv
+import io
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -436,3 +438,71 @@ def test_yield_history_from_recorded_nass(tmp_path):
     assert [y.year for y in history.years] == list(range(2017, 2026))
     assert (history.years[-1].yield_, history.years[-2].yield_) == (233.4, 220.0)  # "220" parses
     assert history.five_year_average == 214.3
+
+
+# ---- CSV export ----------------------------------------------------------------
+
+
+def csv_rows(res) -> list[list[str]]:
+    return list(csv.reader(io.StringIO(res.text)))
+
+
+def test_export_weather_csv(api):
+    res = api.get(f"/api/context/export?lat={LAT}&lon={LON}&type=weather&{DATES}")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/csv")
+    assert res.headers["content-disposition"] == (
+        'attachment; filename="soilsignal-weather-40.4883_-86.9982.csv"'
+    )
+    header, *rows = csv_rows(res)
+    assert header[:4] == ["latitude", "longitude", "asOf", "observedThrough"]
+    assert [r[header.index("asOf")] for r in rows] == ["2026-07-22", "2026-05-30"]
+    assert {r[header.index("stationId")] for r in rows} == {"USC00129430"}
+    # The same derived values the JSON endpoint returns.
+    summary = api.get(f"/api/context/all?lat={LAT}&lon={LON}&{DATES}").json()["weather"]["data"][
+        "summaries"
+    ][0]
+    assert float(rows[0][header.index("rainfallLast30DaysMm")]) == summary["rainfallLast30DaysMm"]
+    assert float(rows[0][header.index("gddSinceSeasonStart")]) == summary["gddSinceSeasonStart"]
+
+
+def test_export_soil_csv_is_key_value(api):
+    rows = csv_rows(api.get(f"/api/context/export?lat={LAT}&lon={LON}&type=soil&{DATES}"))
+    assert rows[0] == ["property", "value"]
+    props = dict(rows[1:])
+    assert props["latitude"] == "40.4883"
+    assert props["series"] == "Chalmers"
+    assert props["source"] == "USDA NRCS SSURGO"
+    assert "retrievedAt" in props
+
+
+def test_export_yield_history_csv(api):
+    api.nass_key = "test-key"
+    res = api.get(f"/api/context/export?lat={LAT}&lon={LON}&type=yield-history&{DATES}")
+    header, *rows = csv_rows(res)
+    assert header[2:5] == ["year", "yield", "unit"]
+    assert rows[-1][2:6] == ["2025", "205.4", "bu/ac", "Tippecanoe County"]
+    assert "test-key" not in res.text
+
+
+def test_export_all_reports_every_status(api):
+    res = api.get(f"/api/context/export?lat={LAT}&lon={LON}&type=all&{DATES}")
+    assert res.status_code == 200
+    rows = csv_rows(res)
+    assert rows[0] == ["dataset", "record", "property", "value"]
+    statuses = {r[0]: r[3] for r in rows if r[2] == "status"}
+    assert statuses == {"soil": "ok", "weather": "ok", "yieldHistory": "not_configured"}
+    assert ["weather", "2026-05-30", "asOf", "2026-05-30"] in rows
+    assert ["soil", "", "series", "Chalmers"] in rows
+
+
+@pytest.mark.parametrize(
+    "query, status",
+    [
+        (f"type=yield-history&{DATES}", 503),  # no NASS key
+        (f"type=raw&{DATES}", 422),
+        ("type=weather", 422),  # no date
+    ],
+)
+def test_export_errors(api, query, status):
+    assert api.get(f"/api/context/export?lat={LAT}&lon={LON}&{query}").status_code == status
