@@ -1,0 +1,31 @@
+{
+  "model_id": "soilsignal-maize-0531",
+  "algorithm": "CatBoostRegressor",
+  "target": "grain yield at 15.5% moisture",
+  "unit": "bu/ac",
+  "metrics": {
+    "rmse": 52.69,
+    "mae": 45.81,
+    "r2": -3.894
+  },
+  "validation": "leave-one-site-out CV over 4 sites (Ames, Lincoln, MOValley, Scottsbluff); features: Crop + weather; final test on held-out site Crawfordsville",
+  "feature_count": 28,
+  "trained_at": "2026-09-25T00:03:27+00:00",
+  "as_of": "05-31",
+  "interval": {
+    "level": 0.9,
+    "lower_offset": -114.67,
+    "upper_offset": 77.79
+  },
+  "dataset": "Practice data: Shrestha et al. (2024) multistate maize trials (public, CC0)",
+  "holdout": {
+    "group": "site: Crawfordsville",
+    "metrics": {
+      "rmse": 76.97,
+      "mae": 72.03,
+      "r2": -8.727
+    },
+    "interval_coverage": 0.594,
+    "n": 488
+  }
+}

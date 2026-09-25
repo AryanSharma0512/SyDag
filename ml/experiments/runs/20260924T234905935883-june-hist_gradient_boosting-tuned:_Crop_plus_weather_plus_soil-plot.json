@@ -1,0 +1,74 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "june",
+  "as_of": "06-30",
+  "seed": 42,
+  "run_id": "20260924T234905935883-june-hist_gradient_boosting-tuned:_Crop_plus_weather_plus_soil-plot",
+  "model": "hist_gradient_boosting",
+  "feature_set": "tuned: Crop + weather + soil",
+  "n_features": 36,
+  "validation": "grouped 5-fold by plot",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4;fold5",
+  "mae": 17.275,
+  "rmse": 22.934,
+  "r2": 0.8228,
+  "relative_mae": 0.1584,
+  "mae_fold_std": 0.685,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 1.21,
+  "params": "{\"learning_rate\": 0.17928332856924592, \"max_iter\": 200, \"max_depth\": null, \"max_leaf_nodes\": 11, \"min_samples_leaf\": 7, \"l2_regularization\": 0.00973787897180214, \"max_features\": 0.3582852647512451}",
+  "timestamp": "2026-09-24T23:49:05+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 16.244135001263697,
+      "rmse": 21.598756036813096,
+      "r2": 0.837603061358656,
+      "relative_mae": 0.14919788375646126,
+      "bias": -1.1366121990471574,
+      "n": 329
+    },
+    {
+      "group": "fold2",
+      "mae": 18.031205612541036,
+      "rmse": 24.100228112289805,
+      "r2": 0.7960215416701099,
+      "relative_mae": 0.16390225229827216,
+      "bias": -0.3959562734547754,
+      "n": 329
+    },
+    {
+      "group": "fold3",
+      "mae": 16.85300315207837,
+      "rmse": 22.109599569384148,
+      "r2": 0.8407937551130451,
+      "relative_mae": 0.15435743824627876,
+      "bias": -0.7107763008921661,
+      "n": 329
+    },
+    {
+      "group": "fold4",
+      "mae": 17.241868721508652,
+      "rmse": 23.645556840987265,
+      "r2": 0.8155417441301595,
+      "relative_mae": 0.15813601582930364,
+      "bias": 0.913070211478395,
+      "n": 328
+    },
+    {
+      "group": "fold5",
+      "mae": 18.00538990479718,
+      "rmse": 23.216754274779575,
+      "r2": 0.8238702079741724,
+      "relative_mae": 0.1663314059266405,
+      "bias": -0.0677966594579527,
+      "n": 328
+    }
+  ],
+  "tuning": []
+}

@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "june",
+  "as_of": "06-30",
+  "seed": 42,
+  "run_id": "20260924T234800414598-june-random_forest-All_(plus_timing,_county_history)-site",
+  "model": "random_forest",
+  "feature_set": "All (+ timing, county history)",
+  "n_features": 40,
+  "validation": "leave-one-site-out",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "mae": 64.39,
+  "rmse": 70.105,
+  "r2": -6.2728,
+  "relative_mae": 0.8896,
+  "mae_fold_std": 22.723,
+  "interval_coverage": 0.902,
+  "interval_lower": -127.51,
+  "interval_upper": 104.14,
+  "train_seconds": 0.53,
+  "params": "{\"n_estimators\": 300, \"min_samples_leaf\": 5, \"max_features\": 0.5}",
+  "timestamp": "2026-09-24T23:48:00+00:00",
+  "per_fold": [
+    {
+      "group": "Ames",
+      "mae": 66.57437410756802,
+      "rmse": 73.04259746889133,
+      "r2": -4.284607726880419,
+      "relative_mae": 0.5108087379642251,
+      "bias": -65.95581495242591,
+      "n": 487
+    },
+    {
+      "group": "Lincoln",
+      "mae": 100.25299974763642,
+      "rmse": 103.92794673498244,
+      "r2": -16.441060102491516,
+      "relative_mae": 2.4314528885960907,
+      "bias": 100.2326523244907,
+      "n": 504
+    },
+    {
+      "group": "MOValley",
+      "mae": 40.33816091070824,
+      "rmse": 44.681184037258745,
+      "r2": -2.4022913058652517,
+      "relative_mae": 0.26458416493514864,
+      "bias": -39.16892171427068,
+      "n": 163
+    },
+    {
+      "group": "Scottsbluff",
+      "mae": 50.3952618488683,
+      "rmse": 58.76717475873403,
+      "r2": -1.9630742392802594,
+      "relative_mae": 0.3515415345639062,
+      "bias": -47.31312005216174,
+      "n": 489
+    }
+  ],
+  "tuning": []
+}

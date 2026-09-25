@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "july",
+  "as_of": "07-31",
+  "seed": 42,
+  "run_id": "20260924T235018514128-july-hist_gradient_boosting-Crop_plus_weather-site",
+  "model": "hist_gradient_boosting",
+  "feature_set": "Crop + weather",
+  "n_features": 56,
+  "validation": "leave-one-site-out",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "mae": 79.647,
+  "rmse": 84.694,
+  "r2": -9.2625,
+  "relative_mae": 0.9728,
+  "mae_fold_std": 33.28,
+  "interval_coverage": 0.9014,
+  "interval_lower": -128.25,
+  "interval_upper": 155.36,
+  "train_seconds": 3.77,
+  "params": "{\"learning_rate\": 0.05, \"max_iter\": 300}",
+  "timestamp": "2026-09-24T23:50:18+00:00",
+  "per_fold": [
+    {
+      "group": "Ames",
+      "mae": 29.487544883797923,
+      "rmse": 37.09752610722369,
+      "r2": -0.3631706792892344,
+      "relative_mae": 0.22625065259222604,
+      "bias": -17.64663774408822,
+      "n": 487
+    },
+    {
+      "group": "Lincoln",
+      "mae": 97.14906514609014,
+      "rmse": 101.34665758564203,
+      "r2": -15.585441804251758,
+      "relative_mae": 2.356172639905866,
+      "bias": 97.14906514609014,
+      "n": 504
+    },
+    {
+      "group": "MOValley",
+      "mae": 72.7955343854091,
+      "rmse": 75.89496372674117,
+      "r2": -8.816305464249325,
+      "relative_mae": 0.47747704014087633,
+      "bias": -72.7955343854091,
+      "n": 163
+    },
+    {
+      "group": "Scottsbluff",
+      "mae": 119.15759744270072,
+      "rmse": 124.43650109562168,
+      "r2": -12.285212032090273,
+      "relative_mae": 0.831206012691764,
+      "bias": -119.15759744270072,
+      "n": 489
+    }
+  ],
+  "tuning": []
+}

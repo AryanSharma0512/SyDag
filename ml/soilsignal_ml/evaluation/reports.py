@@ -289,6 +289,33 @@ def build_report() -> str:
         else "_No selected feature has a literature expectation._"
     )
 
+    out += ["", "## Findings", ""]
+    for s in summaries:
+        base = s["holdout_all"]["mean"]["mae"]
+        mae = s["holdout"]["mae"]
+        verdict = "better than" if mae < base else "**worse than**"
+        out.append(
+            f"- **{s['config']['label']}:** held-out MAE {_f(mae)} vs {_f(base)} for predicting the "
+            f"training mean, {verdict} the baseline (bias {s['holdout']['bias']:+.0f} bu/ac)."
+        )
+    flagged = [
+        (s["config"]["label"], c)
+        for s in summaries
+        for c in s["sensitivity"]
+        if c["status"] == "investigate"
+    ]
+    if flagged:
+        out.append(
+            "- **Sensitivity checks flag:** "
+            + "; ".join(
+                f"{label} `{c['feature']}` ({c['observed']}, literature: {c['expected']})"
+                for label, c in flagged
+            )
+            + ". With four development sites these responses are most likely site confounding: "
+            "Scottsbluff is the hottest and driest site and the highest yielding because it is "
+            "irrigated, and nitrogen rates were applied in separate experiment blocks (fields). "
+            "They are reported, not overridden."
+        )
     out += [
         "",
         "## Reading these numbers honestly",

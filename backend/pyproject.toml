@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "SoilSignal API: serves field forecasts to the dashboard"
 requires-python = ">=3.13"
 dependencies = [
+    "catboost==1.2.10",
     "fastapi>=0.141.1",
     "httpx2>=2.13.1",
     "pandas>=3.0.6",
@@ -18,7 +19,6 @@ dev = [
     "ruff>=0.16.8",
 ]
 ml = [
-    "catboost>=1.2.10",
     "imagecodecs>=2026.8.16",
     "ipykernel>=7.3.0",
     "matplotlib>=3.11.2",

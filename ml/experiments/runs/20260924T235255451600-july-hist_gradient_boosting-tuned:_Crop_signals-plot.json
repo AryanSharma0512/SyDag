@@ -1,0 +1,74 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "july",
+  "as_of": "07-31",
+  "seed": 42,
+  "run_id": "20260924T235255451600-july-hist_gradient_boosting-tuned:_Crop_signals-plot",
+  "model": "hist_gradient_boosting",
+  "feature_set": "tuned: Crop signals",
+  "n_features": 27,
+  "validation": "grouped 5-fold by plot",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4;fold5",
+  "mae": 17.209,
+  "rmse": 22.896,
+  "r2": 0.8235,
+  "relative_mae": 0.1578,
+  "mae_fold_std": 0.755,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 3.02,
+  "params": "{\"learning_rate\": 0.10827682122185907, \"max_iter\": 300, \"max_depth\": null, \"max_leaf_nodes\": 21, \"min_samples_leaf\": 18, \"l2_regularization\": 1.5201554030885167, \"max_features\": 0.8883481509197951}",
+  "timestamp": "2026-09-24T23:52:55+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 15.716005536429666,
+      "rmse": 21.238411415180977,
+      "r2": 0.8429765848316028,
+      "relative_mae": 0.14434716080343604,
+      "bias": 0.2068557616161313,
+      "n": 329
+    },
+    {
+      "group": "fold2",
+      "mae": 17.515174381147126,
+      "rmse": 23.870675186565467,
+      "r2": 0.7998887959367286,
+      "relative_mae": 0.1592115686635136,
+      "bias": -0.23219112851622528,
+      "n": 329
+    },
+    {
+      "group": "fold3",
+      "mae": 17.78324966009707,
+      "rmse": 23.15106999953999,
+      "r2": 0.8254417091102587,
+      "relative_mae": 0.16287760919857605,
+      "bias": -0.5600953694739567,
+      "n": 329
+    },
+    {
+      "group": "fold4",
+      "mae": 17.45855353874205,
+      "rmse": 22.95282983670587,
+      "r2": 0.826191312470951,
+      "relative_mae": 0.16012336849051748,
+      "bias": -0.504316431613729,
+      "n": 328
+    },
+    {
+      "group": "fold5",
+      "mae": 17.571940715638437,
+      "rmse": 23.265232394989937,
+      "r2": 0.8231338987084911,
+      "relative_mae": 0.16232725975642467,
+      "bias": 1.8210666654817806,
+      "n": 328
+    }
+  ],
+  "tuning": []
+}

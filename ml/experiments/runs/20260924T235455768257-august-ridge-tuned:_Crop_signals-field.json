@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "august",
+  "as_of": "08-31",
+  "seed": 42,
+  "run_id": "20260924T235455768257-august-ridge-tuned:_Crop_signals-field",
+  "model": "ridge",
+  "feature_set": "tuned: Crop signals",
+  "n_features": 39,
+  "validation": "grouped 4-fold by field",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4",
+  "mae": 26.827,
+  "rmse": 33.001,
+  "r2": -0.3768,
+  "relative_mae": 0.2727,
+  "mae_fold_std": 7.37,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 0.03,
+  "params": "{\"alpha\": 1.2241215283849372}",
+  "timestamp": "2026-09-24T23:54:55+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 18.026774340656168,
+      "rmse": 23.412466419771636,
+      "r2": 0.11487925571236612,
+      "relative_mae": 0.4372063943522218,
+      "bias": -6.696301969844895,
+      "n": 504
+    },
+    {
+      "group": "fold2",
+      "mae": 21.609568544686393,
+      "rmse": 26.69847217294348,
+      "r2": 0.31743374189192475,
+      "relative_mae": 0.15891899187608982,
+      "bias": -4.067295802594558,
+      "n": 330
+    },
+    {
+      "group": "fold3",
+      "mae": 31.155534637957512,
+      "rmse": 40.252100134510954,
+      "r2": -0.9971122310607969,
+      "relative_mae": 0.25568118783997135,
+      "bias": 23.536127049227673,
+      "n": 327
+    },
+    {
+      "group": "fold4",
+      "mae": 36.516149190855614,
+      "rmse": 41.640953206342964,
+      "r2": -0.942348636631652,
+      "relative_mae": 0.23880400220385115,
+      "bias": -32.056356754142556,
+      "n": 482
+    }
+  ],
+  "tuning": []
+}

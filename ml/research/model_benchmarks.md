@@ -40,10 +40,26 @@ Unit note: 1 t/ha of maize grain ≈ 15.9 bu/ac (56 lb/bu).
 
 ## SoilSignal on the practice data
 
-The measured numbers (leave-one-site-out CV over Ames, Lincoln, Missouri Valley and Scottsbluff,
-then a single score on the held-out Crawfordsville site) are generated into
-`ml/experiments/reports/model_report.md`. The comparison with the studies above is summarized in
-the pull request that adds this file.
+Full tables: `ml/experiments/reports/model_report.md`. Leave-one-site-out CV used Ames, Lincoln,
+Missouri Valley and Scottsbluff; Crawfordsville was scored once, after selection.
+
+| Forecast date | SoilSignal model | Held-out site MAE (bu/ac) | Mean-yield baseline | Grouped-by-plot CV MAE |
+|---|---|---|---|---|
+| May 31 | CatBoost, crop + weather | 72.0 | 56.5 | 21.1 |
+| June 30 | CatBoost, crop + weather + soil | 44.0 | 56.5 | 20.2 |
+| **July 31** | HistGradientBoosting, crop signals | **18.0** (RMSE 23.0) | 56.5 | 17.2 |
+| August 31 | HistGradientBoosting, crop signals | 28.4 | 56.5 | 16.0 |
+| Full season | CatBoost, crop + timing | 34.7 | 56.5 | 15.8 |
+
+- **Within a known site**, SoilSignal's grouped-by-plot error (~16–21 bu/ac) is in the range [2]
+  reports for unseen hybrids at seen locations (RMSE ≈ 21–24 bu/ac). This is the easy question.
+- **At an unseen site**, the published work on these plots reports correlations up to ~0.31 [1]
+  and no absolute error [2]. SoilSignal's July forecast for the held-out site is off by 18 bu/ac on
+  average (11% of its mean yield) with almost no bias. Pre-season forecasts are no better, and in
+  May worse, than the average, which matches [1]'s finding that late-July/early-August imagery
+  carries the signal.
+- **The held-out result is one site.** With four development sites, CV spreads of ±8–26 bu/ac
+  between folds are the more honest measure of how much a new site's error can vary.
 
 ## Sources
 

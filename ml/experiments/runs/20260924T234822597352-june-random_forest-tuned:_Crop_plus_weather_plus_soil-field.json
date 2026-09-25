@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "june",
+  "as_of": "06-30",
+  "seed": 42,
+  "run_id": "20260924T234822597352-june-random_forest-tuned:_Crop_plus_weather_plus_soil-field",
+  "model": "random_forest",
+  "feature_set": "tuned: Crop + weather + soil",
+  "n_features": 36,
+  "validation": "grouped 4-fold by field",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4",
+  "mae": 45.872,
+  "rmse": 51.308,
+  "r2": -4.3087,
+  "relative_mae": 0.7601,
+  "mae_fold_std": 31.472,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 0.47,
+  "params": "{\"bootstrap\": false, \"n_estimators\": 400, \"max_depth\": 8, \"min_samples_leaf\": 1, \"min_samples_split\": 3, \"max_features\": 0.33}",
+  "timestamp": "2026-09-24T23:48:22+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 100.22437895043264,
+      "rmse": 103.78348144507615,
+      "r2": -16.392605828626472,
+      "relative_mae": 2.4307587435808764,
+      "bias": 100.21340804126636,
+      "n": 504
+    },
+    {
+      "group": "fold2",
+      "mae": 24.810055063490747,
+      "rmse": 30.592757847833152,
+      "r2": 0.10379109484309601,
+      "relative_mae": 0.18245569923929486,
+      "bias": -3.720912016846329,
+      "n": 330
+    },
+    {
+      "group": "fold3",
+      "mae": 27.001545912750984,
+      "rmse": 33.71425502229998,
+      "r2": -0.40104639774399353,
+      "relative_mae": 0.22159104033081337,
+      "bias": 16.30209493248644,
+      "n": 327
+    },
+    {
+      "group": "fold4",
+      "mae": 31.45134091829787,
+      "rmse": 37.13958667582947,
+      "r2": -0.545112096682294,
+      "relative_mae": 0.20568176690022155,
+      "bias": -23.525247179086282,
+      "n": 482
+    }
+  ],
+  "tuning": []
+}

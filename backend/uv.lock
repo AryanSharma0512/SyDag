@@ -1827,6 +1827,7 @@ name = "soilsignal-backend"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "catboost" },
     { name = "fastapi" },
     { name = "httpx2" },
     { name = "pandas" },
@@ -1841,7 +1842,6 @@ dev = [
     { name = "ruff" },
 ]
 ml = [
-    { name = "catboost" },
     { name = "imagecodecs" },
     { name = "ipykernel" },
     { name = "matplotlib" },
@@ -1856,6 +1856,7 @@ ml = [
 
 [package.metadata]
 requires-dist = [
+    { name = "catboost", specifier = "==1.2.10" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx2", specifier = ">=2.13.1" },
     { name = "pandas", specifier = ">=3.0.6" },
@@ -1870,7 +1871,6 @@ dev = [
     { name = "ruff", specifier = ">=0.16.8" },
 ]
 ml = [
-    { name = "catboost", specifier = ">=1.2.10" },
     { name = "imagecodecs", specifier = ">=2026.8.16" },
     { name = "ipykernel", specifier = ">=7.3.0" },
     { name = "matplotlib", specifier = ">=3.11.2" },

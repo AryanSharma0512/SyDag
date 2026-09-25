@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "full",
+  "as_of": "10-15",
+  "seed": 42,
+  "run_id": "20260925T000141565691-full-hist_gradient_boosting-tuned:_Crop_plus_timing-field",
+  "model": "hist_gradient_boosting",
+  "feature_set": "tuned: Crop + timing",
+  "n_features": 40,
+  "validation": "grouped 4-fold by field",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4",
+  "mae": 37.048,
+  "rmse": 43.052,
+  "r2": -1.5183,
+  "relative_mae": 0.4677,
+  "mae_fold_std": 10.402,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 1.3,
+  "params": "{\"learning_rate\": 0.15461651456542655, \"max_iter\": 200, \"max_depth\": null, \"max_leaf_nodes\": 18, \"min_samples_leaf\": 37, \"l2_regularization\": 1.0900791994683698, \"max_features\": 0.3596953683280645}",
+  "timestamp": "2026-09-25T00:01:41+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 47.22698584809606,
+      "rmse": 52.50696981252556,
+      "r2": -3.45186612504547,
+      "relative_mae": 1.145404042264053,
+      "bias": 46.25475472925618,
+      "n": 504
+    },
+    {
+      "group": "fold2",
+      "mae": 28.184040377361374,
+      "rmse": 33.89655277597965,
+      "r2": -0.10022893806352373,
+      "relative_mae": 0.20726833460386798,
+      "bias": 6.724796840476316,
+      "n": 330
+    },
+    {
+      "group": "fold3",
+      "mae": 25.216346753773276,
+      "rmse": 31.62492022009334,
+      "r2": -0.2327762526342707,
+      "relative_mae": 0.20694061475467046,
+      "bias": 19.54375827645482,
+      "n": 327
+    },
+    {
+      "group": "fold4",
+      "mae": 47.565980494973445,
+      "rmse": 54.179492947687805,
+      "r2": -2.288181130441907,
+      "relative_mae": 0.31106638467219566,
+      "bias": -43.84675564195736,
+      "n": 482
+    }
+  ],
+  "tuning": []
+}

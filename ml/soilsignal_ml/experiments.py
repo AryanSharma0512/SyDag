@@ -54,7 +54,18 @@ def git_sha() -> str:
             check=True,
         ).stdout.strip()
         dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--", "ml", "backend/app"],
+            # Code and configuration only: regenerated reports don't make a run "dirty".
+            [
+                "git",
+                "status",
+                "--porcelain",
+                "--",
+                "ml/soilsignal_ml",
+                "ml/configs",
+                "backend/app",
+                "backend/pyproject.toml",
+                "backend/uv.lock",
+            ],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
