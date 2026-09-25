@@ -1,12 +1,15 @@
 /**
  * Data Provenance Service
- * Returns the challenge-provided source and the candidate enrichments. Candidate
- * sources are listed for transparency; they are not connected yet.
+ * Demo mode: the demo source list. API mode: the sources the backend reports for the
+ * forecast (practice or challenge data, connected public data, model output), so the
+ * page never describes data the forecast did not use.
  */
 
-import { DataSource } from '../types/agricultural';
+import type { DataSource, FieldForecast } from '../types/agricultural';
 import { DATA_SOURCES } from '../mock/fieldsData';
+import { APP_CONFIG } from '../config/appConfig';
 
-export async function getDataSources(): Promise<DataSource[]> {
+export async function getDataSources(forecast?: FieldForecast | null): Promise<DataSource[]> {
+  if (!APP_CONFIG.demoMode) return forecast?.sources ?? [];
   return DATA_SOURCES;
 }

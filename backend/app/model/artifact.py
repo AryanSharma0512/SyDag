@@ -23,6 +23,7 @@ from app.model.contract import (
     FeatureSchema,
     ModelMetadata,
 )
+from app.model.explain import baseline_contributions
 
 FeatureValue = float | int | str | None
 
@@ -45,6 +46,10 @@ class Driver:
     weight: float  # percent of total importance, 0-100
     category: FeatureCategory
     direction: Direction
+    # Set for per-prediction drivers: which feature, this field's value, the typical value.
+    feature: str | None = None
+    value: FeatureValue = None
+    typical: FeatureValue = None
 
 
 @dataclass(frozen=True)
@@ -54,17 +59,32 @@ class Prediction:
     upper_bound: float
     confidence: float  # 0-100
     confidence_rating: str
+    # Share of the model's numeric inputs inside their training range (1.0 = none outside).
+    in_domain_share: float
+    # This prediction's own drivers when the schema supports them, else the model's global ones.
+    drivers: list[Driver]
 
 
-def confidence_from_interval(point: float, lower: float, upper: float) -> tuple[float, str]:
-    """Confidence as 1 - (relative interval width), so a narrower interval scores higher.
+# Driver weights below this share of the total are not shown.
+MIN_DRIVER_WEIGHT = 1.0
+MAX_DRIVERS = 8
 
-    Presentation heuristic, not a probability: the interval level itself is fixed
-    by the model's metadata.
+
+def confidence_from_interval(
+    point: float, lower: float, upper: float, in_domain_share: float = 1.0
+) -> tuple[float, str]:
+    """Confidence = interval precision x in-domain share.
+
+    Interval precision is 1 - (interval width / forecast): the model's validated error
+    at this point in the season, relative to the forecast. In-domain share is the
+    fraction of numeric inputs inside the central 98% of training values; each input
+    outside it means the model is extrapolating. A display score, not a probability:
+    the interval's coverage level is fixed by the model's metadata.
     """
     if point <= 0:
         return 0.0, "LOW"
-    score = max(0.0, min(100.0, 100 * (1 - (upper - lower) / point)))
+    precision = max(0.0, min(1.0, 1 - (upper - lower) / point))
+    score = 100 * precision * max(0.0, min(1.0, in_domain_share))
     rating = "HIGH" if score >= 80 else "MODERATE" if score >= 60 else "LOW"
     return round(score), rating
 
@@ -105,13 +125,17 @@ class ModelArtifact:
         if not callable(getattr(self.estimator, "predict", None)):
             raise ArtifactError(f"{mid}: estimator has no predict()")
         fitted_names = getattr(self.estimator, "feature_names_in_", None)
+        if fitted_names is None:
+            fitted_names = getattr(self.estimator, "feature_names_", None)  # CatBoost
         if fitted_names is not None and list(fitted_names) != names:
             raise ArtifactError(
                 f"{mid}: estimator was fitted on columns {list(fitted_names)}, "
                 f"but feature_schema lists {names} (names and order must match)"
             )
+        # CatBoost reports n_features_in_ = 0 after unpickling; its feature_names_ above
+        # is the authoritative check for it.
         n_in = getattr(self.estimator, "n_features_in_", None)
-        if n_in is not None and n_in != len(names):
+        if n_in and n_in != len(names):
             raise ArtifactError(
                 f"{mid}: estimator expects {n_in} features, schema has {len(names)}"
             )
@@ -170,15 +194,72 @@ class ModelArtifact:
             raise FeatureValidationError(problems)
         return pd.DataFrame.from_records(records, columns=self.schema.names)
 
+    def _in_domain_share(self, frame: pd.DataFrame) -> list[float]:
+        ranged = [
+            f for f in self.schema.features if f.train_low is not None and f.train_high is not None
+        ]
+        shares = []
+        for _, row in frame.iterrows():
+            checked = [f for f in ranged if pd.notna(row[f.name])]
+            inside = [f for f in checked if f.train_low <= row[f.name] <= f.train_high]
+            shares.append(len(inside) / len(checked) if checked else 1.0)
+        return shares
+
+    def _local_drivers(self, frame: pd.DataFrame) -> list[list[Driver]] | None:
+        specs = [f for f in self.schema.features if f.typical is not None]
+        if not specs:
+            return None
+        typical = {
+            f.name: (str(f.typical) if f.dtype == "category" else float(f.typical)) for f in specs
+        }
+        contributions = baseline_contributions(self.estimator, frame, typical)
+        out = []
+        for i, (_, row) in enumerate(frame.iterrows()):
+            c = contributions.iloc[i]
+            total = float(c.abs().sum())
+            drivers = []
+            for f in specs:
+                value, delta = row[f.name], float(c[f.name])
+                weight = 100 * abs(delta) / total if total > 0 else 0.0
+                if weight < MIN_DRIVER_WEIGHT:
+                    continue
+                if f.dtype == "category":
+                    label = f"{f.label or f.name}: {value}"
+                elif pd.isna(value):
+                    label = f"{f.label or f.name} (not available)"
+                elif value >= float(f.typical):
+                    label = f.high_label or f.label or f.name
+                else:
+                    label = f.low_label or f.label or f.name
+                direction: Direction = (
+                    "positive" if delta > 0 else "negative" if delta < 0 else "neutral"
+                )
+                drivers.append(
+                    Driver(
+                        label,
+                        round(weight, 1),
+                        f.category,
+                        direction,
+                        feature=f.name,
+                        value=None if pd.isna(value) else value,
+                        typical=f.typical,
+                    )
+                )
+            out.append(sorted(drivers, key=lambda d: d.weight, reverse=True)[:MAX_DRIVERS])
+        return out
+
     def predict(self, rows: list[dict[str, FeatureValue]]) -> list[Prediction]:
         frame = self._to_frame(rows)
         interval = self.metadata.interval
+        shares = self._in_domain_share(frame)
+        local = self._local_drivers(frame)
         results = []
-        for point in self.estimator.predict(frame):
+        for i, point in enumerate(self.estimator.predict(frame)):
             point = float(point)
-            lower = point + interval.lower_offset
+            # Yield can't be negative; wide early-season ranges are cut at zero.
+            lower = max(0.0, point + interval.lower_offset)
             upper = point + interval.upper_offset
-            confidence, rating = confidence_from_interval(point, lower, upper)
+            confidence, rating = confidence_from_interval(point, lower, upper, shares[i])
             results.append(
                 Prediction(
                     yield_=round(point, 1),
@@ -186,6 +267,8 @@ class ModelArtifact:
                     upper_bound=round(upper, 1),
                     confidence=confidence,
                     confidence_rating=rating,
+                    in_domain_share=round(shares[i], 3),
+                    drivers=local[i] if local is not None else self.drivers,
                 )
             )
         return results

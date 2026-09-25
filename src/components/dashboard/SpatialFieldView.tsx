@@ -41,7 +41,12 @@ export function SpatialFieldView({ spatial, fieldName }: SpatialFieldViewProps) 
   const reduce = useReducedMotion();
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const [layer, setLayer] = useState<Layer>('vegetation');
-  const [selected, setSelected] = useState(13);
+  const isModel = spatial.provenance === 'model';
+  // Model-derived maps start on the forecast's own plot; the demo layer on zone 14.
+  const [selected, setSelected] = useState(() => {
+    const own = spatial.zones.findIndex((z) => z.name.endsWith('(this plot)'));
+    return own >= 0 ? own : 13;
+  });
   const [hovering, setHovering] = useState(false);
   const [sweep, setSweep] = useState(false);
   const sweepTimer = useRef<number | undefined>(undefined);
@@ -122,10 +127,10 @@ export function SpatialFieldView({ spatial, fieldName }: SpatialFieldViewProps) 
             <h2 id={`spatial-${uid}`} className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
               Spatial field view
             </h2>
-            <DataBadge variant="illustrative" />
+            <DataBadge variant={isModel ? 'model' : 'illustrative'} />
           </div>
           <p className="mt-1 text-[14px] text-muted">
-            {fieldName} in 16 management zones. Hover or use arrow keys to inspect a zone.
+            {spatial.description ?? `${fieldName} in 16 management zones.`} Hover or use arrow keys to inspect a zone.
           </p>
         </div>
         <SegmentedControl ariaLabel="Map layer" size="sm" value={layer} onChange={changeLayer} options={LAYERS} />
@@ -294,7 +299,7 @@ export function SpatialFieldView({ spatial, fieldName }: SpatialFieldViewProps) 
                   </motion.span>
                 </AnimatePresence>
               </span>
-              <span className="text-[12px] text-faint">Demo values</span>
+              <span className="text-[12px] text-faint">{isModel ? 'Model forecast' : 'Demo values'}</span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-1 lg:gap-y-0">
               {[

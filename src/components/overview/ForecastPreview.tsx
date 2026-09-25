@@ -3,6 +3,8 @@ import { motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import type { FieldForecast } from '../../types/agricultural';
 import { getForecast } from '../../services/forecasts';
+import { getFields, pickDefaultFieldId } from '../../services/fields';
+import { getDatasetLabel } from '../../services/dataset';
 import { APP_CONFIG } from '../../config/appConfig';
 import { bandPath, monotonePath, scaleLinear, toTime } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
@@ -23,6 +25,7 @@ const INPUTS = [
  */
 export function ForecastPreview() {
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
+  const [datasetLabel, setDatasetLabel] = useState(APP_CONFIG.demoMode ? APP_CONFIG.datasetLabel : '');
   const reduce = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: '0px 0px -18% 0px' });
@@ -31,9 +34,18 @@ export function ForecastPreview() {
 
   useEffect(() => {
     let active = true;
-    getForecast(APP_CONFIG.defaultFieldId).then((data) => {
-      if (active) setForecast(data);
-    });
+    getFields()
+      .then((fields) => {
+        const id = pickDefaultFieldId(fields);
+        return id ? getForecast(id) : null;
+      })
+      .then((data) => {
+        if (active && data) setForecast(data);
+      })
+      .catch(() => undefined);
+    getDatasetLabel()
+      .then((label) => active && setDatasetLabel(label))
+      .catch(() => undefined);
     return () => {
       active = false;
     };
@@ -181,7 +193,7 @@ export function ForecastPreview() {
               <PreviewChart forecast={forecast} activeIndex={APP_CONFIG.defaultDateIndex} play={shown} />
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-[13px] text-muted">
-                  Demo data<span className="hidden sm:inline"> · {forecast.field.location}</span>
+                  {datasetLabel}<span className="hidden sm:inline"> · {forecast.field.location}</span>
                 </span>
                 <Link
                   to="dashboard"

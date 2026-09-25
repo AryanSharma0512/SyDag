@@ -6,8 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile.sydag
       args:
-        # Flip to "false" once the proxy routes /api to sydag_backend.
-        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+        # Production reads everything from /api (nginx proxies it to the backend).
+        # Set VITE_DEMO_MODE=true only to build the bundled demo deliberately.
+        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-false}
 
     container_name: sydag_frontend
     restart: unless-stopped
@@ -47,6 +48,9 @@ services:
       - context_cache:/app/cache
 
     environment:
+      # "model" serves forecasts from backend/artifacts + backend/data/practice; "mock"
+      # serves the demo dataset. There is no automatic fallback between them.
+      SOILSIGNAL_DATA_SOURCE: ${SOILSIGNAL_DATA_SOURCE:-model}
       # Optional: free key from https://quickstats.nass.usda.gov/api enables county yields.
       SOILSIGNAL_NASS_API_KEY: ${SOILSIGNAL_NASS_API_KEY:-}
 

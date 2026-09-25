@@ -1,0 +1,261 @@
+# Machine-readable companion to agronomy_thresholds.md.
+# `code_constant` names the constant in backend/app/features/thresholds.py; a test in
+# ml/tests checks every value here equals the code. These values define features only;
+# the trained model learns their weight.
+version: 1
+updated: 2026-09-24
+crop: maize (field corn)
+
+thresholds:
+  - id: gdd_base
+    code_constant: GDD_BASE_F
+    value: 50
+    units: °F
+    variable: daily minimum air temperature floor in the GDD formula
+    stage: planting to maturity
+    relationship: development rate ~0 below the base
+    applicability: US Corn Belt standard (NOAA "modified growing degree days")
+    source: Nielsen, Heat Unit Concepts Related to Corn Development (Purdue); Gilmore & Rogers 1958; Barger 1969
+    url: https://www.agry.purdue.edu/ext/corn/news/timeless/heatunits.html
+    year: 2020
+    confidence: high
+  - id: gdd_cap
+    code_constant: GDD_CAP_F
+    value: 86
+    units: °F
+    variable: daily maximum air temperature cap in the GDD formula
+    stage: planting to maturity
+    relationship: development does not speed up above the cap
+    applicability: US Corn Belt standard
+    source: Nielsen (Purdue), as above
+    url: https://www.agry.purdue.edu/ext/corn/news/timeless/heatunits.html
+    year: 2020
+    confidence: high
+  - id: gdd_emergence
+    code_constant: GDD_EMERGENCE
+    value: 120
+    units: GDD °F after planting
+    variable: heat units to emergence (VE)
+    stage: VE
+    relationship: stage marker only
+    applicability: typical 100-120 GDD; soil temperature governs until ~V6
+    source: Nielsen, Use Thermal Time to Predict Leaf Stage Development in Corn (Purdue); Abendroth et al. 2011, ISU PMR 1009
+    url: http://www.kingcorn.org/news/timeless/VStagePrediction.html
+    year: 2019
+    confidence: medium
+  - id: gdd_silking
+    code_constant: GDD_SILKING
+    value: 1300
+    units: GDD °F after planting
+    variable: heat units to VT/R1 (silking)
+    stage: VT/R1
+    relationship: anchors the pollination window; hybrid-specific (roughly 1,200-1,450)
+    applicability: mid-maturity Corn Belt hybrids; the practice data records GDD to anthesis at two sites for comparison
+    source: Abendroth, Elmore, Boyer & Marlay 2011, Corn Growth and Development, Iowa State University PMR 1009
+    url: https://shop.iastate.edu/extension/farm-environment/crops-and-soils/agronomic-crops/pmr1009pdf.html
+    year: 2011
+    confidence: medium
+  - id: gdd_black_layer
+    code_constant: GDD_BLACK_LAYER
+    value: 2700
+    units: GDD °F after planting
+    variable: heat units to R6 (black layer, physiological maturity)
+    stage: R6
+    relationship: end of grain fill; 105-115 day hybrids need ~2,400-2,800 GDD
+    applicability: mid-maturity Corn Belt hybrids
+    source: Abendroth et al. 2011 (ISU PMR 1009); Nielsen (Purdue)
+    url: https://shop.iastate.edu/extension/farm-environment/crops-and-soils/agronomic-crops/pmr1009pdf.html
+    year: 2011
+    confidence: medium
+  - id: silking_window
+    code_constant: SILKING_WINDOW_DAYS
+    value: 14
+    units: days either side of estimated silking
+    variable: pollination-sensitive window
+    stage: VT-R2
+    relationship: water and heat stress in the weeks around silking reduce kernel number most
+    applicability: general
+    source: ISU ICM, Corn pollination - effect of high temperature and stress; Nielsen, Drought & Heat Stress Effects on Corn Pollination (Purdue)
+    url: https://crops.extension.iastate.edu/encyclopedia/corn-pollination-effect-high-temperature-and-stress
+    year: 2011
+    confidence: medium
+  - id: heat_stress
+    code_constant: HEAT_STRESS_F
+    value: 95
+    units: °F daily maximum
+    variable: heat-stress day
+    stage: most damaging at pollination (VT-R1); also grain fill
+    relationship: above ~95 °F pollen viability falls and exposed silks desiccate; the effect is severe mainly when soil moisture is short
+    applicability: general; strongly moisture-dependent
+    source: ISU ICM, Corn pollination - effect of high temperature and stress (R. Elmore)
+    url: https://crops.extension.iastate.edu/encyclopedia/corn-pollination-effect-high-temperature-and-stress
+    year: 2011
+    confidence: high
+  - id: killing_degree_base
+    code_constant: KILLING_DEGREE_BASE_C
+    value: 29
+    units: °C
+    variable: base for damaging degree days (single-sine)
+    stage: season
+    relationship: US corn yields rise with temperature up to 29 °C and fall steeply above it
+    applicability: US county yields 1950-2005; Lobell et al. 2011 find ~1%/degree day above 30 °C (1.7% under drought) in African trials
+    source: Schlenker & Roberts 2009, PNAS 106:15594
+    url: https://www.pnas.org/doi/10.1073/pnas.0906865106
+    year: 2009
+    confidence: high
+  - id: warm_night
+    code_constant: WARM_NIGHT_F
+    value: 70
+    units: °F daily minimum
+    variable: warm night
+    stage: grain fill (July-August)
+    relationship: warm nights raise respiration and shorten grain fill
+    applicability: Corn Belt; extension estimates, fewer controlled studies
+    source: Ohio State Agronomic Crops Network, Hot night temperatures can decrease corn yield; Pioneer agronomy
+    url: https://agcrops.osu.edu/newsletter/corn-newsletter/2019-27/hot-night-temperatures-can-decrease-corn-yield
+    year: 2019
+    confidence: medium
+  - id: dry_day
+    code_constant: DRY_DAY_MM
+    value: 1.0
+    units: mm/day
+    variable: dry day (below) / wet day (at or above)
+    stage: season
+    relationship: dry spells = runs of dry days (ETCCDI CDD); wet spells = CWD
+    applicability: climatology convention, not crop-specific
+    source: ETCCDI list of 27 core climate-extremes indices (WMO/CLIVAR)
+    url: https://etccdi.pacificclimate.org/list_27_indices.shtml
+    year: 2009
+    confidence: medium
+  - id: meaningful_rain
+    code_constant: MEANINGFUL_RAIN_MM
+    value: 10.0
+    units: mm/day
+    variable: heavy precipitation day (ETCCDI R10mm), used for "days since a soaking rain"
+    stage: season
+    relationship: small showers are largely lost to interception and evaporation
+    applicability: convention; the model decides its value
+    source: ETCCDI R10mm
+    url: https://etccdi.pacificclimate.org/list_27_indices.shtml
+    year: 2009
+    confidence: low
+  - id: very_heavy_rain
+    code_constant: VERY_HEAVY_RAIN_MM
+    value: 20.0
+    units: mm/day
+    variable: very heavy precipitation day (ETCCDI R20mm)
+    stage: season; ponding most harmful before V6
+    relationship: saturation depletes soil oxygen within ~48 h; young corn survives 2-4 days of ponding, less when above 77 °F
+    applicability: depends on drainage, prior moisture and intensity
+    source: ETCCDI R20mm; Nielsen, Effects of Flooding or Ponding on Corn Prior to Tasseling (Purdue)
+    url: https://www.agry.purdue.edu/ext/corn/news/timeless/pondingyoungcorn.html
+    year: 2009
+    confidence: low
+  - id: kc_initial
+    code_constant: KC_INITIAL
+    value: 0.3
+    units: ratio to reference ET
+    variable: crop coefficient, initial stage
+    stage: planting to ~V5
+    relationship: crop water demand = Kc x ET0 (Hargreaves, FAO-56 eq. 52)
+    applicability: FAO-56 cereals, sub-humid climate
+    source: Allen et al. 1998, FAO Irrigation and Drainage Paper 56, Table 12
+    url: https://www.fao.org/4/x0490e/x0490e0b.htm
+    year: 1998
+    confidence: high
+  - id: kc_mid
+    code_constant: KC_MID
+    value: 1.2
+    units: ratio to reference ET
+    variable: crop coefficient, mid season (field maize)
+    stage: silking to dough
+    relationship: peak water use; ISU puts it at ~0.3 in/day at tasseling
+    applicability: FAO-56 field maize
+    source: Allen et al. 1998, FAO-56 Table 12
+    url: https://www.fao.org/4/x0490e/x0490e0b.htm
+    year: 1998
+    confidence: high
+  - id: kc_end
+    code_constant: KC_END
+    value: 0.6
+    units: ratio to reference ET
+    variable: crop coefficient, end of season (field maize; FAO range 0.60-0.35)
+    stage: R6
+    relationship: declining demand through senescence
+    applicability: FAO-56 field maize, harvested at high grain moisture
+    source: Allen et al. 1998, FAO-56 Table 12
+    url: https://www.fao.org/4/x0490e/x0490e0b.htm
+    year: 1998
+    confidence: high
+  - id: gdd_kc_rise_start
+    code_constant: GDD_KC_RISE_START
+    value: 350
+    units: GDD °F after planting
+    variable: end of the FAO-56 initial stage, placed at ~V4-V5 (~84 GDD per leaf after emergence)
+    stage: V4-V5
+    relationship: scheduling choice for the Kc curve
+    applicability: approximation
+    source: Abendroth et al. 2011 (ISU PMR 1009) leaf interval; FAO-56 stage definitions
+    url: https://www.fao.org/4/x0490e/x0490e0b.htm
+    year: 2011
+    confidence: low
+
+soil_context:
+  # Used as model features and interaction context only: no yield penalties.
+  - property: available water storage, top 100 cm
+    typical: "silt loam ~2.0-2.5 in/ft; sandy loam ~1.25-1.4 in/ft; coarse sand 0.25-0.75 in/ft"
+    source: UNL Extension G1850, Irrigation Management for Corn
+    url: https://extensionpubs.unl.edu/publication/g1850/2008/html/view
+    expected_role: buffers dry spells; matters most under deficit
+  - property: soil pH (1:1 water)
+    typical: "corn optimum 6.0-6.8 (Purdue); Iowa targets 6.5, or 6.0 over calcareous subsoil"
+    source: ISU ICM, Update to Iowa P, K and lime recommendations (2013); Purdue Corn & Soybean Field Guide
+    url: https://crops.extension.iastate.edu/cropnews/2013/09/update-iowa-phosphorus-potassium-and-lime-recommendations
+    expected_role: weak within the normal range
+  - property: drainage class (NRCS)
+    typical: seven classes, excessively to very poorly drained
+    source: USDA NRCS Soil Survey Manual; Nielsen (Purdue) on ponding
+    url: https://www.agry.purdue.edu/ext/corn/news/timeless/pondingyoungcorn.html
+    expected_role: poorly drained soils suffer more from heavy rain; better buffered in drought
+  - property: organic matter, root-zone depth, slope
+    typical: context only
+    source: SSURGO attribute definitions
+    url: https://sdmdataaccess.sc.egov.usda.gov/
+    expected_role: context
+
+# Qualitative expectations used by the sensitivity checks (evaluation/sensitivity.py).
+# expected: increase | decrease | context (depends on other conditions, not checked)
+sensitivity_expectations:
+  - feature: water_deficit_30d_mm
+    expected: decrease
+    rationale: larger recent water deficit is associated with stress, most of all around silking (ISU; Lobell et al. 2013)
+  - feature: water_deficit_around_silking_mm
+    expected: decrease
+    rationale: pollination is the most drought-sensitive stage (ISU; Purdue)
+  - feature: heat_days_since_planting
+    expected: decrease
+    rationale: days at 95 °F or hotter reduce pollen viability and kernel set (ISU; Purdue)
+  - feature: killing_degree_days_29c
+    expected: decrease
+    rationale: yield falls steeply with heat above 29 °C (Schlenker & Roberts 2009)
+  - feature: longest_dry_spell_days
+    expected: decrease
+    rationale: long dry spells deplete soil water (ETCCDI CDD; ISU)
+  - feature: warm_nights_since_planting
+    expected: decrease
+    rationale: warm nights raise respiration during grain fill (OSU; Pioneer)
+  - feature: rain_30d_mm
+    expected: context
+    rationale: helps under deficit, can hurt through saturation on poorly drained soil (Purdue)
+  - feature: ndvi_current
+    expected: increase
+    rationale: greener, denser canopy tracks biomass and yield potential (NDVI saturates over dense canopy)
+  - feature: ndre_current
+    expected: increase
+    rationale: red-edge index tracks chlorophyll/N status late in the season, with less saturation than NDVI (Sharma et al. 2015)
+  - feature: soil_available_water_cm
+    expected: increase
+    rationale: more stored water buffers dry spells (UNL G1850)
+  - feature: nitrogen_lb_ac
+    expected: increase
+    rationale: yield rises with N toward a plateau (ISU MRTN, PM 2015)

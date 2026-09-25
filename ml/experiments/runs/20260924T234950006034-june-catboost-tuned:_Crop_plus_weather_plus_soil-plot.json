@@ -1,0 +1,74 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "june",
+  "as_of": "06-30",
+  "seed": 42,
+  "run_id": "20260924T234950006034-june-catboost-tuned:_Crop_plus_weather_plus_soil-plot",
+  "model": "catboost",
+  "feature_set": "tuned: Crop + weather + soil",
+  "n_features": 36,
+  "validation": "grouped 5-fold by plot",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4;fold5",
+  "mae": 20.229,
+  "rmse": 26.151,
+  "r2": 0.7694,
+  "relative_mae": 0.1855,
+  "mae_fold_std": 0.875,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 2.33,
+  "params": "{\"iterations\": 800, \"learning_rate\": 0.2442046084491143, \"depth\": 8, \"l2_leaf_reg\": 7.641361869233315, \"min_data_in_leaf\": 42, \"rsm\": 0.36194475143634364}",
+  "timestamp": "2026-09-24T23:49:50+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 18.80353553220204,
+      "rmse": 23.564098868749976,
+      "r2": 0.8067043714053962,
+      "relative_mae": 0.1727052692141331,
+      "bias": 0.7095280203339462,
+      "n": 329
+    },
+    {
+      "group": "fold2",
+      "mae": 21.37323243990619,
+      "rmse": 27.82850749804285,
+      "r2": 0.7280294821492483,
+      "relative_mae": 0.19428101542797746,
+      "bias": 1.0032092118450975,
+      "n": 329
+    },
+    {
+      "group": "fold3",
+      "mae": 20.68241446524244,
+      "rmse": 26.15639743906121,
+      "r2": 0.7771799843994629,
+      "relative_mae": 0.18943119423845206,
+      "bias": -0.37047890193688243,
+      "n": 329
+    },
+    {
+      "group": "fold4",
+      "mae": 19.779890154613256,
+      "rmse": 26.691350263665147,
+      "r2": 0.7649609110648712,
+      "relative_mae": 0.18141380572570084,
+      "bias": 0.773365734197474,
+      "n": 328
+    },
+    {
+      "group": "fold5",
+      "mae": 20.507666964879387,
+      "rmse": 26.514174493009563,
+      "r2": 0.770286757140786,
+      "relative_mae": 0.18944710981431714,
+      "bias": -1.9994685514089607,
+      "n": 328
+    }
+  ],
+  "tuning": []
+}

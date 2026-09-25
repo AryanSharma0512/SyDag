@@ -1,0 +1,74 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "may",
+  "as_of": "05-31",
+  "seed": 42,
+  "run_id": "20260924T234733148683-may-catboost-tuned:_Crop_plus_weather-plot",
+  "model": "catboost",
+  "feature_set": "tuned: Crop + weather",
+  "n_features": 28,
+  "validation": "grouped 5-fold by plot",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4;fold5",
+  "mae": 21.058,
+  "rmse": 27.192,
+  "r2": 0.7506,
+  "relative_mae": 0.193,
+  "mae_fold_std": 1.016,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 2.2,
+  "params": "{\"iterations\": 800, \"learning_rate\": 0.28608001335461186, \"depth\": 7, \"l2_leaf_reg\": 1.5491495451355766, \"min_data_in_leaf\": 3, \"rsm\": 0.9944267737011128}",
+  "timestamp": "2026-09-24T23:47:33+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 19.421694267620076,
+      "rmse": 24.378718111771953,
+      "r2": 0.7931087653146894,
+      "relative_mae": 0.1783828860981818,
+      "bias": -0.05394017236835196,
+      "n": 329
+    },
+    {
+      "group": "fold2",
+      "mae": 22.498673508746315,
+      "rmse": 29.03981720694524,
+      "r2": 0.7038377129082067,
+      "relative_mae": 0.20451118694149925,
+      "bias": 1.2201019763581422,
+      "n": 329
+    },
+    {
+      "group": "fold3",
+      "mae": 21.610714348672214,
+      "rmse": 27.746632892579598,
+      "r2": 0.7492627137076283,
+      "relative_mae": 0.19793353596577015,
+      "bias": -1.1493028465813553,
+      "n": 329
+    },
+    {
+      "group": "fold4",
+      "mae": 20.737561114771545,
+      "rmse": 27.929464247916172,
+      "r2": 0.7426499742076405,
+      "relative_mae": 0.19019720806804305,
+      "bias": 1.2886664285659495,
+      "n": 328
+    },
+    {
+      "group": "fold5",
+      "mae": 21.0233613834275,
+      "rmse": 26.863064693444844,
+      "r2": 0.7642015594613122,
+      "relative_mae": 0.19421102651477,
+      "bias": -1.953598225319205,
+      "n": 328
+    }
+  ],
+  "tuning": []
+}

@@ -1,0 +1,74 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "full",
+  "as_of": "10-15",
+  "seed": 42,
+  "run_id": "20260925T000054573512-full-random_forest-tuned:_Crop_plus_timing-plot",
+  "model": "random_forest",
+  "feature_set": "tuned: Crop + timing",
+  "n_features": 40,
+  "validation": "grouped 5-fold by plot",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4;fold5",
+  "mae": 16.458,
+  "rmse": 21.984,
+  "r2": 0.8371,
+  "relative_mae": 0.1509,
+  "mae_fold_std": 0.914,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 0.35,
+  "params": "{\"bootstrap\": false, \"n_estimators\": 100, \"max_depth\": 12, \"min_samples_leaf\": 1, \"min_samples_split\": 5, \"max_features\": \"sqrt\"}",
+  "timestamp": "2026-09-25T00:00:54+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 14.911303204664677,
+      "rmse": 19.901296456487746,
+      "r2": 0.8621257705384879,
+      "relative_mae": 0.13695619262052658,
+      "bias": 0.5234796466418905,
+      "n": 329
+    },
+    {
+      "group": "fold2",
+      "mae": 17.43718000917627,
+      "rmse": 23.378217654047333,
+      "r2": 0.8080603078765605,
+      "relative_mae": 0.15850260590709528,
+      "bias": -0.5240154616909105,
+      "n": 329
+    },
+    {
+      "group": "fold3",
+      "mae": 16.192504965124254,
+      "rmse": 21.9478363780045,
+      "r2": 0.843114873381689,
+      "relative_mae": 0.1483079046892892,
+      "bias": 0.5510899080898015,
+      "n": 329
+    },
+    {
+      "group": "fold4",
+      "mae": 16.418141022334435,
+      "rmse": 22.36195778795553,
+      "r2": 0.8350248040868952,
+      "relative_mae": 0.15058109132665076,
+      "bias": -2.0589403815500353,
+      "n": 328
+    },
+    {
+      "group": "fold5",
+      "mae": 17.328568683789634,
+      "rmse": 22.328734629622275,
+      "r2": 0.8370861387281586,
+      "relative_mae": 0.16007902117705078,
+      "bias": 0.9853910891405896,
+      "n": 328
+    }
+  ],
+  "tuning": []
+}

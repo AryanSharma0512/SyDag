@@ -1,0 +1,5 @@
+# Forecast made on this date each season: the model sees only data available by then.
+name: full
+label: Full season
+as_of: "10-15"
+model_id: soilsignal-maize-1015

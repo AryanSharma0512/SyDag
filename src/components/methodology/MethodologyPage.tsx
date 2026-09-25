@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import type { DataSource, FieldForecast, ForecastSnapshot } from '../../types/agricultural';
 import { getForecast } from '../../services/forecasts';
+import { getFields, pickDefaultFieldId } from '../../services/fields';
 import { getDataSources } from '../../services/sources';
 import { APP_CONFIG } from '../../config/appConfig';
 import { EASE_OUT } from '../../utils/motion';
@@ -165,7 +166,9 @@ function rangeLabel(s: ForecastSnapshot | undefined) {
 
 const SOURCE_BADGE: Record<DataSource['role'], string> = {
   challenge: 'Challenge',
+  practice: 'Practice data',
   public: 'Connected',
+  model: 'Model-derived',
   candidate: 'Candidate',
 };
 
@@ -176,8 +179,17 @@ export function MethodologyPage() {
 
   useEffect(() => {
     let active = true;
-    getForecast(APP_CONFIG.defaultFieldId).then((data) => active && setForecast(data));
-    getDataSources().then((list) => active && setSources(list));
+    getFields()
+      .then((fields) => {
+        const id = pickDefaultFieldId(fields);
+        return id ? getForecast(id) : null;
+      })
+      .then((data) => {
+        if (!active || !data) return;
+        setForecast(data);
+        return getDataSources(data).then((list) => active && setSources(list));
+      })
+      .catch(() => active && setSources([]));
     return () => {
       active = false;
     };
@@ -223,8 +235,10 @@ export function MethodologyPage() {
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
             Four kinds of evidence become season-aware features, a yield model turns them into a forecast, and the
-            forecast is refreshed whenever new evidence arrives. The prototype runs on demo data to show the intended
-            flow.
+            forecast is refreshed whenever new evidence arrives.{' '}
+            {APP_CONFIG.demoMode
+              ? 'The prototype runs on demo data to show the intended flow.'
+              : 'The forecasts on this site come from trained models; the provenance table below lists every input they use.'}
           </p>
         </Reveal>
         <div className="mt-10">
@@ -256,7 +270,7 @@ export function MethodologyPage() {
                 <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-muted">{item.body}</p>
                 {phaseSnapshots[i] && (
                   <p className="mt-3 text-[13px] text-ink-soft">
-                    Demo range on <span className="data">{phaseSnapshots[i]?.displayDate}</span>:{' '}
+                    {APP_CONFIG.demoMode ? 'Demo range' : 'Forecast range'} on <span className="data">{phaseSnapshots[i]?.displayDate}</span>:{' '}
                     <span className="data font-medium text-ink">{rangeLabel(phaseSnapshots[i])}</span>{' '}
                     <span className="data text-muted">bu/ac</span>
                   </p>

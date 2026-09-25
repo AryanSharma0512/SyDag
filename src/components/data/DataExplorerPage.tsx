@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FieldForecast, FieldMeta } from '../../types/agricultural';
-import { getFields } from '../../services/fields';
+import { getFields, pickDefaultFieldId } from '../../services/fields';
 import { getForecast } from '../../services/forecasts';
 import { APP_CONFIG } from '../../config/appConfig';
 import { useLocationContext } from '../../utils/useLocationContext';
 import { FieldSelector } from '../common/FieldSelector';
+import { ErrorState } from '../common/SkeletonLoader';
 import { SegmentedControl } from '../common/SegmentedControl';
 import { SOURCE_META, StatusLabel, type SourceKey, type SourceState } from './DataPanel';
 import { ExportMenu } from './ExportMenu';
@@ -29,26 +30,40 @@ const coordinate = (value: number) => value.toFixed(4);
  */
 export function DataExplorerPage() {
   const [fields, setFields] = useState<FieldMeta[]>([]);
-  const [fieldId, setFieldId] = useState(APP_CONFIG.defaultFieldId);
+  // Set once the field list loads: the configured default if this dataset has it.
+  const [fieldId, setFieldId] = useState<string | null>(null);
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
   const [mode, setMode] = useState<Mode>('visual');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
-    getFields().then((list) => active && setFields(list));
+    getFields()
+      .then((list) => {
+        if (!active) return;
+        setFields(list);
+        const id = pickDefaultFieldId(list);
+        if (!id) throw new Error('The forecast service returned no fields.');
+        setFieldId((current) => current ?? id);
+      })
+      .catch((err: unknown) => active && setLoadError(err instanceof Error ? err.message : String(err)));
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt]);
 
   // The field's forecast dates decide which days the weather is summarized for.
   useEffect(() => {
+    if (!fieldId) return;
     let active = true;
-    getForecast(fieldId).then((data) => active && setForecast(data));
+    getForecast(fieldId)
+      .then((data) => active && setForecast(data))
+      .catch((err: unknown) => active && setLoadError(err instanceof Error ? err.message : String(err)));
     return () => {
       active = false;
     };
-  }, [fieldId]);
+  }, [fieldId, attempt]);
 
   const field = forecast?.field ?? null;
   const dates = useMemo(() => forecast?.snapshots.map((s) => s.date) ?? [], [forecast]);
@@ -144,6 +159,17 @@ export function DataExplorerPage() {
             <YieldPanel part={partOf('yieldHistory')} state={states.yieldHistory} showData={mode === 'data'} />
           </div>
         </>
+      ) : loadError ? (
+        <div className="mt-10">
+          <ErrorState
+            title="Field data is unavailable"
+            message={`The SoilSignal API did not return this field (${loadError}). No demo data is shown in its place.`}
+            onRetry={() => {
+              setLoadError(null);
+              setAttempt((n) => n + 1);
+            }}
+          />
+        </div>
       ) : (
         <div className="mt-10" aria-busy="true" aria-label="Loading field">
           <div className="ss-skeleton h-8 w-56 rounded-lg" />

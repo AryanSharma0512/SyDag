@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "july",
+  "as_of": "07-31",
+  "seed": 42,
+  "run_id": "20260924T235257982390-july-hist_gradient_boosting-tuned:_Crop_signals-field",
+  "model": "hist_gradient_boosting",
+  "feature_set": "tuned: Crop signals",
+  "n_features": 27,
+  "validation": "grouped 4-fold by field",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "fold1;fold2;fold3;fold4",
+  "mae": 44.136,
+  "rmse": 49.99,
+  "r2": -3.232,
+  "relative_mae": 0.6755,
+  "mae_fold_std": 23.013,
+  "interval_coverage": "",
+  "interval_lower": 0.0,
+  "interval_upper": 0.0,
+  "train_seconds": 2.53,
+  "params": "{\"learning_rate\": 0.10827682122185907, \"max_iter\": 300, \"max_depth\": null, \"max_leaf_nodes\": 21, \"min_samples_leaf\": 18, \"l2_regularization\": 1.5201554030885167, \"max_features\": 0.8883481509197951}",
+  "timestamp": "2026-09-24T23:52:57+00:00",
+  "per_fold": [
+    {
+      "group": "fold1",
+      "mae": 83.43947654261977,
+      "rmse": 86.64571026237077,
+      "r2": -11.122782589263345,
+      "relative_mae": 2.0236716783856803,
+      "bias": 83.31251601531548,
+      "n": 504
+    },
+    {
+      "group": "fold2",
+      "mae": 27.691654286899354,
+      "rmse": 33.9565854836859,
+      "r2": -0.10412952415428256,
+      "relative_mae": 0.20364727660133444,
+      "bias": 12.623975696054154,
+      "n": 330
+    },
+    {
+      "group": "fold3",
+      "mae": 28.128157563877974,
+      "rmse": 36.228517304631715,
+      "r2": -0.6178062296177522,
+      "relative_mae": 0.23083669791755745,
+      "bias": 22.67571627290124,
+      "n": 327
+    },
+    {
+      "group": "fold4",
+      "mae": 37.283811533903695,
+      "rmse": 43.1272441698023,
+      "r2": -1.0834797102742004,
+      "relative_mae": 0.24382426978198268,
+      "bias": -31.558601205820146,
+      "n": 482
+    }
+  ],
+  "tuning": []
+}

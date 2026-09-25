@@ -6,3 +6,13 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# ML: datasets and intermediate models stay local (processed tables are rebuilt by `ingest`)
+ml/data/*/*
+!ml/data/*/.gitkeep
+ml/experiments/candidates/
+.ipynb_checkpoints/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+catboost_info/

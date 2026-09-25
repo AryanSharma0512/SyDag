@@ -1,0 +1,96 @@
+# SoilSignal ML
+
+Trains the progressive (as-of-date) yield models that the SoilSignal API serves. On data day,
+responding to a new dataset should mean **write an adapter → inspect → adjust config → retrain →
+validate → export → deploy**, never a rewrite.
+
+```
+python -m soilsignal_ml ingest     canonical dataset: plots, images, weather, soil, county yields
+python -m soilsignal_ml validate   data checks (units, ranges, duplicates, coverage)
+python -m soilsignal_ml profile    experiments/reports/dataset_profile.md
+python -m soilsignal_ml train      screen feature sets, tune and validate every model, every cutoff
+python -m soilsignal_ml report     experiments/reports/model_report.md
+python -m soilsignal_ml export     backend/artifacts/soilsignal-maize-MMDD/ via save_artifact()
+```
+
+Run every command from `ml/` with the backend's environment and the `ml` dependency group:
+
+```bash
+cd ml
+uv run --project ../backend --group ml python -m soilsignal_ml train
+uv run --project ../backend --group ml pytest
+```
+
+## Why the environment is the backend's
+
+A model has to be trained with the same scikit-learn, numpy and pandas versions the API loads it
+with. Training libraries (CatBoost, Optuna, tifffile, pyproj, …) are therefore a dependency
+**group** in `backend/pyproject.toml`: one lockfile for both. Docker installs only the runtime
+dependencies, plus whichever model library a deployed model needs.
+
+LightGBM and XGBoost need the OpenMP runtime (`libomp`), which the training Mac lacks.
+scikit-learn's `HistGradientBoostingRegressor` implements LightGBM's histogram algorithm, and
+CatBoost covers ordered boosting.
+
+## Where things live
+
+| Path | What |
+|---|---|
+| `soilsignal_ml/ingest/dataset_adapter.py` | `PublicDatasetAdapter` (Shrestha et al. 2024) and the `HackathonDatasetAdapter` stub |
+| `soilsignal_ml/ingest/canonical.py` | The canonical tables every adapter produces, and `field_inputs(plot)` |
+| `soilsignal_ml/ingest/remote_zip.py` | Reads members of a remote zip over HTTP byte ranges: the 3.2 GB archive is never downloaded, only ~120 MB streamed through memory |
+| `soilsignal_ml/ingest/context.py` | NOAA weather (gap-filled from nearby stations), SSURGO soil per plot, NASS county yields, all through the backend's own fetchers |
+| `soilsignal_ml/ingest/validate.py`, `profile.py` | Data checks and the dataset profile |
+| `soilsignal_ml/features/build.py` | Training tables from `backend/app/features` (the same code serving uses) |
+| `soilsignal_ml/validation/splits.py` | Grouped splits (plot, field, site, year) and the held-out site, with overlap assertions |
+| `soilsignal_ml/models/` | The model ladder (mean, Ridge, Random Forest, HistGradientBoosting, CatBoost) and `train.py` |
+| `soilsignal_ml/evaluation/` | Metrics, conformal-style intervals, permutation importance and direction, sensitivity checks, report |
+| `soilsignal_ml/export/export_to_backend.py` | Writes artifacts with `app.model.export.save_artifact` |
+| `configs/project.yaml` | Held-out site, seed, interval level, trials, simplicity margin |
+| `configs/{may,june,july,august,full}.yaml` | One file per season cutoff (`as_of`, `model_id`) |
+| `research/` | Agronomy thresholds (with sources) and published benchmarks |
+| `experiments/results.csv`, `experiments/runs/` | One row per evaluated model; full detail per run |
+| `experiments/reports/` | Dataset profile and model report |
+| `experiments/rehearsal/` | The superseded first run (mean-only selection) and why it was replaced |
+| `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
+| `data/` | Git-ignored. `processed/<dataset>/` holds the canonical tables, `interim/` the feature tables |
+
+Feature engineering itself lives in **`backend/app/features/`** (`build_features(inputs, as_of)`).
+The API computes the same features when it serves a forecast, and the backend's Docker image
+only contains `backend/`.
+
+## The method, in order
+
+1. **Point-in-time features.** `build_features()` drops every input dated after the forecast
+   date, then asserts nothing later got through. `ml/tests/test_leakage.py` appends extreme future
+   weather, imagery and county yields to real plots and checks that no feature changes.
+2. **Held-out site.** Chosen in `configs/project.yaml` before any training. It is never used for
+   screening, tuning, selection or intervals. The dashboard shows its plots, so every live number
+   is out-of-sample.
+3. **Feature-set screening.** Each ablation (management, crop signals, +timing, +weather, +soil,
+   all) is scored by leave-one-site-out CV with default parameters. With few sites, site-level
+   features can act as site identifiers, so whether they help a new site is measured, not assumed.
+   A feature is used only if it is observable at every training site by the cutoff.
+4. **Tuning.** Optuna minimizes mean leave-one-site-out MAE.
+5. **Selection.** Lowest **mean + 1 SD** of fold MAE: a model that is consistent across sites
+   beats one that is sometimes excellent and sometimes far off (brief §45). A more complex model
+   has to win by more than `simpler_model_margin`. The first full run used the mean alone. That
+   run is kept in `experiments/rehearsal/`, with the reason it was replaced.
+6. **Intervals.** Quantiles of out-of-fold residuals from unseen sites, with a finite-sample
+   conformal correction. Coverage is reported on the held-out site.
+7. **Drivers.** Permutation importance on held-out-site folds, and direction from per-plot
+   contributions (see `backend/app/model/explain.py`). Serving computes per-forecast drivers
+   the same way.
+8. **Sensitivity.** Sweep one feature for a typical plot and compare the response with the
+   literature (`research/agronomy_thresholds.yaml`). A mismatch means investigate, not override.
+
+## Data day: switching to the challenge dataset
+
+1. Fill in `HackathonDatasetAdapter.build()` so it returns the canonical tables. Keep only
+   columns the data has; don't fabricate indices for missing bands.
+2. `ingest`, `validate`, `profile`. Read the profile before changing anything.
+3. Revisit `configs/`: the held-out group (site? year?), the cutoff dates for that season,
+   and `primary_validation` in `splits.py` terms (with several years, `year` is the honest split).
+4. `train`, `report`, `export`. Add the winning library to the backend if it isn't there
+   (`cd backend && uv add catboost`).
+5. `cd backend && uv run pytest`, then deploy (see `STRUCTURE.md`).

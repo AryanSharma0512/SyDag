@@ -1,0 +1,65 @@
+{
+  "dataset": "shrestha2024",
+  "dataset_version": "7ec6bfeebcbe",
+  "git_sha": "b890d82-dirty",
+  "cutoff": "may",
+  "as_of": "05-31",
+  "seed": 42,
+  "run_id": "20260924T234540015843-may-ridge-Crop_plus_weather-site",
+  "model": "ridge",
+  "feature_set": "Crop + weather",
+  "n_features": 28,
+  "validation": "leave-one-site-out",
+  "train_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "test_groups": "Ames;Lincoln;MOValley;Scottsbluff",
+  "mae": 433.731,
+  "rmse": 438.103,
+  "r2": -858.1111,
+  "relative_mae": 3.8732,
+  "mae_fold_std": 562.806,
+  "interval_coverage": 0.9087,
+  "interval_lower": 0.0,
+  "interval_upper": 1403.27,
+  "train_seconds": 0.03,
+  "params": "{\"alpha\": 1.0}",
+  "timestamp": "2026-09-24T23:45:40+00:00",
+  "per_fold": [
+    {
+      "group": "Ames",
+      "mae": 58.43662070543589,
+      "rmse": 65.89531739308458,
+      "r2": -3.3010000365626553,
+      "relative_mae": 0.4483697649970778,
+      "bias": -57.624251651552036,
+      "n": 487
+    },
+    {
+      "group": "Lincoln",
+      "mae": 227.65252610416744,
+      "rmse": 229.63430375601538,
+      "r2": -84.14942410225261,
+      "relative_mae": 5.5212950593553165,
+      "bias": -227.65252610416744,
+      "n": 504
+    },
+    {
+      "group": "MOValley",
+      "mae": 1400.6912308782062,
+      "rmse": 1400.8497367511852,
+      "r2": -3343.300197877827,
+      "relative_mae": 9.187347942665264,
+      "bias": -1400.6912308782062,
+      "n": 163
+    },
+    {
+      "group": "Scottsbluff",
+      "mae": 48.14488755560015,
+      "rmse": 56.031446022687554,
+      "r2": -1.6936214953332644,
+      "relative_mae": 0.33584362957491926,
+      "bias": -43.43092196131286,
+      "n": 489
+    }
+  ],
+  "tuning": []
+}

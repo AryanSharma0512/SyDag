@@ -1,0 +1,21 @@
+# Settings shared by every season cutoff. Fixed before any model was trained.
+dataset: shrestha2024
+seed: 42
+interval_level: 0.90
+
+# Final held-out site: never used for tuning, model selection or intervals. Its plots
+# are what the live dashboard shows, so every number there is out-of-sample.
+# Chosen before training: a rainfed Iowa site whose conditions are represented in
+# training by Ames and Missouri Valley (holding out Lincoln's drought or Scottsbluff's
+# irrigation would remove the only example of each), 488 yield plots for stable
+# metrics, and imagery through October so every cutoff sees comparable data.
+holdout_site: Crawfordsville
+
+# Model selection and tuning use leave-one-site-out CV over the remaining sites.
+primary_validation: site
+optuna_trials: 30
+# Tuning minimizes mean fold MAE. Feature-set screening and model selection rank by mean
+# + 1 SD of fold MAE (brief §45: consistency across sites matters, not just the average).
+# Changed from mean-only after the rehearsal run; see experiments/rehearsal/model_report.md.
+# Prefer the simpler model unless the more complex one lowers that score by more than this.
+simpler_model_margin: 0.03
