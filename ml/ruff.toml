@@ -12,3 +12,4 @@ known-first-party = ["soilsignal_ml", "app"]
 # Report generators are mostly prose in string literals.
 "soilsignal_ml/evaluation/reports.py" = ["E501"]
 "soilsignal_ml/ingest/profile.py" = ["E501"]
+"soilsignal_ml/progressive/report.py" = ["E501"]

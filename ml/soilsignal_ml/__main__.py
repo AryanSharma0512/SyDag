@@ -10,6 +10,8 @@ SoilSignal ML command line. Run from ml/:
     report    write the experiment report from the training summaries
     export    write the selected models to backend/artifacts
     showcase  write the held-out plots' raw inputs to backend/data/practice for the API
+    progressive  records only vs + imagery through TP1..TP6: early signal and scouting
+                 (all options: python -m soilsignal_ml progressive --help)
 """
 
 import argparse
@@ -17,6 +19,11 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["progressive"]:
+        from soilsignal_ml.progressive.cli import main as progressive
+
+        return progressive(argv[1:])
     parser = argparse.ArgumentParser(prog="soilsignal_ml", description=__doc__.split("\n\n")[0])
     parser.add_argument("--dataset", default="shrestha2024")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -30,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("report")
     sub.add_parser("export")
     sub.add_parser("showcase")
+    sub.add_parser("progressive", help="early-signal experiments (see progressive --help)")
     args = parser.parse_args(argv)
 
     if args.command == "ingest":

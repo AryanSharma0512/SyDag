@@ -11,6 +11,7 @@ python -m soilsignal_ml profile    experiments/reports/dataset_profile.md
 python -m soilsignal_ml train      screen feature sets, tune and validate every model, every cutoff
 python -m soilsignal_ml report     experiments/reports/model_report.md
 python -m soilsignal_ml export     backend/artifacts/soilsignal-maize-MMDD/ via save_artifact()
+python progressive_experiment.py   early signal: records only vs + TP1..TP6, scouting, imagery_ablation.json
 ```
 
 Run every command from `ml/` with the backend's environment and the `ml` dependency group:
@@ -45,6 +46,8 @@ CatBoost covers ordered boosting.
 | `soilsignal_ml/validation/splits.py` | Grouped splits (plot, field, site, year) and the held-out site, with overlap assertions |
 | `soilsignal_ml/models/` | The model ladder (mean, Ridge, Random Forest, HistGradientBoosting, CatBoost) and `train.py` |
 | `soilsignal_ml/evaluation/` | Metrics, conformal-style intervals, permutation importance and direction, sensitivity checks, report |
+| `soilsignal_ml/progressive/` | Early-signal experiments (records only vs + imagery through TP1…TP6): input contract for the ingestion and feature agents, grouped validation incl. 2022 → 2023, nested conformal and CQR intervals, scouting recall, "earliest useful" checks, `imagery_ablation.json`. See `AGENT3_HANDOFF.md` |
+| `progressive_experiment.py`, `configs/progressive.yaml` | Its entry point and settings (fixed before a run) |
 | `soilsignal_ml/export/export_to_backend.py` | Writes artifacts with `app.model.export.save_artifact` |
 | `configs/project.yaml` | Held-out site, seed, interval level, trials, simplicity margin |
 | `configs/{may,june,july,august,full}.yaml` | One file per season cutoff (`as_of`, `model_id`) |

@@ -1,0 +1,57 @@
+# Progressive early-signal experiments (soilsignal_ml/progressive). Fix these BEFORE
+# looking at results; every value is echoed into progressive_results.json.
+
+# Stages: "tp" = Records only, then + TP1, + TP1-TP2, ... (cumulative).
+# "dap" = + every pass by N days after planting (stage_cutoffs: [45, 60, 75, 90, 105]).
+# "calendar" = + every pass by a date each season (stage_cutoffs: ["07-15", "07-31"]).
+stage_mode: tp
+stage_cutoffs: null   # tp: all TPs present
+
+# Candidate models (xgboost / lightgbm are picked up only where installed).
+models: [mean, ridge, random_forest, hist_gradient_boosting, catboost]
+# The model behind the headline progression table, criteria and imagery_ablation.json.
+# Chosen before the run, not by the lowest test error.
+primary_model: catboost
+# Other grouped schemes run these (plus the primary model); contrasts run the primary only.
+secondary_models: [mean]
+# Fixed hyperparameters per model, identical at every stage (empty = library defaults
+# from soilsignal_ml/models/*.py).
+params: {}
+
+# Validation: "auto" runs every usable scheme; the headline is the most demanding usable
+# one (later season > unseen site > unseen year > site-season > field blocks).
+schemes: auto
+test_year: null        # temporal: default = latest season
+min_test_plots: 100    # temporal is skipped (and the reason recorded) below this
+min_test_imaged: 0.5   # ... or when fewer than this share of test plots have imagery
+
+level: 0.90
+nested_intervals: true
+cqr: true
+
+# Scouting: bottom quartile within each site-season, budgets as shares of plots.
+budgets: [0.10, 0.20, 0.25]
+poor_quantile: 0.25
+scouting_unit: site_year
+naive_ranking_column: ndvi_latest   # the no-model ranking; null to skip
+
+n_boot: 2000
+seed: 42
+harvest_mmdd: "10-15"   # used only when Agent 1 gives no harvest_date
+spatial_neighbours: 8
+
+# Earliest-useful checks (see soilsignal_ml/progressive/criteria.py).
+criteria:
+  min_mae_reduction_pct: 5.0
+  require_ci_above_zero: true
+  min_group_win_share: 0.67
+  min_model_agreement: 0.75
+  coverage_tolerance: 0.05
+  min_group_coverage: 0.75
+  scouting_budget: 0.20
+  min_recall_gain: 0.05
+  # Ranking judged by check 4 (fixed in advance): forecast | lower_bound | relative_forecast.
+  # relative_forecast = same model family trained on yield minus its site-season mean,
+  # because scouting ranks plots within a site-season.
+  scouting_ranker: relative_forecast
+  min_lead_days: 30
