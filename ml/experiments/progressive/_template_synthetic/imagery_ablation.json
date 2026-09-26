@@ -1,0 +1,23 @@
+{
+  "dataset_label": "SYNTHETIC test fixture",
+  "validation": "leave-one-site-out",
+  "as_of": "09-27",
+  "variants": [
+    {
+      "id": "records",
+      "label": "Field records only",
+      "uses_imagery": false,
+      "mae": 99.18,
+      "rmse": 105.44,
+      "r2": -1.698
+    },
+    {
+      "id": "imagery",
+      "label": "+ Satellite imagery (TP1-TP6)",
+      "uses_imagery": true,
+      "mae": 109.32,
+      "rmse": 113.18,
+      "r2": -2.109
+    }
+  ]
+}
