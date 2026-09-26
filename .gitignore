@@ -10,6 +10,10 @@ coverage/
 # ML: datasets and intermediate models stay local (processed tables are rebuilt by `ingest`)
 ml/data/*/*
 !ml/data/*/.gitkeep
+# Challenge dataset: the compact tables written by `soilsignal_ml challenge` are committed so
+# every stage can use them (no imagery, no Drive ids); its cache/ and postgres/ stay local.
+!ml/data/challenge/*.parquet
+!ml/data/challenge/challenge_manifest.json
 ml/experiments/candidates/
 .ipynb_checkpoints/
 __pycache__/

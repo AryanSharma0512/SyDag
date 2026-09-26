@@ -87,6 +87,33 @@ only contains `backend/`.
 8. **Sensitivity.** Sweep one feature for a typical plot and compare the response with the
    literature (`research/agronomy_thresholds.yaml`). A mismatch means investigate, not override.
 
+## Challenge dataset (SyDAg26)
+
+`python -m soilsignal_ml challenge` reads the organizers' shared folder (a local copy at
+`ml/data/raw/challenge/`: `GroundTruth/`, `Satellite/<Location>/TP1..6/`, `UAV/<Location>/TP1..3/`)
+and writes compact tables to `ml/data/challenge/` (committed; no imagery):
+
+| File | One row per |
+|---|---|
+| `plots.parquet` | ground-truth plot: `plot_id` = `{year}-{site}-{experiment}-{range}-{row}`, management, target, coordinates, image counts |
+| `acquisition_dates.parquet` | site + sensor + TP → date (from `DateofCollection.xlsx`; TPs differ by site) |
+| `satellite_manifest.parquet`, `uav_manifest.parquet` | image file: parsed name, `match_status`, `use`, date, days after planting, raster metadata when the file is local |
+| `observations.parquet` | usable plot image (`plot_id`, `date`, `source`, `time_point`, `image_path`) |
+| `sites.parquet`, `drive_inventory.parquet` | site; every file listed on Drive (names and sizes, no ids) |
+| `challenge_manifest.json` | counts, joins, anomalies and every output's schema |
+
+```bash
+# images local (restartable: raster metadata is cached per file)
+uv run --project ../backend --group ml python -m soilsignal_ml challenge --inventory data/challenge/drive_inventory.parquet
+uv run --project ../backend --group ml python -m soilsignal_ml ingest --dataset challenge2022   # canonical tables
+uv run --project ../backend --group ml python -m soilsignal_ml challenge-sql                     # optional Postgres/PostGIS load
+```
+
+`ChallengeDatasetAdapter` (`ingest/challenge_adapter.py`) turns these into the canonical tables;
+it uses `ml/data/challenge/satellite_features.parquet` (image_id + indices) when the spectral
+stage has written it, else computes the indices from the GeoTIFFs. Details, statistics and
+anomalies: `AGENT1_HANDOFF.md` at the repository root.
+
 ## Data day: switching to the challenge dataset
 
 1. Fill in `HackathonDatasetAdapter.build()` so it returns the canonical tables. Keep only

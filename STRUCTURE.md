@@ -3,7 +3,7 @@
 What exists, where it lives, and what to run or call to move the site from the
 practice data to the challenge data. **Keep this file updated in the same PR as any structural change.**
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 ---
 
@@ -33,7 +33,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 
 | # | Step | What to run / call / edit | Status |
 |---|------|---------------------------|--------|
-| 0 | Map the challenge files to the canonical tables | Fill in `HackathonDatasetAdapter` in `ml/soilsignal_ml/ingest/dataset_adapter.py`; set the held-out group and cutoffs in `ml/configs/` | Ready (adapter body to write) |
+| 0 | Map the challenge files to the canonical tables | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml challenge` (inventory + joins → `ml/data/challenge/`), then `ingest --dataset challenge2022` (`ChallengeDatasetAdapter`). See `AGENT1_HANDOFF.md`. Still to set: the held-out group and cutoffs in `ml/configs/` | Ready (imagery to download locally) |
 | 1 | Ingest, check and profile the dataset | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml ingest`, then `validate`, `profile` (→ `ml/experiments/reports/dataset_profile.md`) | Ready |
 | 2 | Features + leak-free validation + training | `... -m soilsignal_ml train` (feature-set screening, Optuna tuning, leave-one-site-out, held-out site), then `report` (→ `ml/experiments/reports/model_report.md`) | Ready |
 | 2b | Early signal: records only vs + imagery through TP1…TP6, scouting recall, `imagery_ablation.json` | `... python progressive_experiment.py --plots … --tp-features … --acquisitions …` (→ `ml/experiments/progressive/<name>/summary.md`; `--publish` writes `backend/artifacts/imagery_ablation.json`). Guide: `AGENT3_HANDOFF.md` | Ready (synthetic template only; no real run yet) |
@@ -189,8 +189,9 @@ Details in `ml/README.md`.
 
 | Path | Purpose |
 |------|---------|
-| `soilsignal_ml/__main__.py` | CLI: `ingest`, `context`, `validate`, `profile`, `train`, `report`, `export` |
+| `soilsignal_ml/__main__.py` | CLI: `ingest`, `context`, `validate`, `profile`, `train`, `report`, `export`, `showcase`, `challenge`, `challenge-sql` |
 | `soilsignal_ml/ingest/` | Dataset adapters (`PublicDatasetAdapter` = Shrestha et al. 2024; `HackathonDatasetAdapter` stub), canonical tables, remote-zip streaming, public context, data checks, profiler |
+| `soilsignal_ml/ingest/challenge*.py`, `imagery.py` | Challenge dataset: ground truth + acquisition dates + image manifests on one plot key (`challenge.py`), GeoTIFF/PNG metadata (`imagery.py`), outputs and `challenge_manifest.json` (`challenge_report.py`), canonical tables (`challenge_adapter.py`, dataset `challenge2022`), Postgres/PostGIS export (`challenge_postgres.py`) |
 | `soilsignal_ml/features/build.py` | Training tables from `backend/app/features` |
 | `soilsignal_ml/validation/splits.py` | Grouped splits (plot, field, site, year) and the held-out site, with overlap checks |
 | `soilsignal_ml/models/` | Mean, Ridge, Random Forest, HistGradientBoosting, CatBoost; `train.py` runs screening, tuning, selection, held-out scoring |
@@ -203,7 +204,7 @@ Details in `ml/README.md`.
 | `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report), `progressive/` (early-signal runs; `_template_synthetic/` shows the format and is not a result) |
 | `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
 | `tests/` | Data checks, leakage, splits, models + artifact round trip, research ↔ code |
-| `data/` | Git-ignored datasets (`processed/` canonical tables, `interim/` feature tables) |
+| `data/` | Git-ignored datasets (`processed/` canonical tables, `interim/` feature tables, `raw/challenge/` the organizers' folder), except `data/challenge/*.parquet` + `challenge_manifest.json` (compact challenge tables, committed) |
 
 
 
