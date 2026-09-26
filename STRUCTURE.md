@@ -3,7 +3,7 @@
 What exists, where it lives, and what to run or call to move the site from the
 practice data to the challenge data. **Keep this file updated in the same PR as any structural change.**
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 ---
 
@@ -36,7 +36,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 0 | Map the challenge files to the canonical tables | Fill in `HackathonDatasetAdapter` in `ml/soilsignal_ml/ingest/dataset_adapter.py`; set the held-out group and cutoffs in `ml/configs/` | Ready (adapter body to write) |
 | 1 | Ingest, check and profile the dataset | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml ingest`, then `validate`, `profile` (→ `ml/experiments/reports/dataset_profile.md`) | Ready |
 | 2 | Features + leak-free validation + training | `... -m soilsignal_ml train` (feature-set screening, Optuna tuning, leave-one-site-out, held-out site), then `report` (→ `ml/experiments/reports/model_report.md`) | Ready |
-| 2b | Early signal: records only vs + imagery through TP1…TP6, scouting recall, `imagery_ablation.json` | `... python progressive_experiment.py --plots … --tp-features … --acquisitions …` (→ `ml/experiments/progressive/<name>/summary.md`; `--publish` writes `backend/artifacts/imagery_ablation.json`). Guide: `AGENT3_HANDOFF.md` | Ready (synthetic template only; no real run yet) |
+| 2b | Early signal: records only vs + imagery through TP1…TP6, scouting recall, `imagery_ablation.json` | `... python progressive_experiment.py --imagery-table data/interim/imagery/satellite_features.parquet` (after `python -m soilsignal_ml.imagery run`; or `--plots … --tp-features … --acquisitions …`) (→ `ml/experiments/progressive/<name>/summary.md`; `--publish` writes `backend/artifacts/imagery_ablation.json`). Guide: `AGENT3_HANDOFF.md` | Ready (synthetic template only; no real run yet) |
 | 3 | Export each trained model | `... -m soilsignal_ml export` (calls `save_artifact()` in `backend/app/model/export.py` for every cutoff config) | Ready |
 | 4 | Add any new model library to the backend | `cd backend && uv add catboost` (or lightgbm/xgboost), commit `uv.lock`, rebuild the image. Training-only libraries go in the `ml` group: `uv add --group ml ...` | Ready |
 | 5 | Test the model locally | `cd backend && uv run uvicorn app.main:app --port 8000`, then `GET /api/models` and `POST /api/predict` | Ready |
@@ -198,6 +198,7 @@ Details in `ml/README.md`.
 | `soilsignal_ml/progressive/` | Early-signal experiments: stages (TP / days after planting / date), grouped validation incl. 2022 → 2023, nested conformal + CQR intervals, scouting recall, "earliest useful" checks, `imagery_ablation.json`. Entry point `progressive_experiment.py`; config `configs/progressive.yaml` |
 | `soilsignal_ml/export/export_to_backend.py` | Writes `backend/artifacts/` with `save_artifact()` |
 | `soilsignal_ml/export/showcase.py` | Writes the showcase bundle for the held-out plots, with 1991–2020 rain normals and a 10-year GDD pace from NOAA |
+| `soilsignal_ml/imagery/` | Challenge imagery -> progressive features: TIFF masking and band/index statistics, records_only/TP1..TP6 table with temporal and site-relative features, UAV RGB features by flight date, quality flags and report, visual QA. CLI: `python -m soilsignal_ml.imagery` (`run`, `benchmark`, `dictionary`, `synthetic`). Handoff: `ml/AGENT2_HANDOFF.md` |
 | `configs/` | `project.yaml` (held-out site, seed, trials) and one file per cutoff (`may` … `full`) |
 | `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results) |
 | `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report), `progressive/` (early-signal runs; `_template_synthetic/` shows the format and is not a result) |

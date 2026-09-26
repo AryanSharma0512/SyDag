@@ -231,9 +231,8 @@ def normalize_tp_features(
     drop = {"plot_id", "tp", "date", *ID_COLUMNS, "final_yield", "planting_date"}
     features = _numeric_features(t, drop)
     check_feature_names(features, allow)
-    out = t[["plot_id", "tp"]].copy()
-    for c in features:
-        out[c] = pd.to_numeric(t[c], errors="coerce").astype(float)
+    values = t[features].apply(pd.to_numeric, errors="coerce").astype(float)
+    out = pd.concat([t[["plot_id", "tp"]], values], axis=1).reset_index(drop=True)
     return out, dates, notes
 
 
@@ -375,14 +374,30 @@ def from_frames(
 
 def from_files(
     name: str,
-    plots: str | Path,
+    plots: str | Path | None,
     *,
+    imagery_table: str | Path | None = None,
+    include_qa: bool = False,
     tp_features: str | Path | None = None,
     tp_observations: str | Path | None = None,
     acquisitions: str | Path | None = None,
     value_columns: list[str] | None = None,
     allow_columns: set[str] = frozenset(),
 ) -> ExperimentData:
+    if imagery_table:
+        return from_imagery_table(
+            name,
+            _read(imagery_table),
+            _read(plots) if plots else None,
+            include_qa=include_qa,
+            allow_columns=allow_columns,
+            provenance={
+                "imagery_table": str(imagery_table),
+                "plots": str(plots) if plots else None,
+            },
+        )
+    if not plots:
+        raise ContractError("--plots is required unless --imagery-table is given")
     return from_frames(
         name,
         _read(plots),
@@ -398,6 +413,91 @@ def from_files(
             "acquisitions": str(acquisitions) if acquisitions else None,
         },
     )
+
+
+def from_imagery_table(
+    name: str,
+    table: pd.DataFrame,
+    plots: pd.DataFrame | None = None,
+    *,
+    include_qa: bool = False,
+    allow_columns: set[str] = frozenset(),
+    provenance: dict | None = None,
+) -> ExperimentData:
+    """Agent 2's progressive table (`soilsignal_ml.imagery`, satellite_features.parquet):
+    one row per plot x cutoff, `records_only` (cutoff_tp 0) then TP1..TPn, each TPk row built
+    from images up to that site's TPk acquisition (`as_of_date`) only.
+
+    Imagery features are its numeric columns minus its own identifier, timing, QA,
+    planting-known and target columns (imported from the imagery package, so a schema change
+    there is picked up here). Records and yield come from `plots` (Agent 1) when given, else
+    from the records_only rows. Timing columns are left out of the features: they describe
+    the cutoff date, not the crop, and every stage reports them separately."""
+    from soilsignal_ml.imagery.discover import PLANTING_KNOWN
+    from soilsignal_ml.imagery.progressive import (
+        ID_COLUMNS as IMAGERY_IDS,
+    )
+    from soilsignal_ml.imagery.progressive import (
+        QA_COLUMNS,
+        TARGET,
+        TIMING_COLUMNS,
+    )
+
+    t = table.copy()
+    missing = [c for c in ("plot_id", "site_id", "cutoff_tp", "as_of_date") if c not in t]
+    if missing:
+        raise ContractError(f"imagery table is missing {missing}; is it satellite_features?")
+    t["plot_id"] = t["plot_id"].astype(str)
+    t["as_of_date"] = pd.to_datetime(t["as_of_date"])
+    base = t[t["cutoff_tp"] == 0]
+    if plots is None:
+        if base.empty or TARGET not in base:
+            raise ContractError("no records_only rows with final_yield; pass Agent 1's plots")
+        keep = ["plot_id", "site_id", "planting_date", TARGET]
+        keep += [c for c in PLANTING_KNOWN if c in base]
+        plots = base[keep].copy()
+        plots["year"] = pd.to_datetime(plots["planting_date"]).dt.year
+    p = normalize_plots(plots)
+    year = p.set_index("plot_id")["year"]
+
+    imaged = t[t["cutoff_tp"] > 0].copy()
+    imaged["tp"] = imaged["cutoff_tp"].astype(int)
+    excluded = {
+        *IMAGERY_IDS,
+        *TIMING_COLUMNS,
+        *PLANTING_KNOWN,
+        TARGET,
+        "tp",
+        "year",
+        *([] if include_qa else QA_COLUMNS),
+    }
+    features = [
+        c
+        for c in imaged.columns
+        if c not in excluded
+        and pd.api.types.is_numeric_dtype(imaged[c])
+        and not pd.api.types.is_bool_dtype(imaged[c])
+    ]
+    acquisitions = (
+        imaged.assign(year=imaged["plot_id"].map(year))
+        .dropna(subset=["year"])[["site_id", "year", "tp", "as_of_date"]]
+        .rename(columns={"as_of_date": "date"})
+        .drop_duplicates()
+    )
+    data = from_frames(
+        name,
+        p,
+        tp_features=imaged[["plot_id", "tp", *features]],
+        acquisitions=acquisitions,
+        allow_columns=allow_columns,
+        provenance=provenance or {"source": "soilsignal_ml.imagery progressive table"},
+    )
+    data.notes.append(
+        f"imagery table: {len(features)} numeric imagery features; timing"
+        + ("" if include_qa else ", QA")
+        + " and planting columns excluded"
+    )
+    return data
 
 
 def from_canonical(
@@ -420,6 +520,23 @@ def from_canonical(
         value_columns=value_columns,
         provenance=ds.provenance,
     )
+
+
+def subset_sites(data: ExperimentData, sites: list[str]) -> ExperimentData:
+    """Keep only these sites (e.g. the challenge's three locations within the practice data)."""
+    unknown = sorted(set(sites) - set(data.plots["site_id"]))
+    if unknown:
+        raise ContractError(
+            f"unknown sites {unknown}; have {sorted(data.plots['site_id'].unique())}"
+        )
+    plots = data.plots[data.plots["site_id"].isin(sites)].reset_index(drop=True)
+    data.plots = plots
+    data.tp_features = data.tp_features[
+        data.tp_features["plot_id"].isin(plots["plot_id"])
+    ].reset_index(drop=True)
+    data.acquisitions = data.acquisitions[data.acquisitions["site_id"].isin(sites)]
+    data.notes.append(f"restricted to sites: {', '.join(sorted(sites))}")
+    return data
 
 
 def validate(data: ExperimentData) -> None:

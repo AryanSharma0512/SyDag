@@ -409,8 +409,11 @@ def _scouting_rows(data, y, units, stages, predictions, cqr_bands, relative, hea
             rankers["records_only"] = reference
         if stage.uses_imagery and cfg.naive_ranking_column:
             sf, _ = stage_frame(data, stage)
-            if cfg.naive_ranking_column in sf:
-                rankers["naive_imagery"] = sf[cfg.naive_ranking_column].to_numpy(float)
+            # The configured column, else the latest-NDVI name either feature source uses.
+            for column in (cfg.naive_ranking_column, "ndvi_latest", "ndvi_current"):
+                if column in sf:
+                    rankers["naive_imagery"] = sf[column].to_numpy(float)
+                    break
         for ranker, score in rankers.items():
             m = held_out
             for r in scouting(y[m], score[m], units[m], cfg.budgets, cfg.poor_quantile, cfg.seed):

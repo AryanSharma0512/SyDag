@@ -1,0 +1,23 @@
+{
+  "dataset_label": "Practice data",
+  "validation": "leave-one-site-out",
+  "as_of": "09-24",
+  "variants": [
+    {
+      "id": "records",
+      "label": "Field records only",
+      "uses_imagery": false,
+      "mae": 70.88,
+      "rmse": 81.96,
+      "r2": -1.247
+    },
+    {
+      "id": "imagery",
+      "label": "+ Satellite imagery (TP1-TP6)",
+      "uses_imagery": true,
+      "mae": 64.94,
+      "rmse": 72.28,
+      "r2": -0.748
+    }
+  ]
+}
