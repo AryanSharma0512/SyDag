@@ -1,0 +1,3 @@
+# Synthetic per-plot predictions are regenerable and large; real runs may commit theirs.
+predictions.csv
+predictions.geojson
