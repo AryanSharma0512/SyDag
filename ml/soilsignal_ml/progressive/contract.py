@@ -400,11 +400,13 @@ def from_files(
     )
 
 
-def from_canonical(name: str, value_columns: list[str] | None = None) -> ExperimentData:
+def from_canonical(
+    name: str, value_columns: list[str] | None = None, root: Path | None = None
+) -> ExperimentData:
     """The existing pipeline's canonical dataset (e.g. the ingested practice data)."""
-    from soilsignal_ml.ingest.canonical import CanonicalDataset
+    from soilsignal_ml.ingest.canonical import PROCESSED, CanonicalDataset
 
-    ds = CanonicalDataset.load(name)
+    ds = CanonicalDataset.load(name, root or PROCESSED)
     obs = ds.observations.copy()
     if "time_point" not in obs:
         raise ContractError(f"{name}: observations have no time_point column")

@@ -114,6 +114,27 @@ def test_acquisition_dates_can_come_from_the_feature_table(frames, data):
     assert len(d.acquisitions) == 24  # 4 site-seasons x 6 passes
 
 
+def test_canonical_practice_dataset_path(frames, tmp_path):
+    """`--canonical shrestha2024` reads the existing pipeline's tables (time_point column)."""
+    from soilsignal_ml.ingest.canonical import CanonicalDataset
+
+    plots, obs, _ = frames
+    empty = pd.DataFrame
+    CanonicalDataset(
+        name="practice",
+        plots=plots,
+        observations=obs.rename(columns={"tp": "time_point"}).assign(source="satellite"),
+        weather=empty(columns=["site_id", "date", "tmax_f", "tmin_f", "prcp_mm"]),
+        soil=empty(columns=["plot_id"]),
+        county_yields=empty(columns=["site_id", "year", "yield"]),
+        sites=empty(columns=["site_id"]),
+        provenance={"dataset": "practice"},
+    ).save(tmp_path)
+    d = contract.from_canonical("practice", root=tmp_path)
+    assert len(d.acquisitions) == 24 and "ndvi_rel_latest" in d.imagery_columns
+    assert "nir_latest" in d.imagery_columns
+
+
 # ---- stages -------------------------------------------------------------------------------
 
 

@@ -248,7 +248,13 @@ def run(data: ExperimentData, cfg: RunConfig, progress=print) -> dict:
     timing = {s.key: stage_timing(data, s, cfg.harvest_mmdd) for s in stages}
     rows = _result_rows(frame, y, units, stages, predictions, cqr_bands, run_schemes, cfg)
     for row in rows:
-        row.update({f"timing_{k}": v for k, v in timing[row["stage"]].items() if _flat(v)})
+        row.update(
+            {
+                f"timing_{k}": v
+                for k, v in timing[row["stage"]].items()
+                if _flat(v) and k not in ("stage", "label", "uses_imagery")
+            }
+        )
     scout = _scouting_rows(data, y, units, stages, predictions, cqr_bands, relative, head, cfg)
     criteria = crit.evaluate(rows, scout, timing, stages, head.name, cfg)
     spatial = _spatial(frame, y, stages, predictions, head, cfg)
