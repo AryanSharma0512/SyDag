@@ -3,6 +3,7 @@ SoilSignal ML command line. Run from ml/:
 
     uv run --project ../backend --group ml python -m soilsignal_ml <command>
 
+    challenge inventory, image manifests, dates and joins for the SyDAg26 files
     ingest    build the canonical dataset (imagery streamed, public context fetched)
     validate  data checks on the canonical dataset
     profile   write the dataset profile report
@@ -13,6 +14,7 @@ SoilSignal ML command line. Run from ml/:
 """
 
 import argparse
+import json
 import sys
 
 
@@ -20,6 +22,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="soilsignal_ml", description=__doc__.split("\n\n")[0])
     parser.add_argument("--dataset", default="shrestha2024")
     sub = parser.add_subparsers(dest="command", required=True)
+    challenge = sub.add_parser("challenge", help="inventory and join the SyDAg26 challenge files")
+    challenge.add_argument("--raw", default=None, help="mirrored Drive folder")
+    challenge.add_argument("--workers", type=int, default=4)
     sub.add_parser("ingest")
     sub.add_parser("context", help="re-fetch public context for an ingested dataset")
     sub.add_parser("validate")
@@ -32,7 +37,17 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("showcase")
     args = parser.parse_args(argv)
 
-    if args.command == "ingest":
+    if args.command == "challenge":
+        from pathlib import Path
+
+        from soilsignal_ml.ingest import challenge as ch
+
+        manifest = ch.build(Path(args.raw) if args.raw else ch.RAW, ch.OUT, args.workers)
+        print(json.dumps(manifest["counts"], indent=1, default=str))
+        for note in manifest["anomalies"]:
+            print(f"- {note}")
+        print(f"wrote {ch.OUT}")
+    elif args.command == "ingest":
         from soilsignal_ml.ingest.context import add_public_context
         from soilsignal_ml.ingest.dataset_adapter import ADAPTERS
 
