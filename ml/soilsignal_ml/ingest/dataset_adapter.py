@@ -9,9 +9,12 @@ Swapping datasets means writing an adapter, never touching features or training.
 """
 
 import io
+import json
 import re
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date
+from pathlib import Path
 from typing import Protocol
 
 import numpy as np
@@ -32,16 +35,6 @@ class DatasetAdapter(Protocol):
     def build(self, progress: Progress = print) -> CanonicalDataset:
         """Fetch and normalize the source into the canonical tables."""
         ...
-
-
-class HackathonDatasetAdapter:
-    """Fill in on data day: map the challenge files onto the canonical tables
-    (see canonical.py), then `python -m soilsignal_ml ingest --dataset hackathon`."""
-
-    name = "sydag26"
-
-    def build(self, progress: Progress = print) -> CanonicalDataset:
-        raise NotImplementedError("the challenge dataset is released at kickoff")
 
 
 # ---- Shrestha et al. (2024) ---------------------------------------------------------
@@ -264,6 +257,183 @@ class PublicDatasetAdapter:
             "gdd_to_anthesis",
         ]
         return t[keep].reset_index(drop=True)
+
+
+# ---- SyDAg26 challenge data ---------------------------------------------------------
+
+
+class HackathonDatasetAdapter:
+    """SyDAg26 challenge data. `python -m soilsignal_ml challenge` writes the inventory,
+    manifests and joins to ml/data/challenge/ (see challenge.py); this turns them into the
+    canonical tables. `python -m soilsignal_ml ingest --dataset sydag26` runs both.
+
+    Plots keep only what the ground truth records. Every departure is listed in the
+    provenance notes: a missing planting date takes the site's most common one, and plots
+    with a duplicated plot_id or without a satellite image (so without a coordinate) are
+    left out of the canonical tables (they stay in ml/data/challenge/plots.parquet).
+    Observations are satellite only: the UAV images are RGB and support none of the
+    indices, so they stay in the UAV manifest for feature extraction."""
+
+    name = "sydag26"
+
+    def __init__(
+        self,
+        out: Path | None = None,
+        raw: Path | None = None,
+        bands: tuple[str, ...] = BANDS,
+        reflectance_scale: float = REFLECTANCE_SCALE,
+        workers: int = 4,
+    ) -> None:
+        from soilsignal_ml.ingest import challenge
+
+        self.out = out or challenge.OUT
+        self.raw = raw or challenge.RAW
+        self.bands = bands
+        self.reflectance_scale = reflectance_scale
+        self.workers = workers
+
+    def build(self, progress: Progress = print) -> CanonicalDataset:
+        from soilsignal_ml.ingest import challenge
+
+        if not (self.out / "plots.parquet").exists():
+            progress("no challenge outputs yet: running the inventory and joins")
+            challenge.build(self.raw, self.out, self.workers)
+        manifest = json.loads((self.out / "challenge_manifest.json").read_text())
+        plots = pd.read_parquet(self.out / "plots.parquet")
+        obs = pd.read_parquet(self.out / "observations.parquet")
+        notes: list[str] = []
+
+        duplicated = plots["duplicate_plot_id"].fillna(False).astype(bool)
+        no_id = plots["plot_id"].isna()
+        no_coord = plots["latitude"].isna() & ~duplicated & ~no_id
+        notes.append(
+            f"{int(duplicated.sum())} ground-truth rows share a plot_id and "
+            f"{int(no_id.sum())} lack site/experiment/range/row; both left out."
+        )
+        notes.append(f"{int(no_coord.sum())} plots have no satellite image and are left out.")
+        p = plots[~duplicated & ~no_id & ~no_coord].copy()
+
+        if "planting_date" not in p:
+            p["planting_date"] = pd.NaT
+        p["planting_date"] = pd.to_datetime(p["planting_date"], errors="coerce").dt.date
+        site_planting = p.groupby("site_id")["planting_date"].agg(
+            lambda s: s.dropna().mode().iloc[0] if s.notna().any() else None
+        )
+        imputed = p["planting_date"].isna()
+        p["planting_date"] = p["planting_date"].fillna(p["site_id"].map(site_planting))
+        p["planting_date_imputed"] = imputed
+        notes.append(
+            f"{int(imputed.sum())} plots had no planting date and take their site's most "
+            "common one (planting_date_imputed)."
+        )
+        p["field_id"] = p["site_id"] + "-" + p["year"].astype(str) + "-" + p["experiment"]
+        if "irrigated" in p:
+            p["irrigated"] = p["irrigated"].astype("boolean")
+
+        sat = obs[(obs["source"] == "satellite") & obs["plot_id"].isin(p["plot_id"])].copy()
+        sat = sat.sort_values("n_valid_pixels", ascending=False).drop_duplicates(
+            ["plot_id", "date"]
+        )
+        sat = sat[sat["n_valid_pixels"] > 0]
+        progress(f"reading {len(sat)} satellite images for per-image index means")
+        paths = [str(self.raw / path) for path in sat["image_path"]]
+        with ProcessPoolExecutor(self.workers) as pool:
+            stats = list(
+                pool.map(
+                    _index_means,
+                    paths,
+                    [self.bands] * len(paths),
+                    [self.reflectance_scale] * len(paths),
+                    chunksize=16,
+                )
+            )
+        observations = pd.concat(
+            [
+                sat[
+                    ["plot_id", "date", "source", "time_point", "image_path", "n_valid_pixels"]
+                ].reset_index(drop=True),
+                pd.DataFrame(stats),
+            ],
+            axis=1,
+        )
+        observations["date"] = pd.to_datetime(observations["date"]).dt.date
+
+        sites = (
+            p.groupby("site_id")
+            .agg(latitude=("latitude", "mean"), longitude=("longitude", "mean"))
+            .reset_index()
+        )
+        sites["name"] = sites["site_id"].map(lambda s: SITES.get(s, (s, None))[0])
+        sites["state"] = sites["site_id"].map(lambda s: SITES.get(s, (s, None))[1])
+        keep = [
+            c
+            for c in (
+                "plot_id",
+                "field_id",
+                "site_id",
+                "year",
+                "planting_date",
+                "latitude",
+                "longitude",
+                "genotype",
+                "nitrogen_lb_ac",
+                "irrigated",
+                "final_yield",
+                "experiment",
+                "range",
+                "row",
+                "stand_count",
+                "days_to_anthesis",
+                "gdd_to_anthesis",
+                "planting_date_imputed",
+                "centroid_spread_m",
+            )
+            if c in p
+        ]
+        return CanonicalDataset(
+            name=self.name,
+            plots=p[keep].reset_index(drop=True),
+            observations=observations,
+            weather=pd.DataFrame(columns=["site_id", "date", "tmax_f", "tmin_f", "prcp_mm"]),
+            soil=pd.DataFrame(columns=["plot_id"]),
+            county_yields=pd.DataFrame(columns=["site_id", "year", "yield"]),
+            sites=sites,
+            provenance={
+                "dataset": self.name,
+                "source": "SyDAg26 IoT4Ag Hackathon challenge data (organizer Drive folder)",
+                "challenge_outputs": str(self.out),
+                "built": manifest.get("provenance", {}).get("built"),
+                "retrieved": date.today().isoformat(),
+                "bands": list(self.bands),
+                "reflectance_scale": self.reflectance_scale,
+                "notes": [
+                    *notes,
+                    "Plot coordinates are the median valid-pixel centroid of the plot's "
+                    "satellite images.",
+                    "Image dates come from DateofCollection.xlsx, never from TP numbers.",
+                ],
+            },
+        )
+
+
+def _index_means(path: str, bands: tuple[str, ...], scale: float) -> dict[str, float]:
+    """Mean reflectance per band and mean of each per-pixel index over plot pixels
+    (pixels zero in every band are outside the segmented plot)."""
+    with tifffile.TiffFile(path) as tif:
+        page = tif.pages[0]
+        pixels = page.asarray()
+        axes = page.axes
+    if "S" in axes:
+        pixels = np.moveaxis(pixels, axes.index("S"), -1)
+    pixels = pixels.astype(float)
+    if pixels.shape[-1] != len(bands):
+        raise ValueError(f"{path}: {pixels.shape[-1]} bands, expected {len(bands)}")
+    valid = (pixels != 0).all(axis=2)
+    values = {b: pixels[..., i][valid] / scale for i, b in enumerate(bands)}
+    stats = {b: float(v.mean()) if v.size else np.nan for b, v in values.items()}
+    for name, v in compute_indices(values).items():
+        stats[name] = float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
+    return stats
 
 
 ADAPTERS: dict[str, type] = {

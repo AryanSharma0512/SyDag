@@ -163,3 +163,19 @@ def test_observations_cover_matched_images_only(built):
     assert set(obs["source"]) == {"satellite", "uav"}
     assert obs[["plot_id", "date", "source", "time_point", "image_path"]].notna().all().all()
     assert len(obs[obs["source"] == "satellite"]) == 5
+
+
+def test_adapter_builds_canonical_tables(built, raw):
+    from soilsignal_ml.ingest.dataset_adapter import HackathonDatasetAdapter
+    from soilsignal_ml.ingest.validate import validate
+
+    _, out = built
+    ds = HackathonDatasetAdapter(out=out, raw=raw, workers=1).build(progress=lambda _: None)
+    assert set(ds.plots["plot_id"]) == {"Ames-2023-hybrids-1-1", "Ames-2023-hybrids-1-2"}
+    assert set(ds.observations["source"]) == {"satellite"}
+    assert ds.observations["ndvi"].to_numpy() == pytest.approx(0.6)
+    assert ds.observations.groupby("plot_id")["date"].nunique().to_dict() == {
+        "Ames-2023-hybrids-1-1": 2,
+        "Ames-2023-hybrids-1-2": 2,
+    }
+    assert validate(ds) == ["no weather data"]
