@@ -57,10 +57,29 @@ CatBoost covers ordered boosting.
 | `experiments/rehearsal/` | The superseded first run (mean-only selection) and why it was replaced |
 | `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
 | `data/` | Git-ignored. `processed/<dataset>/` holds the canonical tables, `interim/` the feature tables |
+| `soilsignal_ml/imagery/` | Plot imagery -> progressive (records_only, TP1..TP6) satellite and UAV features, quality flags, visual QA. See below |
+| `experiments/reports/imagery/` | Feature dictionary, quality report and benchmark for the imagery features |
+| `AGENT2_HANDOFF.md` | Band order, masking, point-in-time design, commands and recommended features for the imagery features |
 
 Feature engineering itself lives in **`backend/app/features/`** (`build_features(inputs, as_of)`).
 The API computes the same features when it serves a forecast, and the backend's Docker image
 only contains `backend/`.
+
+## Imagery features (challenge data)
+
+`soilsignal_ml/imagery/` turns the per-plot satellite GeoTIFFs and UAV PNGs into point-in-time
+features, one row per plot x cutoff (records_only, TP1 ... TP6). A TPk row uses only images from
+the site's TPk acquisition or earlier; `tests/test_imagery_leakage.py` deletes and alters later
+imagery to prove it.
+
+```bash
+uv run --project ../backend --group ml python -m soilsignal_ml.imagery run --data-root <folder with Satellite/, UAV/, Groundtruth/>
+uv run --project ../backend --group ml python -m soilsignal_ml.imagery benchmark --data-root <same>
+```
+
+Outputs go to `data/interim/imagery/` (`satellite_features.parquet`, `progressive/<cutoff>.parquet`,
+`satellite_uav_features.parquet`, `quality_flags.csv`, `reports/`, `visual_qa/`). Details, band
+order and the reasoning behind each choice are in `AGENT2_HANDOFF.md`.
 
 ## The method, in order
 

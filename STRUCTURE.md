@@ -3,7 +3,7 @@
 What exists, where it lives, and what to run or call to move the site from the
 practice data to the challenge data. **Keep this file updated in the same PR as any structural change.**
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 ---
 
@@ -198,6 +198,7 @@ Details in `ml/README.md`.
 | `soilsignal_ml/progressive/` | Early-signal experiments: stages (TP / days after planting / date), grouped validation incl. 2022 → 2023, nested conformal + CQR intervals, scouting recall, "earliest useful" checks, `imagery_ablation.json`. Entry point `progressive_experiment.py`; config `configs/progressive.yaml` |
 | `soilsignal_ml/export/export_to_backend.py` | Writes `backend/artifacts/` with `save_artifact()` |
 | `soilsignal_ml/export/showcase.py` | Writes the showcase bundle for the held-out plots, with 1991–2020 rain normals and a 10-year GDD pace from NOAA |
+| `soilsignal_ml/imagery/` | Challenge imagery -> progressive features: TIFF masking and band/index statistics, records_only/TP1..TP6 table with temporal and site-relative features, UAV RGB features by flight date, quality flags and report, visual QA. CLI: `python -m soilsignal_ml.imagery` (`run`, `benchmark`, `dictionary`, `synthetic`). Handoff: `ml/AGENT2_HANDOFF.md` |
 | `configs/` | `project.yaml` (held-out site, seed, trials) and one file per cutoff (`may` … `full`) |
 | `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results) |
 | `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report), `progressive/` (early-signal runs; `_template_synthetic/` shows the format and is not a result) |
