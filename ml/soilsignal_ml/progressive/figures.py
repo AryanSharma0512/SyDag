@@ -147,6 +147,15 @@ def _line(ax, x, y, i, label, width=2.0, end_label=True, clip=None):
         )
 
 
+def _ends_separate(series: list[np.ndarray], min_share: float = 0.06) -> bool:
+    """True when the series' last values are far enough apart for direct end labels.
+    Converging lines fall back to the legend (labels are never nudged off their lines)."""
+    ends = sorted(y[np.isfinite(y)][-1] for y in series if np.isfinite(y).any())
+    values = np.concatenate([y[np.isfinite(y)] for y in series if np.isfinite(y).any()])
+    span = np.ptp(values) if len(values) else 0
+    return span > 0 and all(b - a >= min_share * span for a, b in zip(ends, ends[1:], strict=False))
+
+
 def _subtitle(result) -> str:
     tag = "SYNTHETIC FIXTURE, NOT A RESULT · " if result.get("synthetic") else ""
     return f"{tag}{result['dataset']} · {result['headline_validation']['description']}"
@@ -174,11 +183,12 @@ def mae_vs_stage(result, path: Path) -> Path:
     maes = np.array([r["mae"] for r in rows if r["model"] in models], dtype=float)
     ceiling = max(1.5 * np.nanpercentile(maes, 75), 1.3 * (mean["mae"] if mean else 0))
     clip = (0.0, ceiling) if np.nanmax(maes) > ceiling else None
-    for i, m in enumerate(models):
-        y = _series([r for r in rows if r["model"] == m], keys, "mae")
-        _line(ax, x, y, i, MODEL_LABEL.get(m, m), clip=clip)
+    lines = [_series([r for r in rows if r["model"] == m], keys, "mae") for m in models]
+    ends = _ends_separate([np.clip(y, *clip) if clip else y for y in lines])
+    for i, (m, y) in enumerate(zip(models, lines, strict=True)):
+        _line(ax, x, y, i, MODEL_LABEL.get(m, m), clip=clip, end_label=ends)
     ax.set_ylabel("MAE, bu/ac (lower is better)", color=INK_2, fontsize=9)
-    ax.set_xlim(-0.3, len(keys) - 0.3 + 1.2)
+    ax.set_xlim(-0.3, len(keys) - 0.3 + (1.2 if ends else 0))
     ax.set_ylim(bottom=0)
     ax.legend(frameon=False, fontsize=8, loc="lower left", ncols=2, labelcolor=INK_2)
     _title(fig, "Forecast error as imagery accumulates", _subtitle(result))
@@ -203,6 +213,12 @@ def delta_mae_vs_stage(result, path: Path) -> Path:
         else 0
     )
     clip = (-span, span) if span and np.nanmax(np.abs(deltas)) > span else None
+    ends = _ends_separate(
+        [
+            _series([r for r in rows if r["model"] == m], keys, "delta_mae_vs_records")
+            for m in models
+        ]
+    )
     for i, m in enumerate(models):
         mr = [r for r in rows if r["model"] == m]
         y = _series(mr, keys, "delta_mae_vs_records")
@@ -210,9 +226,18 @@ def delta_mae_vs_stage(result, path: Path) -> Path:
             lo, hi = _series(mr, keys, "delta_mae_ci_low"), _series(mr, keys, "delta_mae_ci_high")
             ok = np.isfinite(lo) & np.isfinite(hi)
             ax.fill_between(x[ok], lo[ok], hi[ok], color=SLOTS[i], alpha=0.12, linewidth=0)
-        _line(ax, x, y, i, MODEL_LABEL.get(m, m), width=2.4 if m == primary else 1.4, clip=clip)
+        _line(
+            ax,
+            x,
+            y,
+            i,
+            MODEL_LABEL.get(m, m),
+            width=2.4 if m == primary else 1.4,
+            clip=clip,
+            end_label=ends,
+        )
     ax.set_ylabel("MAE reduction vs records only, bu/ac", color=INK_2, fontsize=9)
-    ax.set_xlim(-0.3, len(keys) - 0.3 + 1.2)
+    ax.set_xlim(-0.3, len(keys) - 0.3 + (1.2 if ends else 0))
     ax.legend(frameon=False, fontsize=8, loc="best", labelcolor=INK_2)
     _title(
         fig,
