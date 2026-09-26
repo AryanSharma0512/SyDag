@@ -88,8 +88,15 @@ class ChallengeDatasetAdapter:
 
         sat = sat[sat["use"]]
         obs = self._indices(sat)
-        obs = obs.assign(source="satellite")[
-            ["plot_id", "date", "source", *[i for i in (*INDEX_NAMES, "nir") if i in obs]]
+        # time_point: the image's order at its site (1-6), as in the practice dataset.
+        obs = obs.assign(source="satellite", time_point=obs["tp_index"].astype(int))[
+            [
+                "plot_id",
+                "date",
+                "source",
+                "time_point",
+                *[i for i in (*INDEX_NAMES, "nir") if i in obs],
+            ]
         ]
         for i in (*INDEX_NAMES, "nir"):
             if i not in obs:

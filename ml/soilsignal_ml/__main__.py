@@ -13,7 +13,7 @@ SoilSignal ML command line. Run from ml/:
     progressive  records only vs + imagery through TP1..TP6: early signal and scouting
                  (all options: python -m soilsignal_ml progressive --help)
     challenge inventory + join the challenge dataset -> ml/data/challenge/ (see
-              soilsignal_ml/ingest/challenge.py); `ingest --dataset challenge2022` then
+              soilsignal_ml/ingest/challenge.py); `--dataset challenge2022 ingest` then
               builds the canonical tables from it
 """
 

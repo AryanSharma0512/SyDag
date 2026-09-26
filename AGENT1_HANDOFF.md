@@ -14,11 +14,11 @@ Written 2026-09-26 (night before data day) for Agents 2 and 3 and the humans on 
 - **Spatial metadata:** each GeoTIFF carries its UTM CRS, pixel size (0.30 m) and origin. The
   plot centroid is computed from the plot's own pixels, and agrees with the practice
   pipeline's coordinate to 0.17 m.
-- **Blocker, network:** this session could not download the imagery in bulk. The environment
-  blocks `drive.google.com`, `drive.usercontent.google.com`, `docs.google.com`, `zenodo.org` and
-  `datadryad.org`. Only the Drive connector worked. So the per-file raster metadata (size,
-  valid pixels, centroid) is filled for 4 QA files only. **The full extraction is one command**
-  once the folder is on disk ([Commands](#commands-to-reproduce)).
+- **Full extraction done.** Once network access was opened, all 2,426 distinct image files
+  were downloaded (sizes match Drive) and every one was read. All 1,996 local satellite files
+  have 6 bands in the expected order; the 16 Lincoln duplicate uploads are byte-identical.
+  The canonical dataset `challenge2022` was built with NOAA weather and SSURGO soil and passes
+  every data check; its profile is `ml/experiments/reports/challenge_dataset_profile.md`.
 - **The subset is sparse in time:** at Crawfordsville and Lincoln each time point images a
   mostly different set of plots. Only Ames TP1 to TP5 is a real panel (~94 to 118 plots).
   See [For Agent 3](#for-agent-3-and-the-early-season-question).
@@ -35,6 +35,7 @@ Written 2026-09-26 (night before data day) for Agents 2 and 3 and the humans on 
 | `GroundTruth/DateofCollection.xlsx` | Drive connector, byte-exact (8,444 bytes; zip CRCs pass) | 54 site/sensor/TP dates (6 sites incl. North Platte) |
 | `Satellite/`, `UAV/` folder listings | Drive connector metadata (name, size, upload time) for every file | 2,446 entries → 2,442 files (4 listed twice) |
 | QA sample: 2 GeoTIFFs, 2 PNGs | Drive connector, byte-exact (see below) | Formats, bands, CRS, padding, centroids, indices verified |
+| All images | Direct Drive download by file id once the network was opened; size checked against Drive per file | 2,426 files (the 16 Lincoln second uploads compared separately: identical), all read |
 
 The two sample GeoTIFFs are `Satellite/Ames/TP3/Ames-TP3-4231_17_3.TIF` and
 `Satellite/Crawfordsville/TP2/Crawfordsville-TP2-4353_9_42.TIF`. For both, the per-band means
@@ -55,7 +56,7 @@ canonical tables):
 | `challenge_report.py` | Writes the Parquet outputs and `challenge_manifest.json` (counts, anomalies, schemas). Drops Drive ids and machine paths |
 | `challenge_adapter.py` | `ChallengeDatasetAdapter` (dataset `challenge2022`) → canonical `plots`, `observations` (ndvi, ndre, gndvi, evi, nir), `sites`; `ingest` then adds weather/soil/county yields as usual |
 | `challenge_postgres.py` | CSV + `load.sql` for Postgres; PostGIS points and footprints when the extension exists |
-| `__main__.py` | New commands `challenge` and `challenge-sql`; `ingest --dataset challenge2022` |
+| `__main__.py` | New commands `challenge` and `challenge-sql`; `--dataset challenge2022 ingest` |
 
 Tests: `ml/tests/test_challenge.py` (15 tests). They build a synthetic copy of the folder
 (ground truth, workbook, hand-built GeoTIFFs with known geometry and padding, an RGBA PNG) and
@@ -198,22 +199,28 @@ plots. UAV (Ames) covers 120 plots at all three flights.
   `band_order_ok` checks this per file.
 - DN = reflectance × 10,000 (NIR ≈ 4,400 to 5,000 over July canopy). The 1e-4 scale
   reproduces the practice indices exactly.
-- GeoTIFF: projected WGS 84 / UTM, EPSG:32615 for Ames and Crawfordsville. Lincoln
-  (−96.6°) is expected to be zone 14N (EPSG:32614), but no Lincoln file has been read, so the
-  code reads the CRS from each file. Pixel size 0.30 m, pixel-is-area.
-- Sample plots are 11 × 21 px (3.3 m × 6.3 m bounding box). 18 to 22 of 231 pixels are zero
-  padding, and no pixel is zero in only some bands (`partial_zero_pixels`). A pixel is valid
-  when all 6 bands are non-zero, which is the same rule as the organizers' `Red > 0` here.
+- GeoTIFF: projected WGS 84 / UTM. **EPSG:32615 at Ames and Crawfordsville, EPSG:32614 at
+  Lincoln** (all files). Pixel size 0.30 m, pixel-is-area. The code reads the CRS per file.
+- All 1,996 local files: 6 bands, uint16, `band_order_ok` everywhere. Boxes are 11–12 × 21–22 px.
+  Lincoln plots run east–west, so its images are 21–22 px wide and 11–12 px tall. Each plot
+  has 200–231 valid pixels (18.0–20.8 m²); 76–100% of the box is plot. No file has a pixel
+  that is zero in only some bands, and none is empty. So a valid pixel = all 6 bands
+  non-zero, the same as the organizers' `Red > 0`.
 - The files contain several stale IFDs from in-place edits. `tifffile` reads the right one.
 - **Plot coordinate** = median over the plot's images of the valid-pixel centroid, with
   `coord_spread_m` reported. `bbox_center_lat/lon` (the practice convention) is also kept.
-  They differ by 0.17 m on the Crawfordsville sample.
+  They differ by 0.17 m on the Crawfordsville sample. The spread is 0 for every plot: each
+  plot is clipped with the same polygon on every date, so the images are co-registered by
+  construction. The spread is not a check of satellite geolocation.
+- Median NDVI by site and date reproduces the practice profile: Crawfordsville falls from
+  0.86 to 0.24 by October, and Lincoln from 0.79 to 0.35 (2022 drought).
 
 ### UAV files
 
-RGBA, uint8, about 356 to 380 × 701 to 750 px. Alpha is 0 exactly where RGB is 0
-(`alpha_rgb_disagree_pixels` = 0); about 2.7% is padding. **Not georeferenced** and **not
-calibrated**: mean RGB of the same plot is 27/46/35 at TP1 and 103/130/86 at TP3. Use
+All 430 read: RGBA, uint8, 355–385 × 701–760 px. Alpha is 0 exactly where RGB is 0 in every
+file (`alpha_rgb_disagree_pixels` = 0); 2.5–3.1% is padding. **Not georeferenced** and **not
+calibrated**: the median plot RGB is 35/57/38 at TP1, 77/112/70 at TP2 and 105/131/87 at TP3,
+and the one sample plot goes from 27/46/35 to 103/130/86. Use
 within-flight relative values (for example GLI, NGRDI, or ranks within a flight), never
 absolute DN across flights. The organizers' notebook computes GLI and NGRDI.
 
@@ -226,7 +233,7 @@ absolute DN across flights. The organizers' notebook computes GLI and NGRDI.
    time, different Drive ids, uploaded about 3 s apart. They are
    `Lincoln-TP3-hybrids_{12_18, 12_20, 12_21, 12_22, 12_33, 12_38, 12_4, 13_11, 13_12, 13_13,
    13_14, 13_15, 13_17, 13_18, 13_23, 13_3}.TIF`. The first upload is kept (`use`), the copy
-   has `is_duplicate`. Once local, `sha256`/`content_copies` will confirm they are identical.
+   has `is_duplicate`. Downloaded and compared: all 16 are byte-identical to the kept copies.
 5. The Drive listing returned 4 Ames TP2 files twice (same Drive id). This is a listing
    artifact and each is counted once.
 6. **54 images match no ground-truth plot**, all at Ames **range 1** (the ground truth starts
@@ -243,6 +250,8 @@ absolute DN across flights. The organizers' notebook computes GLI and NGRDI.
    vs UAV date gaps) spells "Crawfordville" and is informational only (not parsed).
 10. The Drive "modified" time was preserved for Ames (2023) but not for Crawfordsville and
     Lincoln (re-uploaded 2026-09-25/26). Don't use it for anything.
+11. **Ames images cover experiments 4231 (250 lb N) and 4232 (150 lb N) only.** There are no
+    images of 4233, so the Ames 75 lb N block is absent from this subset.
 
 ## Assumptions (to verify)
 
@@ -266,8 +275,10 @@ absolute DN across flights. The organizers' notebook computes GLI and NGRDI.
 - If the server offers PostGIS, `load.sql` also adds `plots.geom` and `sites.geom`
   (Point, 4326) and `images.footprint` (each GeoTIFF's bounding box, transformed from its UTM
   zone). Without PostGIS it prints a notice and keeps lat/lon columns.
-- **Tested** on a local PostgreSQL 16 + PostGIS 3.4: loads cleanly, **5.7 MB** in total. With
-  full raster metadata it will stay well under 50 MB. No image bytes are stored, only paths.
+- **Tested** on a local PostgreSQL 16 + PostGIS 3.4 with full raster metadata: loads cleanly,
+  **9.4 MB** in total. It has 1,026 plot points and 1,996 image footprints across 2 UTM
+  zones, and every plot point is within 0.24 m of its footprints' centres. No image bytes are
+  stored, only paths.
 - Deliberately not done: per-pixel data in the database, a Python driver dependency
   (`psql` is enough), and plot polygons (the footprint is the image bbox). The exact plot
   polygon could be vectorised from the valid-pixel mask tomorrow if the maps work needs it.
@@ -279,7 +290,8 @@ From `ml/` (the backend's environment with the `ml` group, which now includes `p
 ```bash
 # 0. Get the data: download the shared Drive folder and unzip so that
 #    ml/data/raw/challenge/{GroundTruth,Satellite,UAV,Documentation}/ exist.
-#    (Or allow drive.google.com in this environment's network settings.)
+#    (This session fetched each file by id from a Drive listing:
+#     https://drive.usercontent.google.com/download?id=<id>&export=download)
 
 # 1. Inventory + joins + raster metadata for every local file. Restartable: metadata is
 #    cached per file (path, size, mtime) in ml/data/challenge/cache/ and checkpointed every
@@ -291,9 +303,11 @@ uv run --project ../backend --group ml python -m soilsignal_ml challenge \
 
 # 2. Canonical tables for training (indices from the GeoTIFFs, or from Agent 2's
 #    ml/data/challenge/satellite_features.parquet if present) + weather/soil/county context
-uv run --project ../backend --group ml python -m soilsignal_ml ingest --dataset challenge2022
-uv run --project ../backend --group ml python -m soilsignal_ml validate --dataset challenge2022
-uv run --project ../backend --group ml python -m soilsignal_ml profile --dataset challenge2022
+#    (--dataset goes before the command; NOAA sometimes drops a connection: rerun on error.
+#    `profile` overwrites the practice report, so the challenge one was written to
+#    experiments/reports/challenge_dataset_profile.md with build_profile() instead.)
+uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 ingest
+uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 validate
 
 # 3. Optional database
 uv run --project ../backend --group ml python -m soilsignal_ml challenge-sql
@@ -303,16 +317,19 @@ cd data/challenge/postgres && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f load.sq
 uv run --project ../backend --group ml --group dev pytest tests/test_challenge.py
 ```
 
-Step 1 on all 2,442 files should take well under a minute: they total 230 MB and each read
-takes milliseconds.
+Measured here: step 1 reads all 2,426 files in 6 s (4 cores). `ingest` takes about 10 s
+(weather and soil fetches).
 
 ## What Agent 2 should consume
 
 - **`ml/data/challenge/satellite_manifest.parquet`**, filtered to `use == True`. Each row is
   one plot image: `image_id`, `plot_id`, `site_id`, `time_point`, **`date`**,
-  `days_after_planting`, `image_path` (relative to `ml/data/raw/challenge/`), plus the
-  raster metadata once the files are local. Join to targets and management through
-  `plots.parquet` on `plot_id`.
+  `days_after_planting`, `image_path` (relative to `ml/data/raw/challenge/`), plus the raster
+  metadata of every file, including per-band means over the plot pixels (`mean_red` …
+  `mean_deep_blue`) as a baseline to check your extraction against. Join to targets and
+  management through `plots.parquet` on `plot_id`.
+- The canonical observations built here (`ml/data/processed/challenge2022/observations.csv`,
+  git-ignored; rebuild with step 2) already hold ndvi, ndre, gndvi, evi and nir per image.
 - **Bands:** index 0 to 5 = red, green, blue, nir, red_edge, deep_blue. Reflectance = DN × 1e-4.
   Valid pixel = all bands > 0.
 - **Output contract:** to feed the existing training pipeline, write
@@ -336,24 +353,37 @@ takes milliseconds.
   `plots.parquet` has `satellite_time_points` per plot for exactly this.
 - Before trusting per-plot trajectories, check how many plots are imaged at every TP
   (`challenge_manifest.json` → `images.satellite.time_points_per_plot_by_site`).
+- **Within-site NDVI vs yield correlation, by image** (`challenge_dataset_profile.md`):
+
+  | Site | Img 1 | Img 2 | Img 3 | Img 4 | Img 5 | Img 6 |
+  |---|---|---|---|---|---|---|
+  | Ames | -0.00 | 0.36 | 0.65 | 0.69 | 0.60 | 0.29 |
+  | Crawfordsville | 0.19 | 0.17 | 0.38 | 0.34 | 0.04 | -0.31 |
+  | Lincoln | 0.46 | 0.64 | -0.22 | -0.55 | -0.52 | -0.54 |
+
+  At Ames the signal peaks at Aug 10 to Aug 31. At Lincoln it is strongest early (Aug 6) and
+  inverts once the drought sets in, which matches the practice data. At Crawfordsville it is
+  weak throughout.
 - The held-out-site logic in `ml/configs/project.yaml` holds out Crawfordsville. The practice
   models were trained on the other sites, which are the same plots as this data, so any
   evaluation on Ames/Lincoln with those models is in-sample.
 
 ## What tomorrow's humans should verify first
 
-1. **Download the folder and run step 1.** Then check `challenge_manifest.json`:
+1. Done here for the subset: every file was read, band order and CRS were consistent, there
+   were no partial-zero pixels, and the coordinate spread was 0. Repeat the check when the
+   full dataset arrives: in `challenge_manifest.json`,
    `raster_metadata.satellite.metadata_status` should be all `read`, `band_order_not_ok` and
-   `partial_zero_pixel_files` empty, `crs_epsg_by_site` one EPSG per site, and
-   `plot_coordinates.max_spread_m` small (a few metres at most; larger means an image is
-   mislabelled or misregistered).
+   `partial_zero_pixel_files` empty, and `crs_epsg_by_site` one EPSG per site.
 2. Whether the **full** dataset (more files than this subset) has the same layout. Rerun step 1
    without `--inventory` on the full download; unmatched and duplicate counts are reported.
 3. Ask the organizers or teammates whether **UAV for Crawfordsville and Lincoln** is coming.
 4. Look at 3 or 4 images by eye (one per site, early and late TP) against the manifest's
    `plot_id` and `date`.
 5. Decide the evaluation split in light of the practice-model overlap (see TL;DR).
-6. `pyarrow` was added to the backend's `ml` dependency group (Parquet I/O). With it
-   installed, pandas 3 stores strings with Arrow. The ML suite (31 tests) and backend suite
-   (139 tests) pass with it. The practice-data tests were skipped here because the practice
+6. Set `SOILSIGNAL_NASS_API_KEY` locally and rerun step 2 to add county yield history
+   (skipped here).
+7. `pyarrow` was added to the backend's `ml` dependency group (Parquet I/O). With it
+   installed, pandas 3 stores strings with Arrow. The ML suite and the backend suite (139
+   tests) pass with it. The practice-data tests were skipped here because the practice
    dataset isn't ingested in this container, so run those once locally.

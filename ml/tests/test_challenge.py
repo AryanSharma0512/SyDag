@@ -345,6 +345,7 @@ def test_canonical_adapter_builds_training_tables(raw: Path, tmp_path: Path) -> 
     assert set(ds.plots["plot_id"]) == {"2022-Ames-4231-17-3", "2022-Lincoln-hybrids-2-2"}
     assert set(PLOT_COLUMNS) <= set(ds.plots.columns)
     assert set(ds.observations["source"]) == {"satellite"}
+    assert set(ds.observations["time_point"]) == {1, 2}
     ndvi = (4400 - 500) / (4400 + 500)  # the synthetic plot's pixels
     assert ds.observations["ndvi"].to_numpy() == pytest.approx(ndvi)
     assert ds.observations["nir"].to_numpy() == pytest.approx(0.44)
@@ -378,3 +379,40 @@ def test_real_indices_match_the_practice_pipeline() -> None:
     practice = {"ndvi": 0.82918, "ndre": 0.37175, "gndvi": 0.76413, "evi": 0.78364, "nir": 0.50254}
     got = image_indices(REAL_TIF)
     assert {k: round(got[k], 5) for k in practice} == practice
+
+
+def test_local_file_keeps_its_later_drive_upload_as_duplicate(raw: Path, tmp_path: Path) -> None:
+    listing = tmp_path / "listing"
+    listing.mkdir()
+    (listing / "folders.json").write_text(json.dumps({"f1": "Satellite/Lincoln/TP1"}))
+    name = "Lincoln-TP1-hybrids_2_2.TIF"
+    size = (raw / "Satellite/Lincoln/TP1" / name).stat().st_size
+    files = [
+        {
+            "id": "late",
+            "parentId": "f1",
+            "title": name,
+            "fileSize": str(size),
+            "createdTime": "2026-09-26T06:53:26Z",
+        },
+        {
+            "id": "early",
+            "parentId": "f1",
+            "title": name,
+            "fileSize": str(size),
+            "createdTime": "2026-09-26T06:53:23Z",
+        },
+    ]
+    (listing / "sat.json").write_text(json.dumps({"files": files}))
+    t = ch.build(
+        raw_root=raw,
+        drive_listing=listing,
+        out_root=tmp_path / "o",
+        workers=1,
+        progress=lambda _: None,
+    )
+    s = t.satellite[t.satellite["filename"] == name].sort_values("copy_index")
+    assert s["file_source"].tolist() == ["local", "drive_listing"]
+    assert s["drive_id"].tolist() == ["early", "late"]
+    assert s["use"].tolist() == [True, False]
+    assert s["metadata_status"].tolist() == ["read", "not_local"]

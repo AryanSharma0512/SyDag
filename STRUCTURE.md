@@ -33,7 +33,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 
 | # | Step | What to run / call / edit | Status |
 |---|------|---------------------------|--------|
-| 0 | Map the challenge files to the canonical tables | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml challenge` (inventory + joins → `ml/data/challenge/`), then `ingest --dataset challenge2022` (`ChallengeDatasetAdapter`). See `AGENT1_HANDOFF.md`. Still to set: the held-out group and cutoffs in `ml/configs/` | Ready (imagery to download locally) |
+| 0 | Map the challenge files to the canonical tables | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml challenge` (inventory + joins → `ml/data/challenge/`), then `--dataset challenge2022 ingest` (`ChallengeDatasetAdapter`). See `AGENT1_HANDOFF.md`. Still to set: the held-out group and cutoffs in `ml/configs/` | Ready |
 | 1 | Ingest, check and profile the dataset | `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml ingest`, then `validate`, `profile` (→ `ml/experiments/reports/dataset_profile.md`) | Ready |
 | 2 | Features + leak-free validation + training | `... -m soilsignal_ml train` (feature-set screening, Optuna tuning, leave-one-site-out, held-out site), then `report` (→ `ml/experiments/reports/model_report.md`) | Ready |
 | 2b | Early signal: records only vs + imagery through TP1…TP6, scouting recall, `imagery_ablation.json` | `... python progressive_experiment.py --plots … --tp-features … --acquisitions …` (→ `ml/experiments/progressive/<name>/summary.md`; `--publish` writes `backend/artifacts/imagery_ablation.json`). Guide: `AGENT3_HANDOFF.md` | Ready (synthetic template only; no real run yet) |

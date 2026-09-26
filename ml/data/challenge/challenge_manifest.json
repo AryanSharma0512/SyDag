@@ -1,6 +1,6 @@
 {
   "dataset": "challenge2022",
-  "generated_at": "2026-09-26T08:10:14+00:00",
+  "generated_at": "2026-09-26T08:20:36+00:00",
   "plot_key": "plot_id = '{year}-{site_id}-{experiment}-{range}-{row}' (experiment 'NA' when missing); practice_plot_id = '{site_id}-{experiment}-{range}-{row}'",
   "image_filename_pattern": "<Location>-TP<n>-<experiment>_<range>_<row>.<TIF|PNG>",
   "satellite_bands": [
@@ -23,7 +23,7 @@
     }
   },
   "file_sources": {
-    "local_files": 4,
+    "local_files": 2426,
     "drive_listing_repeats_dropped": 4,
     "listed_files": 2442,
     "files_outside_sensor_folders": []
@@ -71,7 +71,7 @@
           "final_yield": 49
         },
         "has_images": true,
-        "plots_with_coordinates": 1
+        "plots_with_coordinates": 256
       },
       "Crawfordsville": {
         "plots": 522,
@@ -107,7 +107,7 @@
           "final_yield": 34
         },
         "has_images": true,
-        "plots_with_coordinates": 1
+        "plots_with_coordinates": 332
       },
       "Lincoln": {
         "plots": 532,
@@ -141,7 +141,7 @@
           "final_yield": 28
         },
         "has_images": true,
-        "plots_with_coordinates": 0
+        "plots_with_coordinates": 438
       },
       "MOValley": {
         "plots": 176,
@@ -871,28 +871,28 @@
   "raster_metadata": {
     "satellite": {
       "metadata_status": {
-        "not_local": 2010,
-        "read": 2
+        "read": 1996,
+        "not_local": 16
       },
       "width_px": {
         "min": 11,
-        "median": 11.0,
-        "max": 11
+        "median": 12.0,
+        "max": 22
       },
       "height_px": {
-        "min": 21,
+        "min": 11,
         "median": 21.0,
-        "max": 21
+        "max": 22
       },
       "bands": {
-        "6.0": 2
+        "6.0": 1996
       },
       "dtype": {
-        "uint16": 2
+        "uint16": 1996
       },
       "valid_fraction": {
-        "min": 0.9048,
-        "median": 0.9134500000000001
+        "min": 0.7576,
+        "median": 0.8388
       },
       "files_without_valid_pixels": [],
       "crs_epsg_by_site": {
@@ -901,143 +901,73 @@
         ],
         "Crawfordsville": [
           32615
+        ],
+        "Lincoln": [
+          32614
         ]
       },
       "pixel_size_m": [
         0.3
       ],
-      "band_order_ok": 2,
+      "band_order_ok": 1996,
       "band_order_not_ok": [],
       "partial_zero_pixel_files": []
     },
     "uav": {
       "metadata_status": {
-        "not_local": 428,
-        "read": 2
+        "read": 430
       },
       "width_px": {
-        "min": 356,
-        "median": 368.0,
-        "max": 380
+        "min": 355,
+        "median": 380.0,
+        "max": 385
       },
       "height_px": {
         "min": 701,
-        "median": 725.5,
-        "max": 750
+        "median": 751.0,
+        "max": 760
       },
       "bands": {
-        "4.0": 2
+        "4": 430
       },
       "dtype": {
-        "uint8": 2
+        "uint8": 430
       },
       "valid_fraction": {
-        "min": 0.9721,
-        "median": 0.97255
+        "min": 0.9688,
+        "median": 0.9717
       },
       "files_without_valid_pixels": [],
       "alpha_rgb_disagree_files": []
     }
   },
   "plot_coordinates": {
-    "plots_with_coordinates": 2,
+    "plots_with_coordinates": 1026,
     "max_spread_m": 0.0
   },
   "unmatched_files": [
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_19.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_2.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_17.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_3.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_21.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_4.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_20.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_5.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_22.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_6.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_18.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_2.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_7.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_5.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_6.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_4.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_3.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_3.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_4.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_2.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_7.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_5.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_6.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_3.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_4.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_7.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_2.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_6.TIF",
-      "match_status": "not_in_ground_truth"
-    },
-    {
-      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_5.TIF",
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_7.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
@@ -1045,7 +975,7 @@
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_7.TIF",
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_3.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
@@ -1061,71 +991,127 @@
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_3.TIF",
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_7.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_7.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_2.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_5.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_3.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_6.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_4.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_2.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_5.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_4.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_6.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_3.TIF",
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_7.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_5.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_2.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_6.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_3.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_4.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_4.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_2.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_5.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_7.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_6.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_3.PNG",
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_7.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_6.PNG",
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_2.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_5.PNG",
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_3.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_4.PNG",
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_4.TIF",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_7.PNG",
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_17.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_18.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_19.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_20.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_21.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_22.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_2.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_3.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_4.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_5.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_6.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_7.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
@@ -1137,27 +1123,43 @@
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_4.PNG",
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_4.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_2.PNG",
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_5.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_7.PNG",
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_6.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_5.PNG",
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_7.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_3.PNG",
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_2.PNG",
       "match_status": "not_in_ground_truth"
     },
     {
-      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_6.PNG",
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_3.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_4.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_5.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_6.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_7.PNG",
       "match_status": "not_in_ground_truth"
     }
   ],
@@ -1572,14 +1574,14 @@
         "image_key": "string",
         "copy_index": "int64",
         "copies": "Int64",
-        "read_ok": "object",
-        "height": "float64",
-        "width": "float64",
-        "bands": "float64",
+        "read_ok": "bool",
+        "height": "int64",
+        "width": "int64",
+        "bands": "int64",
         "dtype": "str",
-        "pixels": "float64",
-        "valid_pixels": "float64",
-        "padding_pixels": "float64",
+        "pixels": "int64",
+        "valid_pixels": "int64",
+        "padding_pixels": "int64",
         "valid_fraction": "float64",
         "mean_red": "float64",
         "mean_green": "float64",

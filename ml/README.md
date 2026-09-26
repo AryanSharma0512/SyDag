@@ -105,7 +105,7 @@ and writes compact tables to `ml/data/challenge/` (committed; no imagery):
 ```bash
 # images local (restartable: raster metadata is cached per file)
 uv run --project ../backend --group ml python -m soilsignal_ml challenge --inventory data/challenge/drive_inventory.parquet
-uv run --project ../backend --group ml python -m soilsignal_ml ingest --dataset challenge2022   # canonical tables
+uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 ingest   # canonical tables
 uv run --project ../backend --group ml python -m soilsignal_ml challenge-sql                     # optional Postgres/PostGIS load
 ```
 

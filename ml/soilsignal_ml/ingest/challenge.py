@@ -354,17 +354,20 @@ def inventory_files(inventory: Path) -> pd.DataFrame:
 
 
 def combine_file_sources(local: pd.DataFrame, listed: pd.DataFrame) -> pd.DataFrame:
-    """Local files win; listed files not on disk are kept (metadata pending). A listing with
-    two uploads of one name keeps both only if the disk also has both (it cannot)."""
+    """Local files win; listed files not on disk are kept (metadata pending). When Drive has
+    two uploads of one name, the disk holds one: the earliest upload is matched to it and the
+    later ones stay as listed-only rows, so the manifest still shows them as duplicates."""
     if listed.empty:
         return local.reset_index(drop=True)
     if local.empty:
         return listed.reset_index(drop=True)
     on_disk = set(local["rel_path"])
-    extra = listed[~listed["rel_path"].isin(on_disk)]
-    # Drive fields for files that are also local (first listed copy).
+    listed = listed.sort_values(["rel_path", "drive_created_time"], na_position="last")
+    later_copy = listed.duplicated("rel_path")
+    extra = listed[~listed["rel_path"].isin(on_disk) | later_copy]
+    # Drive fields for files that are also local (earliest listed copy).
     drive_cols = ["drive_id", "drive_created_time", "drive_modified_time"]
-    first = listed.drop_duplicates("rel_path").set_index("rel_path")[drive_cols + ["size_bytes"]]
+    first = listed[~later_copy].set_index("rel_path")[drive_cols + ["size_bytes"]]
     local = local.copy()
     for c in drive_cols:
         local[c] = local["rel_path"].map(first[c])
