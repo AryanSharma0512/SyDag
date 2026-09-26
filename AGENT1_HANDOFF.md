@@ -387,7 +387,21 @@ of PR #15's branch and was not merged into this PR.
    3 folds). A first attempt with the full `plots.parquet` pulled in the two sites that have
    no imagery, which is why `benchmark_plots.parquet` exists:
 
-{{CHAIN_TABLE}}
+   | Stage | Acquired | Median DAP | MAE | ΔMAE vs records (95% CI) | Better in |
+   |---|---|---|---|---|---|
+   | Records only | – | – | 94.0 | reference | – |
+   | + TP1 | Jul 10–18 | 57 | 92.5 | +1.5 (+1.0 to +2.0) | 2/3 sites |
+   | + TP1–TP2 | Jul 20–Aug 6 | 70 | 84.4 | +9.6 (+9.0 to +10.4) | 3/3 |
+   | + TP1–TP3 | Aug 2–Sep 3 | 83 | 82.9 | +11.1 (+10.3 to +12.0) | 3/3 |
+   | + TP1–TP4 | Aug 31–Sep 13 | 112 | 83.9 | +10.2 (+9.2 to +11.1) | 3/3 |
+   | + TP1–TP5 | Sep 11–Oct 1 | 120 | 85.5 | +8.6 (+7.5 to +9.7) | 2/3 |
+   | + TP1–TP6 | Sep 24–Oct 9 | 128 | 89.9 | +4.1 (+3.2 to +5.2) | 2/3 |
+
+   960 plots, 3 sites, primary model CatBoost with `--fast` settings. Agent 3's own criteria:
+   stages TP2–TP4 pass the accuracy checks; no stage passes all five (90% interval coverage
+   is about 60–67% under leave-one-site-out with 3 sites, as their handoff predicts).
+   Records-only MAE (94.0) is identical to the direct canonical run below, so both paths
+   score the same plots with the same records.
 
 3. **Agent 1 → Agent 3 directly.** `progressive_experiment.py --canonical sydag26 --models mean
    catboost --fast` runs end to end too: 5 indices per pass, accumulated by Agent 3. MAE was
@@ -473,6 +487,8 @@ real run with all models.
 > yields are separate context tables in `data/processed/sydag26/`, never plot columns.
 > **Agent 2:** always pass `--manifest`, or your ids won't match `plots.parquet`.
 > **Smoke test on the real subset passed:** Agent 1 → Agent 2 `imagery run` (7,182 rows) →
-> Agent 3 `--imagery-table` + `--plots`. Fix made on my side: Parquet dates are datetime64.
+> Agent 3 `--imagery-table` + `benchmark_plots` (960 plots, 3 sites, LOSO). Plumbing numbers
+> only (2 models, `--fast`): records only MAE 94.0; + TP1 92.5; + TP1–TP3 82.9. Fix made on my
+> side: Parquet dates are datetime64 (Agent 2 uses `.dt` on the manifest date).
 > **Subset facts:** 3 sites, sparse per-plot TP coverage (only Ames TP1–5 is a panel), UAV at
 > Ames only, first pass mid-July, README band order wrong (the files are R,G,B,NIR,RE,DB).
