@@ -184,6 +184,9 @@ levels partly encode site and date (phenology, illumination, atmosphere), so the
 5. Then test whether within-plot spread adds anything: `cur_ndvi_std`, `cur_ndvi_p10`,
    `cur_nir_p90`, `cur_red_edge_median`.
 
+This comparison is automated: `python progressive_experiment.py --imagery-table
+data/interim/imagery/satellite_features.parquet` (see `AGENT3_HANDOFF.md` at the repo root).
+
 For "how early is useful", compare records_only against TP1..TP6 on the same plots (the
 population is fixed per dataset for this reason). Remember TPk is a different calendar date at
 each site. `as_of_date` and `days_after_planting` are there if a calendar or DAP cutoff turns

@@ -71,6 +71,15 @@ a `date` column per (plot, tp).
 
 ### Agent 2: imagery features (pick ONE form)
 
+0. **`--imagery-table`, Agent 2's own output (recommended; merged from PR #12):**
+   `ml/data/interim/imagery/satellite_features.parquet` from `python -m soilsignal_ml.imagery run`.
+   One row per plot × cutoff (`records_only`, TP1…TP6), each TPk row built from images up to that
+   site's TPk date only. The adapter (`contract.from_imagery_table`) takes the acquisition dates
+   from `as_of_date`, the records and yield from the `records_only` rows (or from `--plots` if
+   Agent 1's table is passed too), and uses every numeric column *except* the imagery package's
+   own identifier, timing, QA, planting-known and target columns as imagery features
+   (`--include-qa` adds the QA columns). `tests/test_progressive.py` runs Agent 2's synthetic
+   TIFFs through both pipelines to keep this seam from breaking.
 1. **`--tp-features`, cumulative long (preferred):** one row per (`plot_id`, `tp`), where the
    row for `tp = k` was computed from passes 1..k only. Numeric columns are features.
 2. **`--tp-features`, cumulative wide:** one row per plot, with a TP token in each column
@@ -87,8 +96,8 @@ are refused unless allowed with `--allow-columns`. Wide columns from later TPs a
 per-pass accumulation only ever sees passes ≤ k. A test tampers with TP4–TP6 and asserts that
 the TP1–TP3 features don't change.
 
-The no-model scouting baseline reads `ndvi_latest`. If Agent 2 names it differently, set
-`naive_ranking_column` in the config.
+The no-model scouting baseline reads `naive_ranking_column` (default `ndvi_latest`), falling
+back to `ndvi_current` (Agent 2's name).
 
 ## 3. Experiment configurations
 
@@ -122,13 +131,19 @@ PY="uv run --project ../backend --group ml python"
 # 0. Smoke test (about 1 min): proves the environment works; outputs are synthetic.
 $PY progressive_experiment.py --synthetic --synthetic-scale 0.3 --fast --out /tmp/smoke
 
-# a. THE MAIN RUN on Agent 1 + Agent 2 outputs (paths are examples)
+# a. THE MAIN RUN, straight from Agent 2's output (after `python -m soilsignal_ml.imagery run`)
+$PY progressive_experiment.py \
+    --imagery-table data/interim/imagery/satellite_features.parquet \
+    --name sydag26 --dataset-label "Challenge data"
+#   add  --plots data/processed/sydag26/plots.csv  once Agent 1's table exists (records, yield,
+#   lat/lon for the spatial check and GeoJSON; Agent 2's table has no coordinates)
+#   outputs -> experiments/progressive/sydag26/  (read summary.md first)
+
+# a2. Same, from separate Agent 1 / Agent 2 files in the generic contract
 $PY progressive_experiment.py \
     --plots data/processed/sydag26/plots.csv \
     --acquisitions data/processed/sydag26/acquisitions.csv \
-    --tp-features data/interim/tp_features.csv \
-    --name sydag26 --dataset-label "Challenge data"
-#   outputs -> experiments/progressive/sydag26/  (read summary.md first)
+    --tp-features data/interim/tp_features.csv --name sydag26
 
 # b. Same, "early" on a common clock (days after planting) instead of TP labels
 $PY progressive_experiment.py --plots ... --tp-features ... --acquisitions ... \
@@ -317,7 +332,9 @@ structure, which the fixture copies):
 5. **Primary model** is CatBoost by default. Keep or change it *before* the real run.
 6. **Records + public context** (NOAA weather, SSURGO soil) is deliberately *not* in Baseline B,
    which per the brief is records only. It could be a separate stage if the team wants it.
-7. **Feature naming** for the naive NDVI baseline depends on Agent 2 (`naive_ranking_column`).
+7. **Agent 2's table has no coordinates** (only per-image centroids in EPSG 32615 in
+   `satellite_image_features.parquet`), so the spatial residual check and the GeoJSON need
+   Agent 1's `--plots` with latitude/longitude.
 8. **Could not verify on real data tonight** (network). The first real run should be read
    critically: check `summary.md` notes, the validation-contrast table and the per-site-season
    timing table.

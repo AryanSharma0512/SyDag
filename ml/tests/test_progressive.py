@@ -400,3 +400,56 @@ def test_cli_entry_points(tmp_path, capsys):
 def test_synthetic_fixture_is_labelled():
     d = synthetic_data(scale=0.05)
     assert d.synthetic and "Not a result" in d.provenance["warning"]
+
+
+# ---- Agent 2 hand-off: the imagery package's progressive table ------------------------
+
+
+@pytest.fixture(scope="module")
+def imagery_table(tmp_path_factory):
+    from soilsignal_ml.imagery.pipeline import run as imagery_run
+    from soilsignal_ml.imagery.synthetic import write_synthetic
+
+    root = tmp_path_factory.mktemp("imagery")
+    write_synthetic(root / "data", plots_per_site=8, defects=False, uav=False)
+    imagery_run(
+        root / "data", root / "out", workers=2, uav=False, visual_qa=False, progress=lambda m: None
+    )
+    return pd.read_parquet(root / "out" / "satellite_features.parquet")
+
+
+def test_imagery_table_splits_records_from_imagery(imagery_table):
+    from soilsignal_ml.imagery.progressive import QA_COLUMNS, TIMING_COLUMNS
+
+    d = contract.from_imagery_table("agent2", imagery_table)
+    feats = set(d.imagery_columns)
+    assert "ndvi_current" in feats and "ndvi_vs_site_same_date_mean" in feats
+    assert not feats & {"nitrogen_lb_ac", "irrigated", "final_yield", "cutoff_tp", "year"}
+    assert not feats & set(TIMING_COLUMNS) and not feats & set(QA_COLUMNS)
+    assert d.tps == [1, 2, 3, 4, 5, 6] and set(d.plots["year"]) == {2022}
+    assert len(d.acquisitions) == 3 * 6  # one date per site and TP, from as_of_date
+    with_qa = contract.from_imagery_table("agent2", imagery_table, include_qa=True)
+    assert "cur_valid_fraction" in with_qa.imagery_columns
+
+
+def test_imagery_stage_uses_exactly_that_cutoffs_rows(imagery_table):
+    d = contract.from_imagery_table("agent2", imagery_table)
+    stage = build_stages(d, "tp")[2]  # + TP1-TP2
+    frame, _ = stage_frame(d, stage)
+    tp2 = imagery_table[imagery_table["cutoff_tp"] == 2].set_index("plot_id")["ndvi_current"]
+    got = frame.set_index("plot_id")["ndvi_current"]
+    pd.testing.assert_series_equal(
+        got.sort_index(), tp2.reindex(got.index).sort_index(), check_names=False
+    )
+
+
+def test_experiment_runs_on_the_imagery_table(imagery_table, tmp_path):
+    d = contract.from_imagery_table("agent2", imagery_table)
+    cfg = RunConfig(
+        models=["mean", "ridge"], primary_model="ridge", n_boot=50, schemes=["site"], cqr=False
+    )
+    result = run(d, cfg, progress=lambda *_: None)
+    assert {r["stage"] for r in result["results"]} == {"records", *(f"tp{k}" for k in range(1, 7))}
+    assert any(s["ranker"] == "naive_imagery" for s in result["scouting"])  # ndvi_current
+    report.write_outputs(result, tmp_path)
+    assert (tmp_path / "imagery_ablation.json").exists()

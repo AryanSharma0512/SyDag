@@ -4,6 +4,8 @@ Command line for the progressive early-signal experiments. Run from ml/:
     uv run --project ../backend --group ml python progressive_experiment.py --help
 
 Inputs (pick one source):
+    --imagery-table T [--plots P]
+                            Agent 2's progressive table (satellite_features.parquet)
     --plots P [--tp-features F | --tp-observations O] [--acquisitions A]
                             Agent 1 / Agent 2 files (CSV or Parquet), see contract.py
     --canonical NAME        an ingested canonical dataset (e.g. shrestha2024)
@@ -28,6 +30,12 @@ def parser() -> argparse.ArgumentParser:
         "Records only vs + TP1 ... TP6 under grouped validation.",
     )
     src = p.add_argument_group("inputs")
+    src.add_argument(
+        "--imagery-table",
+        help="Agent 2's satellite_features.parquet (soilsignal_ml.imagery); records and yield "
+        "come from its records_only rows unless --plots is also given",
+    )
+    src.add_argument("--include-qa", action="store_true", help="use its QA columns as features")
     src.add_argument("--plots", help="Agent 1 plots table (CSV/Parquet)")
     src.add_argument("--tp-features", help="Agent 2 CUMULATIVE features (long or wide)")
     src.add_argument("--tp-observations", help="per-pass values; cumulative features built here")
@@ -79,9 +87,13 @@ FAST_PARAMS = {
 
 
 def load_data(args) -> contract.ExperimentData:
-    sources = sum(bool(x) for x in (args.plots, args.canonical, args.synthetic))
+    files = bool(args.plots or args.imagery_table)
+    sources = sum(bool(x) for x in (files, args.canonical, args.synthetic))
     if sources != 1:
-        raise SystemExit("choose exactly one input: --plots ..., --canonical NAME or --synthetic")
+        raise SystemExit(
+            "choose exactly one input: --imagery-table / --plots ..., --canonical NAME "
+            "or --synthetic"
+        )
     if args.synthetic:
         from soilsignal_ml.progressive.synthetic import synthetic_data
 
@@ -89,8 +101,10 @@ def load_data(args) -> contract.ExperimentData:
     if args.canonical:
         return contract.from_canonical(args.canonical, args.value_columns)
     return contract.from_files(
-        args.name or Path(args.plots).parent.name or "dataset",
+        args.name or Path(args.plots or args.imagery_table).parent.name or "dataset",
         args.plots,
+        imagery_table=args.imagery_table,
+        include_qa=args.include_qa,
         tp_features=args.tp_features,
         tp_observations=args.tp_observations,
         acquisitions=args.acquisitions,
