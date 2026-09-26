@@ -111,3 +111,60 @@ def test_bundle_holds_inputs_not_yields(bundle):
     text = BUNDLES[0].read_text()
     assert "final_yield" not in text and "yieldPerAcre" not in text
     assert all(y < bundle.season_year for y in bundle.county_yields)
+
+
+def test_fields_carry_the_trial_record_from_the_bundle(model_api, bundle):
+    for meta in client.get("/api/fields").json():
+        plot = next(p for pid, p in bundle.plots.items() if pid.lower() == meta["id"])
+        assert meta["hybrid"] == plot.management["genotype"]
+        assert meta["nitrogenLbAc"] == plot.management["nitrogen_lb_ac"]
+        assert meta["site"] == bundle.site["name"]
+        assert meta["plantingDate"] == plot.planting_date.isoformat()
+        assert plot.plot_id.endswith(meta["plotId"])
+
+
+def test_decisions_are_the_dashboard_forecasts_for_every_plot(model_api, bundle):
+    """The scouting queue shows exactly what each plot's dashboard shows on that date."""
+    for snap_date in ("2022-07-31", "2022-10-15"):
+        plots = client.get("/api/decisions", params={"asOfDate": snap_date}).json()["plots"]
+        assert len(plots) == len(bundle.plots)
+        for field in bundle.fields:
+            row = next(p for p in plots if p["fieldId"] == field.plot_id.lower())
+            snaps = client.get(f"/api/fields/{row['fieldId']}/forecast").json()["snapshots"]
+            i = next(i for i, s in enumerate(snaps) if s["date"] == snap_date)
+            assert row["forecastDate"] == snap_date
+            assert (row["predictedYield"], row["lowerBound"], row["upperBound"]) == (
+                snaps[i]["yield"],
+                snaps[i]["lowerBound"],
+                snaps[i]["upperBound"],
+            )
+            assert row["confidence"] == snaps[i]["confidence"]
+            assert row["previousForecastDate"] == snaps[i - 1]["date"]
+            assert row["changeSincePrevious"] == round(snaps[i]["yield"] - snaps[i - 1]["yield"], 1)
+
+
+def test_decisions_never_use_a_forecast_from_after_the_date(model_api):
+    between = client.get("/api/decisions", params={"asOfDate": "2022-08-20"}).json()
+    assert between["asOfDate"] == "2022-08-20"
+    assert {p["forecastDate"] for p in between["plots"]} == {"2022-07-31"}
+    early = client.get("/api/decisions", params={"asOfDate": "2022-05-01"})
+    assert early.status_code == 404
+    assert client.get("/api/decisions", params={"asOfDate": "2019-07-31"}).status_code == 404
+
+
+def test_every_plot_in_the_queue_opens_on_the_dashboard(model_api):
+    plots = client.get("/api/decisions").json()["plots"]
+    listed = {f["id"] for f in client.get("/api/fields").json()}
+    unlisted = next(p for p in plots if p["fieldId"] not in listed)
+    forecast = client.get(f"/api/fields/{unlisted['fieldId']}/forecast").json()
+    assert forecast["field"]["hybrid"] == unlisted["hybrid"]
+    assert forecast["snapshots"][-1]["yield"] == unlisted["predictedYield"]
+    zones = forecast["snapshots"][-1]["spatial"]["zones"]
+    assert sum(z["name"].endswith("(this plot)") for z in zones) == 1
+
+
+def test_models_report_their_held_out_accuracy(model_api):
+    for info in client.get("/api/models").json():
+        artifact = model_api.get(info["modelId"])
+        assert info["holdout"]["mae"] == artifact.metadata.holdout.metrics.mae
+        assert info["dataset"].startswith("Practice data")

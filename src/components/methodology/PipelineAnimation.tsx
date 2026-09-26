@@ -4,16 +4,18 @@ import { EASE_OUT } from '../../utils/motion';
 import { PALETTE as C } from '../../utils/palette';
 
 const INPUTS = [
-  { label: 'Crop observations', detail: 'NDVI, NDRE', color: C.leaf500 },
-  { label: 'Weather', detail: 'Rain, heat, GDD', color: C.rain500 },
-  { label: 'Soil', detail: 'Water, texture', color: C.soil500 },
-  { label: 'Historical context', detail: 'Regional yields', color: C.inkSoft },
+  { label: 'Satellite imagery', detail: 'Six bands, each pass', color: C.leaf500 },
+  { label: 'Field record', detail: 'Planting, N rate, hybrid', color: C.inkSoft },
+  { label: 'Weather', detail: 'NOAA: rain, heat, GDD', color: C.rain500 },
+  { label: 'Soil and county yields', detail: 'USDA SSURGO and NASS', color: C.soil500 },
 ];
 
 const STAGES = [
-  { label: 'Feature engineering', detail: 'Season-aware signals' },
-  { label: 'Yield model', detail: 'Interpretable, calibrated' },
+  { label: 'Features by date', detail: 'Only data available then' },
+  { label: 'One model per date', detail: 'Validated on other sites' },
 ];
+
+const OUTPUT = { label: 'Yield forecast', detail: 'Estimate and 90% range' };
 
 /** Horizontal layout (viewBox units). */
 const L = {
@@ -82,7 +84,7 @@ export function PipelineAnimation() {
   return (
     <div ref={ref}>
       {/* Large screens: horizontal flow */}
-      <svg viewBox="0 0 1040 346" className="hidden h-auto w-full lg:block" role="img" aria-label="Pipeline: crop observations, weather, soil and historical context feed feature engineering, then the yield model, which produces a progressive forecast.">
+      <svg viewBox="0 0 1040 346" className="hidden h-auto w-full lg:block" role="img" aria-label="Pipeline: satellite imagery, the field record, weather, and soil and county yields become features computed by forecast date; one model per date produces a yield estimate with a 90% range.">
         {inputPaths.map((d, i) => (
           <g key={d}>
             <path d={d} fill="none" stroke={C.line} strokeWidth={1.5} />
@@ -128,7 +130,7 @@ export function PipelineAnimation() {
         <motion.g {...pop(shown, reduce, 2.1)}>
           <rect x={out.x + 0.5} y={out.y} width={out.w - 1} height={out.h} rx={16} fill={C.leaf50} stroke={C.leaf200} />
           <text x={out.x + 18} y={out.y + 28} className="fill-leaf-800 text-[14px] font-medium">
-            Progressive forecast
+            {OUTPUT.label}
           </text>
           <motion.path
             d={band}
@@ -154,7 +156,7 @@ export function PipelineAnimation() {
             </motion.div>
           ))}
         </div>
-        {[...STAGES, { label: 'Progressive forecast', detail: 'Updated as the season unfolds' }].map((stage, i) => (
+        {[...STAGES, OUTPUT].map((stage, i) => (
           <div key={stage.label} className="flex flex-col items-center">
             <div className="relative h-9 w-px bg-line" aria-hidden="true">
               <motion.div

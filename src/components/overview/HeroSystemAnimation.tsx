@@ -347,7 +347,7 @@ export function HeroSystemAnimation() {
         ...(reduce ? {} : { scaleX, scaleY, opacity, y: lift, originY: 1 }),
       }}
       role="img"
-      aria-label="Illustration: seeds root in the soil, crops emerge, rain passes and a satellite scans the field. Soil, weather and spectral signals converge on SoilSignal, which produces a yield forecast curve."
+      aria-label="Illustration: a maize plot is planted and grows, rain passes and a satellite images the plot. Imagery, weather and soil feed SoilSignal, which produces a yield forecast curve."
     >
       {/* Background topographic contours, on their own layer so drifting stays on the compositor. */}
       <motion.svg

@@ -342,7 +342,7 @@
         "explanations": [
           {
             "id": "exp-1",
-            "title": "Strong canopy closure and chlorophyll accumulation",
+            "title": "High canopy closure and chlorophyll (NDVI, NDRE)",
             "influence": "positive",
             "influenceLabel": "Positive influence",
             "description": "Vegetation indices (NDRE slope +0.14/wk) indicate vigorous leaf expansion during early rapid vegetative growth."
@@ -920,7 +920,7 @@
         "explanations": [
           {
             "id": "exp-1",
-            "title": "Strong canopy vigor preceding pollination window",
+            "title": "High canopy vigor before pollination",
             "influence": "positive",
             "influenceLabel": "Positive influence",
             "description": "Vegetation indices remained consistently above historical field baseline during pre-tasseling biomass accumulation."
@@ -1816,7 +1816,7 @@
             "title": "Tightening forecast variance band",
             "influence": "positive",
             "influenceLabel": "Positive influence",
-            "description": "Over 80% of seasonal biological yield potential has been fixed by kernel count and initial ear fill rate."
+            "description": "Kernel count and early ear fill have already set most of the final yield."
           }
         ],
         "featureImportance": [
@@ -2498,7 +2498,7 @@
         "purpose": "Crop observations",
         "role": "challenge",
         "statusLabel": "Challenge-provided",
-        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
+        "detail": "Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves."
       },
       {
         "id": "noaa-ncei",
@@ -4890,7 +4890,7 @@
         "purpose": "Crop observations",
         "role": "challenge",
         "statusLabel": "Challenge-provided",
-        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
+        "detail": "Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves."
       },
       {
         "id": "noaa-ncei",
@@ -5911,7 +5911,7 @@
         "purpose": "Crop observations",
         "role": "challenge",
         "statusLabel": "Challenge-provided",
-        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
+        "detail": "Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves."
       },
       {
         "id": "noaa-ncei",
@@ -6939,7 +6939,7 @@
         "purpose": "Crop observations",
         "role": "challenge",
         "statusLabel": "Challenge-provided",
-        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
+        "detail": "Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves."
       },
       {
         "id": "noaa-ncei",
@@ -7967,7 +7967,7 @@
         "purpose": "Crop observations",
         "role": "challenge",
         "statusLabel": "Challenge-provided",
-        "detail": "Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released."
+        "detail": "Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves."
       },
       {
         "id": "noaa-ncei",

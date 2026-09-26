@@ -117,10 +117,12 @@ export function FieldSelector({ fields, field, onSelectField }: FieldSelectorPro
                   >
                     <span className="min-w-0">
                       <span className="block text-[14px] font-medium text-ink">{f.name}</span>
-                      <span className="mt-0.5 block truncate text-[12px] text-muted">{f.location}</span>
+                      <span className="mt-0.5 block truncate text-[12px] text-muted">
+                        {f.hybrid ? [f.hybrid, f.nitrogenLbAc != null && `${Math.round(f.nitrogenLbAc)} lb N/ac`].filter(Boolean).join(' · ') : f.location}
+                      </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2 pt-0.5">
-                      <span className="data text-[12px] text-faint">{f.acreage} ac</span>
+                      {!f.plotId && <span className="data text-[12px] text-faint">{f.acreage} ac</span>}
                       <Check className={`h-4 w-4 text-leaf-700 ${selected ? 'opacity-100' : 'opacity-0'}`} />
                     </span>
                   </button>

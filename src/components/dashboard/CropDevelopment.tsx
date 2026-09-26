@@ -26,12 +26,11 @@ const EVENT_STYLE: Record<EventMarker['type'], { Icon: LucideIcon; tone: string;
   management: { Icon: Tractor, tone: 'bg-mist text-ink-soft ring-line-strong', label: 'Management' },
 };
 
-const MONTHS = [
-  { label: 'Jun', date: '2026-06-01' },
-  { label: 'Jul', date: '2026-07-01' },
-  { label: 'Aug', date: '2026-08-01' },
-  { label: 'Sep', date: '2026-09-01' },
-];
+/** Month ticks for the season the observations are from. */
+const MONTHS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'].map((label, i) => ({
+  label,
+  monthDay: `${String(i + 4).padStart(2, '0')}-01`,
+}));
 
 export function CropDevelopment({ fieldKey, timeline, events, activeDate }: CropDevelopmentProps) {
   const reduce = useReducedMotion();
@@ -68,7 +67,9 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
       paths: { ndvi: monotonePath(series('ndvi')), ndre: monotonePath(series('ndre')) },
       baseline: monotonePath(series('regionalBaselineNdvi')),
       ticks: [0.2, 0.4, 0.6, 0.8].map((v) => ({ v, y: sy(v) })),
-      months: MONTHS.map((m) => ({ ...m, x: sx(toTime(m.date)) })).filter((m) => m.x > x0 + 8 && m.x < x1 - 8),
+      months: MONTHS.map((m) => ({ label: m.label, x: sx(toTime(`${timeline[0].date.slice(0, 4)}-${m.monthDay}`)) })).filter(
+        (m) => m.x > x0 + 8 && m.x < x1 - 8,
+      ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeline, width, plotHeight]);
@@ -96,6 +97,7 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
     : [];
 
   const label = signal.toUpperCase();
+  const baselineLabel = APP_CONFIG.demoMode ? '5-yr regional baseline' : 'Site average, same image';
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-line bg-surface transition-colors duration-300 hover:border-line-strong p-5 sm:p-6" aria-labelledby={`crop-${uid}`}>
@@ -104,7 +106,7 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
           <h2 id={`crop-${uid}`} className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
             Crop development
           </h2>
-          <p className="mt-1 text-[14px] text-muted">Canopy vigor from multispectral observations, with season events.</p>
+          <p className="mt-1 text-[14px] text-muted">Vegetation indices from each satellite pass, with weather and management events.</p>
         </div>
         <SegmentedControl
           ariaLabel="Vegetation index"
@@ -134,7 +136,7 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
               transition={{ duration: 0.2 }}
             >
               <span className="h-[2px] w-4 rounded-full bg-[#B4BAC2]" aria-hidden="true" />
-              {APP_CONFIG.demoMode ? '5-yr regional baseline' : 'Site average, same image'}
+              {baselineLabel}
             </motion.span>
           )}
         </AnimatePresence>
@@ -333,7 +335,7 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
               </div>
               {signal === 'ndvi' && (
                 <div className="mt-1 flex justify-between text-[12px] text-muted">
-                  <span>Regional baseline</span>
+                  <span>{baselineLabel}</span>
                   <span className="data">{timeline[hovered].regionalBaselineNdvi.toFixed(2)}</span>
                 </div>
               )}
@@ -342,6 +344,10 @@ export function CropDevelopment({ fieldKey, timeline, events, activeDate }: Crop
           )}
         </AnimatePresence>
       </div>
+
+      <p className="mt-auto border-t border-line pt-3 text-[12px] text-muted">
+        Satellite input: NIR, red edge, red, green, blue and deep blue.
+      </p>
     </section>
   );
 }

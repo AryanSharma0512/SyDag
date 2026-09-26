@@ -63,9 +63,8 @@ export function DataSources({ sources }: DataSourcesProps) {
       )}
 
       <p className="mt-4 text-[12px] leading-relaxed text-muted">
-        Connected sources are looked up from each field's coordinates by the SoilSignal backend.
-        {candidates.length > 0 &&
-          ' Candidate sources are not connected yet; the challenge rules and the actual dataset will determine the final integrations.'}
+        Connected sources are looked up from each plot's coordinates by the SoilSignal backend.
+        {candidates.length > 0 && ' Candidate sources are not connected.'}
       </p>
     </section>
   );

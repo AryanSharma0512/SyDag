@@ -7,6 +7,7 @@ import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
 import { useElementWidth, useIsMobile } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
 import { formatYield, ratingLabel } from '../../utils/formatters';
+import { formatFullDay, imageryLabel, passDescription } from '../../utils/imagery';
 
 interface ForecastTimelineProps {
   fieldKey: string;
@@ -14,6 +15,10 @@ interface ForecastTimelineProps {
   activeIndex: number;
   onSelectIndex: (index: number) => void;
   isPresentationMode?: boolean;
+  /** Satellite acquisition dates (ISO), drawn as a lane under the scrubber. */
+  passes?: string[];
+  plantingDate?: string;
+  platform?: string;
 }
 
 /** Only the very first draw of a visit is slow and deliberate; field switches redraw faster. */
@@ -25,6 +30,9 @@ export function ForecastTimeline({
   activeIndex,
   onSelectIndex,
   isPresentationMode = false,
+  passes = [],
+  plantingDate,
+  platform,
 }: ForecastTimelineProps) {
   const reduce = useReducedMotion();
   const isMobile = useIsMobile();
@@ -33,6 +41,7 @@ export function ForecastTimeline({
   const [hover, setHover] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [showTable, setShowTable] = useState(false);
+  const [openPass, setOpenPass] = useState<number | null>(null);
   const drawDuration = hasDrawnOnce ? 0.75 : 1.15;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
 
@@ -42,12 +51,24 @@ export function ForecastTimeline({
   const index = Math.min(activeIndex, snapshots.length - 1);
   const active = snapshots[index];
 
+  // Passes after the last forecast date cannot change any forecast shown, so they are left off.
+  const lastDate = snapshots[snapshots.length - 1]?.date ?? '';
+  const lanePasses = useMemo(() => passes.filter((d) => d <= lastDate), [passes, lastDate]);
+  const lanePlanting = plantingDate && plantingDate <= lastDate ? plantingDate : undefined;
+  // "After each pass" only when every pass is followed by a forecast before the next one.
+  const everyPass =
+    lanePasses.length > 0 &&
+    lanePasses.every((p, i) => snapshots.some((s) => s.date >= p && (i === lanePasses.length - 1 || s.date < lanePasses[i + 1])));
+  const title = lanePasses.length === 0 ? 'Forecast through the season' : everyPass ? 'Forecast after each satellite pass' : 'Forecast through the satellite passes';
+
   const geo = useMemo(() => {
     if (width <= 0 || snapshots.length === 0) return null;
     const times = snapshots.map((s) => toTime(s.date));
     const x0 = margin.left + 12;
     const x1 = width - margin.right - 12;
-    const sx = scaleLinear(times[0], times[times.length - 1], x0, x1);
+    // The axis starts at planting (or the first pass) when that comes before the first forecast.
+    const start = Math.min(times[0], ...[lanePlanting, ...lanePasses].filter(Boolean).map((d) => toTime(d!)));
+    const sx = scaleLinear(start, times[times.length - 1], x0, x1);
     const lo = Math.min(...snapshots.map((s) => s.lowerBound));
     const hi = Math.max(...snapshots.map((s) => s.upperBound));
     const yMin = Math.floor((lo - 6) / 10) * 10;
@@ -89,9 +110,11 @@ export function ForecastTimeline({
       })),
       labelVisible,
       trackY: bottom + 26,
+      passes: lanePasses.map((d) => ({ date: d, x: sx(toTime(d)) })),
+      planting: lanePlanting ? sx(toTime(lanePlanting)) : null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshots, width, plotHeight, isMobile, margin.left]);
+  }, [snapshots, width, plotHeight, isMobile, margin.left, lanePasses, lanePlanting]);
 
   const transition = reduce ? { duration: 0 } : DATA_TRANSITION;
 
@@ -140,9 +163,9 @@ export function ForecastTimeline({
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-[17px] font-semibold tracking-[-0.015em] text-ink">Yield Forecast Through the Growing Season</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.015em] text-ink">{title}</h2>
           <p className="mt-1 text-[14px] text-muted">
-            Drag across the season to see what the model could forecast with the data available on each date.
+            Move through the observation dates. Each point uses only data available by that date.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 text-[12px] whitespace-nowrap text-muted">
@@ -174,7 +197,7 @@ export function ForecastTimeline({
         aria-valuemin={0}
         aria-valuemax={snapshots.length - 1}
         aria-valuenow={index}
-        aria-valuetext={`${active.displayDate}: ${formatYield(active.yield)} bushels per acre, 90% range ${formatYield(active.lowerBound)} to ${formatYield(active.upperBound)}, ${active.confidence}% confidence`}
+        aria-valuetext={`${active.displayDate}, ${imageryLabel(passes, active.date).toLowerCase()}: ${formatYield(active.yield)} bushels per acre, 90% range ${formatYield(active.lowerBound)} to ${formatYield(active.upperBound)}, ${active.confidence}% confidence`}
         onKeyDown={onKeyDown}
         className="relative mt-4 -mx-1 rounded-xl px-1 select-none"
         style={{ height }}
@@ -390,8 +413,8 @@ export function ForecastTimeline({
                     key={s.id}
                     x={geo.mid[i].x}
                     y={geo.trackY + 26}
-                    textAnchor={i === 0 ? 'start' : i === snapshots.length - 1 ? 'end' : 'middle'}
-                    dx={i === 0 ? -8 : i === snapshots.length - 1 ? 8 : 0}
+                    textAnchor={geo.mid[i].x - geo.x0 < 20 ? 'start' : geo.x1 - geo.mid[i].x < 20 ? 'end' : 'middle'}
+                    dx={geo.mid[i].x - geo.x0 < 20 ? -8 : geo.x1 - geo.mid[i].x < 20 ? 8 : 0}
                     className={`data text-[11px] transition-[fill] duration-300 ${i === index ? 'fill-ink font-medium' : 'fill-faint'}`}
                   >
                     {s.displayDate}
@@ -448,11 +471,90 @@ export function ForecastTimeline({
                     {snapshots[hovered].confidence}% · {ratingLabel(snapshots[hovered].confidenceRating)}
                   </span>
                 </div>
+                {passes.length > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">Imagery</span>
+                    <span className="text-ink-soft">{imageryLabel(passes, snapshots[hovered].date)}</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {geo && (geo.passes.length > 0 || geo.planting !== null) && (
+        <div className="relative" style={{ height: 58 }}>
+          <svg width={width} height={58} className="overflow-visible" aria-hidden="true">
+            <text x={margin.left} y={12} className="fill-muted text-[11px] font-medium">
+              Satellite observations
+            </text>
+            <line x1={geo.x0} x2={geo.x1} y1={30} y2={30} stroke={C.line} strokeWidth={1} />
+            {geo.planting !== null && (
+              <g>
+                <line x1={geo.planting} x2={geo.planting} y1={24} y2={36} stroke={C.soil500} strokeWidth={1.5} strokeLinecap="round" />
+                <text x={geo.planting} y={52} textAnchor="middle" className="fill-faint text-[10.5px]">
+                  Planted
+                </text>
+              </g>
+            )}
+            {geo.passes.map((p, i) => {
+              const seen = p.date <= active.date;
+              return (
+                <g key={p.date}>
+                  <circle
+                    cx={p.x}
+                    cy={30}
+                    r={openPass === i ? 5 : 4}
+                    fill={seen ? C.leaf700 : C.surface}
+                    stroke={seen ? C.surface : C.leaf300}
+                    strokeWidth={seen ? 2 : 1.5}
+                    className="transition-[fill,stroke] duration-300"
+                  />
+                  <text x={p.x} y={52} textAnchor="middle" className={`data text-[10.5px] ${seen ? 'fill-ink-soft' : 'fill-faint'}`}>
+                    {i + 1}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+          {geo.passes.map((p, i) => {
+            const flip = p.x > width - 190;
+            return (
+              <div key={p.date} className="absolute" style={{ left: p.x, top: 20 }}>
+                <button
+                  type="button"
+                  aria-label={`Satellite pass ${i + 1}, ${formatFullDay(p.date)}. ${passDescription(platform)}.`}
+                  onMouseEnter={() => setOpenPass(i)}
+                  onMouseLeave={() => setOpenPass((cur) => (cur === i ? null : cur))}
+                  onFocus={() => setOpenPass(i)}
+                  onBlur={() => setOpenPass((cur) => (cur === i ? null : cur))}
+                  onClick={() => setOpenPass((cur) => (cur === i ? null : i))}
+                  className="-ml-[10px] block h-5 w-5 rounded-full"
+                />
+                <AnimatePresence>
+                  {openPass === i && (
+                    <motion.div
+                      role="tooltip"
+                      className={`pointer-events-none absolute bottom-full z-20 mb-2 w-48 rounded-xl border border-line bg-surface p-3 shadow-lift ${
+                        flip ? 'right-0 -mr-[10px]' : '-ml-[10px] left-0'
+                      }`}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4, transition: { duration: 0.1 } }}
+                      transition={{ duration: 0.16, ease: EASE_OUT }}
+                    >
+                      <div className="text-[12px] text-muted">Satellite pass {i + 1}</div>
+                      <div className="data mt-0.5 text-[13px] font-medium text-ink">{formatFullDay(p.date)}</div>
+                      <div className="mt-1 text-[12px] text-muted">{passDescription(platform)}</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <AnimatePresence initial={false}>
         {showTable && (
@@ -470,6 +572,7 @@ export function ForecastTimeline({
                   <tr>
                     <th scope="col" className="px-4 py-2 font-medium">Date</th>
                     <th scope="col" className="px-4 py-2 font-medium">Stage</th>
+                    {passes.length > 0 && <th scope="col" className="px-4 py-2 font-medium">Imagery</th>}
                     <th scope="col" className="px-4 py-2 text-right font-medium">Forecast (bu/ac)</th>
                     <th scope="col" className="px-4 py-2 text-right font-medium">90% range</th>
                     <th scope="col" className="px-4 py-2 text-right font-medium">Confidence</th>
@@ -480,6 +583,7 @@ export function ForecastTimeline({
                     <tr key={s.id} className={`border-t border-line ${i === index ? 'bg-leaf-50/70' : ''}`}>
                       <td className="data px-4 py-2 text-ink">{s.displayDate}</td>
                       <td className="px-4 py-2 text-ink-soft">{s.stage}</td>
+                      {passes.length > 0 && <td className="px-4 py-2 text-ink-soft">{imageryLabel(passes, s.date)}</td>}
                       <td className="data px-4 py-2 text-right text-ink tabular-nums">{formatYield(s.yield)}</td>
                       <td className="data px-4 py-2 text-right text-ink-soft tabular-nums">
                         {formatYield(s.lowerBound)}–{formatYield(s.upperBound)}

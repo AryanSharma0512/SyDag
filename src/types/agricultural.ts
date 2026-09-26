@@ -19,6 +19,12 @@ export interface FieldMeta {
   regionalBaseline: number; // bu/ac 5-year average
   soilClassification: string;
   irrigationStatus: 'Dryland' | 'Center Pivot' | 'Drip';
+  // Trial record, when the dataset has one (model-backed plots); demo fields leave it unset.
+  plotId?: string; // the plot's id within its site, e.g. "4353-10-42"
+  site?: string; // trial site, e.g. "Crawfordsville"
+  hybrid?: string; // genotype, e.g. "PHP02 X LH145"
+  nitrogenLbAc?: number;
+  plantingDate?: string; // ISO date
 }
 
 export interface WeatherContext {
@@ -175,6 +181,83 @@ export interface FieldForecast {
     datasetVersion: string;
     lastSatellitePass?: string;
   };
+}
+
+// ---- Decision support: every plot at one point in the season ----------------
+// Served by GET /api/decisions?asOfDate=. Mirrors backend/app/schemas.py.
+
+export interface PlotDecision {
+  fieldId: string; // use with getForecast()
+  plotId?: string;
+  name: string;
+  site?: string;
+  season: number;
+  hybrid?: string;
+  nitrogenLbAc?: number;
+  irrigationStatus: FieldMeta['irrigationStatus'];
+  forecastDate: string; // the forecast used: the latest on or before the requested date
+  predictedYield: number;
+  lowerBound: number;
+  upperBound: number;
+  confidence: number;
+  confidenceRating: 'LOW' | 'MODERATE' | 'HIGH';
+  previousForecastDate?: string | null;
+  previousYield?: number | null;
+  changeSincePrevious?: number | null; // bu/ac, this forecast minus the previous one
+  topNegativeDriver?: string | null; // the input that pushed this estimate down most
+}
+
+export interface DecisionSet {
+  asOfDate: string; // no plot uses data from after this date
+  unit: string;
+  intervalLevel: number;
+  plots: PlotDecision[];
+}
+
+// ---- Model evaluation (GET /api/models, GET /api/evaluation/imagery) ---------
+
+export interface HoldoutInfo {
+  group: string; // e.g. "site: Crawfordsville"
+  mae: number;
+  rmse: number;
+  r2: number;
+  intervalCoverage: number; // 0-1
+  n: number;
+}
+
+export interface ModelInfo {
+  modelId: string;
+  algorithm: string;
+  target: string;
+  unit: string;
+  validation: string;
+  rmse: number;
+  mae: number;
+  r2: number;
+  trainedAt: string;
+  asOf: string | null; // "MM-DD" season cutoff; null = full season
+  intervalLevel: number;
+  features: string[];
+  dataset?: string | null;
+  holdout?: HoldoutInfo | null;
+}
+
+export interface AblationVariant {
+  id: string;
+  label: string; // e.g. "Field records only", "+ Satellite imagery"
+  usesImagery: boolean;
+  mae: number;
+  rmse?: number | null;
+  r2?: number | null;
+}
+
+/** `pending` until the ML team publishes a comparison; nothing is estimated in its place. */
+export interface ImageryAblation {
+  status: 'pending' | 'ready';
+  datasetLabel?: string | null; // e.g. "Challenge data" or "Practice data"
+  validation?: string | null;
+  asOf?: string | null; // "MM-DD"
+  variants: AblationVariant[];
 }
 
 // ---- Location context: public data for a field's coordinates ----------------
