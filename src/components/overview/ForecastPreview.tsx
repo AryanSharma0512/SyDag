@@ -14,14 +14,14 @@ import { ratingLabel, shortCropName } from '../../utils/formatters';
 import { Link } from '../../utils/router';
 
 const INPUTS = [
-  { label: 'Crop observations', color: C.leaf500 },
-  { label: 'Weather', color: C.rain500 },
-  { label: 'Soil & history', color: C.soil500 },
+  { label: 'Satellite imagery', color: C.leaf500 },
+  { label: 'Field record', color: C.inkSoft },
+  { label: 'Weather & soil', color: C.rain500 },
 ];
 
 /**
- * The scroll hand-off from the hero: three signal lines converge into a preview
- * of the dashboard, whose forecast line then draws itself.
+ * The scroll hand-off from the hero: the three inputs lead into a preview of one
+ * plot's forecast, whose line then draws itself.
  */
 export function ForecastPreview() {
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
@@ -75,7 +75,7 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.5, ease: EASE_OUT }}
         >
-          From field to forecast
+          One plot through the season
         </motion.p>
         <motion.h2
           id="preview-heading"
@@ -84,7 +84,7 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.05 }}
         >
-          Every signal lands in one readable forecast.
+          The forecast updates as new imagery arrives.
         </motion.h2>
         <motion.p
           className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-pretty text-muted"
@@ -92,8 +92,8 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.1 }}
         >
-          Observations, weather and soil context update a season-long yield curve, with a range that shows how sure
-          the model is at every point.
+          The line is the predicted final yield and the band is its 90% range. Each point uses only the imagery and
+          records available by that date.
         </motion.p>
       </div>
 
@@ -199,7 +199,7 @@ export function ForecastPreview() {
                   to="dashboard"
                   className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-leaf-700 hover:text-leaf-800"
                 >
-                  Explore Forecast
+                  Review plots
                   <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -250,6 +250,8 @@ function PreviewChart({ forecast, activeIndex, play }: { forecast: FieldForecast
       first: { x: mid[0].x, label: snaps[0].displayDate },
       last: { x: mid[mid.length - 1].x, label: snaps[snaps.length - 1].displayDate },
       activeLabel: snaps[index].displayDate,
+      // The first and last labels step aside when the active date is one of them.
+      activeAt: index === 0 ? 'first' : index === snaps.length - 1 ? 'last' : 'middle',
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forecast, width, activeIndex]);
@@ -325,15 +327,24 @@ function PreviewChart({ forecast, activeIndex, play }: { forecast: FieldForecast
             animate={play ? { scale: 1 } : undefined}
             transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1], delay: 2.25 }}
           />
-          <text x={geo.first.x} y={height - 4} className="data fill-faint text-[11px]">
-            {geo.first.label}
-          </text>
-          <text x={geo.activeX} y={height - 4} textAnchor="middle" className="data fill-ink-soft text-[11px]">
+          {geo.activeAt !== 'first' && (
+            <text x={geo.first.x} y={height - 4} className="data fill-faint text-[11px]">
+              {geo.first.label}
+            </text>
+          )}
+          <text
+            x={geo.activeX}
+            y={height - 4}
+            textAnchor={geo.activeAt === 'first' ? 'start' : geo.activeAt === 'last' ? 'end' : 'middle'}
+            className="data fill-ink-soft text-[11px]"
+          >
             {geo.activeLabel}
           </text>
-          <text x={geo.last.x} y={height - 4} textAnchor="end" className="data fill-faint text-[11px]">
-            {geo.last.label}
-          </text>
+          {geo.activeAt !== 'last' && (
+            <text x={geo.last.x} y={height - 4} textAnchor="end" className="data fill-faint text-[11px]">
+              {geo.last.label}
+            </text>
+          )}
         </svg>
       )}
     </div>

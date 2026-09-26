@@ -21,7 +21,7 @@ const INFLUENCE: Record<
   }
 > = {
   positive: {
-    label: 'Positive influence',
+    label: 'Pushed estimate up',
     Icon: ArrowUp,
     tone: 'bg-leaf-50 text-leaf-700 ring-leaf-200',
     text: 'text-leaf-700',
@@ -29,7 +29,7 @@ const INFLUENCE: Record<
     to: { y: 0 },
   },
   negative: {
-    label: 'Negative influence',
+    label: 'Pushed estimate down',
     Icon: ArrowDown,
     tone: 'bg-stress-50 text-stress-600 ring-stress-100',
     text: 'text-stress-600',
@@ -37,7 +37,7 @@ const INFLUENCE: Record<
     to: { y: 0 },
   },
   neutral: {
-    label: 'Buffering influence',
+    label: 'Little effect',
     Icon: MoveHorizontal,
     tone: 'bg-soil-50 text-soil-600 ring-soil-200',
     text: 'text-soil-600',
@@ -56,10 +56,10 @@ export function ModelExplanation({ drivers, featureImportance }: ModelExplanatio
   return (
     <section aria-labelledby="drivers-heading">
       <h2 id="drivers-heading" className="text-[20px] font-semibold tracking-[-0.02em] text-ink">
-        What is shaping this forecast?
+        Why did this plot get this forecast?
       </h2>
       <p className="mt-1.5 text-[14px] text-muted">
-        Signals associated with the current forecast. Associations, not proof of cause.
+        These inputs moved the model estimate up or down. They are associations, not causal effects.
       </p>
 
       <div className="mt-6 grid gap-6 md:grid-cols-3 md:gap-0 md:divide-x md:divide-line">
@@ -104,7 +104,7 @@ export function ModelExplanation({ drivers, featureImportance }: ModelExplanatio
           aria-controls="model-signals"
           className="group inline-flex items-center gap-2 rounded-md py-1 text-[14px] font-medium text-ink-soft hover:text-ink"
         >
-          {open ? 'Hide model signals' : 'Show model signals'}
+          {open ? 'Hide all inputs' : 'Show all inputs'}
           <ChevronDown className={`h-4 w-4 text-faint transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </button>
 
@@ -141,7 +141,7 @@ export function ModelExplanation({ drivers, featureImportance }: ModelExplanatio
                   ))}
                 </ul>
                 <p className="mt-5 text-[12px] text-muted">
-                  Relative contribution of each input to this forecast. Illustrative weights from the demo model.
+                  Relative contribution for this prediction.
                 </p>
               </div>
             </motion.div>

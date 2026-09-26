@@ -2,7 +2,7 @@
   "name": "soilsignal",
   "private": true,
   "version": "1.0.0-hackathon",
-  "description": "SoilSignal: progressive, interpretable crop yield forecasting.",
+  "description": "SoilSignal: maize plot yield forecasts from satellite imagery, for scouting decisions.",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",

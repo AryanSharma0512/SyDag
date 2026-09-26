@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   name: 'SoilSignal',
   tagline: 'See the season before harvest.',
   subtitle:
-    'Progressive crop yield forecasting powered by field observations, environmental context, and interpretable models.',
+    'Maize plot yield forecasts from satellite imagery and field records, with the plots most worth scouting.',
   version: '1.0.0-hackathon',
   datasetLabel: 'Demo Data',
   // Build with VITE_DEMO_MODE=false to fetch from the SoilSignal API instead of src/mock.
@@ -16,6 +16,9 @@ export const APP_CONFIG = {
   defaultFieldId: 'purdue-104',
   defaultDateIndex: 4,
   seasonYear: 2026,
+  // Validation MAE (bu/ac) the team treats as good enough to act on. Unset until the team
+  // agrees one; when set, the model reliability chart draws it as a reference line.
+  acceptableMaeBuAc: null as number | null,
 };
 
 export const EVENT_CONTEXT = {
@@ -26,11 +29,14 @@ export const EVENT_CONTEXT = {
 export interface TeamMember {
   name: string;
   initials: string;
-  degree: string;
+  /** Leave unset until confirmed; the card keeps the line's space so every card stays the same size. */
+  degree?: string;
 }
 
 export const TEAM: TeamMember[] = [
   { name: 'Aryan Sharma', initials: 'AS', degree: 'B.S. Agriculture' },
   { name: 'Sahil Jain', initials: 'SJ', degree: 'B.S. Computer Science' },
   { name: 'Shashwat Goel', initials: 'SG', degree: 'B.S. Computer Science' },
+  { name: 'Sri Madur', initials: 'SM' },
+  { name: 'Sidney Millen', initials: 'SM' },
 ];

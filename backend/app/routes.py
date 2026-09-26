@@ -1,15 +1,21 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 
 from app.config import get_settings
+from app.forecast.evaluation import imagery_ablation
 from app.model.artifact import ArtifactError, FeatureValidationError, ModelArtifact, ModelRegistry
 from app.providers import ForecastProvider, ProviderError, get_provider, get_registry
 from app.schemas import (
+    DecisionSet,
     FeatureImportanceItem,
     FieldForecast,
     FieldMeta,
     Health,
+    HoldoutInfo,
+    ImageryAblation,
     ModelInfo,
     PredictRequest,
     PredictResponse,
@@ -74,17 +80,18 @@ def health() -> Health:
     )
 
 
-@router.get("/fields")
+# Optional fields the provider leaves unset are omitted, matching `field?: T` in the TS types.
+@router.get("/fields", response_model_exclude_none=True)
 def list_fields(provider: Provider) -> list[FieldMeta]:
+    """The featured plots. Every plot in /api/decisions also resolves by id below."""
     return provider.list_fields()
 
 
-@router.get("/fields/{field_id}")
+@router.get("/fields/{field_id}", response_model_exclude_none=True)
 def get_field(field_id: str, provider: Provider) -> FieldMeta:
     return _forecast_or_404(provider, field_id).field
 
 
-# Optional fields the provider leaves unset are omitted, matching `field?: T` in the TS types.
 @router.get("/fields/{field_id}/forecast", response_model_exclude_none=True)
 def get_forecast(field_id: str, provider: Provider) -> FieldForecast:
     return _forecast_or_404(provider, field_id)
@@ -112,6 +119,37 @@ def get_soil(field_id: str, provider: Provider) -> SoilContext:
     return _forecast_or_404(provider, field_id).snapshots[0].soil
 
 
+@router.get("/decisions")
+def get_decisions(
+    provider: Provider,
+    as_of_date: Annotated[date | None, Query(alias="asOfDate")] = None,
+) -> DecisionSet:
+    """Every plot in the season at one point in time, for choosing where to scout. Each
+    plot uses its latest forecast on or before `asOfDate` (default: the latest one), so
+    nothing from after that date is used. Same models and features as the dashboard."""
+    decisions = provider.get_decisions(as_of_date)
+    if decisions is None:
+        season = f"the {as_of_date.year} season" if as_of_date else "any season"
+        raise HTTPException(status_code=404, detail=f"No plots in {season}")
+    if not decisions.plots:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No forecast uses only data available by {decisions.as_of_date}",
+        )
+    return decisions
+
+
+@router.get("/evaluation/imagery")
+def get_imagery_ablation() -> ImageryAblation:
+    """Validation error with and without satellite imagery, once the ML team publishes it."""
+    try:
+        return imagery_ablation(get_settings().model_dir)
+    except (ValidationError, ValueError) as err:
+        raise HTTPException(
+            status_code=503, detail=f"The imagery comparison could not be read: {err}"
+        ) from err
+
+
 @router.get("/models")
 def list_models(registry: Registry) -> list[ModelInfo]:
     return [
@@ -128,6 +166,17 @@ def list_models(registry: Registry) -> list[ModelInfo]:
             as_of=m.as_of,
             interval_level=m.interval.level,
             features=a.schema.names,
+            dataset=m.dataset,
+            holdout=HoldoutInfo(
+                group=m.holdout.group,
+                mae=m.holdout.metrics.mae,
+                rmse=m.holdout.metrics.rmse,
+                r2=m.holdout.metrics.r2,
+                interval_coverage=m.holdout.interval_coverage,
+                n=m.holdout.n,
+            )
+            if m.holdout
+            else None,
         )
         for a in registry.artifacts
         for m in [a.metadata]

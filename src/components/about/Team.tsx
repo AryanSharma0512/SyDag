@@ -61,16 +61,24 @@ function Member({ member, index }: { member: TeamMember; index: number }) {
       <motion.h3 className="mt-5 text-[18px] font-semibold tracking-[-0.015em] text-ink" variants={name}>
         {member.name}
       </motion.h3>
-      <motion.p className="mt-1 text-[15px] text-muted" variants={degree}>
-        {member.degree}
+      <motion.p className="mt-1 text-[15px] text-muted" variants={degree} aria-hidden={member.degree ? undefined : true}>
+        {member.degree ?? ' '}
       </motion.p>
     </motion.li>
   );
 }
 
+/**
+ * One column on phones, three per row from `sm` (a short final row stays centered),
+ * and the whole team on one row from `lg`. Widths are fixed fractions, so every card
+ * is the same size however the rows wrap.
+ */
 export function Team() {
   return (
-    <ul className="grid gap-12 sm:grid-cols-3 sm:gap-8" aria-label="Team">
+    <ul
+      className="flex flex-wrap justify-center gap-x-8 gap-y-12 *:w-full sm:*:w-[calc((100%-4rem)/3)] lg:*:w-[calc((100%-8rem)/5)]"
+      aria-label="Team"
+    >
       {TEAM.map((member, i) => (
         <Member key={member.name} member={member} index={i} />
       ))}

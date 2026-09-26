@@ -6,6 +6,8 @@ import { ratingLabel } from '../../utils/formatters';
 
 interface ForecastSummaryProps {
   snapshot: ForecastSnapshot;
+  /** The forecast date before this one, for the change since then. */
+  previous?: ForecastSnapshot;
   /** Range of bounds across the season; the range glyph is drawn against it. */
   seasonDomain: [number, number];
   isPresentationMode?: boolean;
@@ -21,7 +23,7 @@ const RATING_TONE: Record<ForecastSnapshot['confidenceRating'], { bar: string; d
  * The three numbers that lead the dashboard. Deliberately light: no boxes,
  * vertical hairlines between columns, values that count to their new state.
  */
-export function ForecastSummary({ snapshot, seasonDomain, isPresentationMode = false }: ForecastSummaryProps) {
+export function ForecastSummary({ snapshot, previous, seasonDomain, isPresentationMode = false }: ForecastSummaryProps) {
   const reduce = useReducedMotion();
   const transition = reduce ? { duration: 0 } : DATA_TRANSITION;
   const valueSize = isPresentationMode
@@ -35,6 +37,7 @@ export function ForecastSummary({ snapshot, seasonDomain, isPresentationMode = f
   const rangeWidth = (snapshot.upperBound - snapshot.lowerBound) / span;
   const pointAt = (snapshot.yield - d0) / span;
   const tone = RATING_TONE[snapshot.confidenceRating];
+  const change = previous ? Math.round((snapshot.yield - previous.yield) * 10) / 10 : null;
 
   return (
     <section aria-label="Forecast summary" className="grid grid-cols-2 gap-y-6 sm:grid-cols-3">
@@ -90,6 +93,32 @@ export function ForecastSummary({ snapshot, seasonDomain, isPresentationMode = f
           </div>
         </div>
       </div>
+
+      <dl className="col-span-2 flex flex-wrap items-baseline gap-x-8 gap-y-1 border-t border-line pt-4 text-[14px] sm:col-span-3" aria-live="polite">
+        {previous && change !== null ? (
+          <>
+            <div className="flex items-baseline gap-2">
+              <dt className="text-muted">
+                Previous forecast, <span className="data">{previous.displayDate}</span>
+              </dt>
+              <dd className="data text-ink-soft tabular-nums">{previous.yield.toFixed(1)}</dd>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <dt className="text-muted">Change</dt>
+              <dd
+                className={`data font-medium tabular-nums ${change <= -5 ? 'text-stress-600' : change >= 5 ? 'text-leaf-700' : 'text-ink'}`}
+              >
+                {change > 0 ? '+' : change < 0 ? '−' : '±'}
+                {Math.abs(change).toFixed(1)} <span className="font-normal text-muted">bu/ac</span>
+              </dd>
+            </div>
+          </>
+        ) : (
+          <div>
+            <dt className="text-muted">First forecast of the season; no earlier forecast to compare with.</dt>
+          </div>
+        )}
+      </dl>
     </section>
   );
 }

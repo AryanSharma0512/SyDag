@@ -2,17 +2,12 @@ import { useMemo, useState, type PointerEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { FieldForecast } from '../../types/agricultural';
 import { APP_CONFIG } from '../../config/appConfig';
-import { bandPath, monotonePath, nearestIndex, scaleLinear, toTime } from '../../utils/chart';
+import { bandPath, monotonePath, nearestIndex, niceTicks, scaleLinear, toTime } from '../../utils/chart';
 import { DATA_TRANSITION } from '../../utils/motion';
 import { useElementWidth, useIsMobile } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
-import { formatYield } from '../../utils/formatters';
-
-const PHASES = [
-  { key: 'early', label: 'Early season', note: 'Few observations yet. The model leans on soil and history, so the range is wide.' },
-  { key: 'mid', label: 'Mid season', note: 'Canopy vigor and pollination weather are now visible. The range narrows quickly.' },
-  { key: 'late', label: 'Late season', note: 'Most of the yield is already set. The range is narrow and stable.' },
-] as const;
+import { formatDay, formatYield } from '../../utils/formatters';
+import { imageryLabel, passDates, passesBy } from '../../utils/imagery';
 
 /** Sampled bell curve lying on its side: wide intervals are flat, narrow intervals are tall. */
 function bellPath(x: number, y: number, sigmaPx: number, peakScale: number) {
@@ -28,9 +23,8 @@ function bellPath(x: number, y: number, sigmaPx: number, peakScale: number) {
 }
 
 /**
- * Explains prediction intervals by comparison instead of paragraphs: early
- * forecasts carry a wide range, late ones a narrow range. Hover the chart or
- * the phase buttons to compare.
+ * Explains prediction intervals by comparison: the range at each imagery stage of one
+ * plot's season. Stages are counted in satellite passes, since pass dates differ by site.
  */
 export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
   const reduce = useReducedMotion();
@@ -39,7 +33,15 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
 
   const snaps = forecast.snapshots;
-  const phaseIndex = snaps.length ? [0, Math.min(APP_CONFIG.defaultDateIndex, snaps.length - 1), snaps.length - 1] : [0, 0, 0];
+  const passes = useMemo(() => passDates(forecast), [forecast]);
+  // One button per imagery stage: the first forecast date with each pass count.
+  const stages = useMemo(
+    () =>
+      snaps
+        .map((snap, i) => ({ index: i, passes: passesBy(passes, snap.date), label: imageryLabel(passes, snap.date) }))
+        .filter((stage, i, all) => i === 0 || stage.passes !== all[i - 1].passes),
+    [snaps, passes],
+  );
   const height = isMobile ? 240 : 290;
   const margin = { top: 24, right: isMobile ? 70 : 110, bottom: 34, left: 40 };
 
@@ -47,16 +49,23 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
     if (!snaps.length || width <= 0) return null;
     const times = snaps.map((s) => toTime(s.date));
     const sx = scaleLinear(times[0], times[times.length - 1], margin.left + 8, width - margin.right);
-    const sy = scaleLinear(120, 205, height - margin.bottom, margin.top);
-    const mid = snaps.map((s, i) => ({ x: sx(times[i]), y: sy(s.yield) }));
-    const hi = snaps.map((s, i) => ({ x: sx(times[i]), y: sy(s.upperBound) }));
-    const lo = snaps.map((s, i) => ({ x: sx(times[i]), y: sy(s.lowerBound) }));
-    return { sy, mid, hi, lo, line: monotonePath(mid), band: bandPath(hi, lo) };
+    const lo = Math.min(...snaps.map((snap) => snap.lowerBound));
+    const hi = Math.max(...snaps.map((snap) => snap.upperBound));
+    const ticks = niceTicks(Math.max(0, lo - 10), hi + 10, 4);
+    const sy = scaleLinear(Math.max(0, lo - 10), hi + 10, height - margin.bottom, margin.top);
+    const mid = snaps.map((snap, i) => ({ x: sx(times[i]), y: sy(snap.yield) }));
+    const up = snaps.map((snap, i) => ({ x: sx(times[i]), y: sy(snap.upperBound) }));
+    const down = snaps.map((snap, i) => ({ x: sx(times[i]), y: sy(snap.lowerBound) }));
+    return { sy, ticks, mid, hi: up, lo: down, line: monotonePath(mid), band: bandPath(up, down) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snaps, width, height]);
 
   const s = snaps[probe];
-  const phase = probe <= 1 ? PHASES[0] : probe >= snaps.length - 2 ? PHASES[2] : PHASES[1];
+  const seen = s ? passesBy(passes, s.date) : 0;
+  const lastSeen = seen > 0 ? passes[seen - 1] : null;
+  const note = lastSeen
+    ? `${seen} satellite ${seen === 1 ? 'pass' : 'passes'} available, the latest on ${formatDay(lastSeen)}.`
+    : 'No satellite image yet: the estimate rests on the field record and weather.';
   const transition = reduce ? { duration: 0 } : DATA_TRANSITION;
 
   let bell = '';
@@ -87,22 +96,22 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
       <div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Compare forecast phases">
-          {PHASES.map((ph, i) => {
-            const active = phase.key === ph.key;
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Compare imagery stages">
+          {stages.map((stage) => {
+            const active = passesBy(passes, snaps[probe]?.date ?? '') === stage.passes;
             return (
               <button
-                key={ph.key}
+                key={stage.index}
                 type="button"
                 aria-pressed={active}
-                onMouseEnter={() => setProbe(phaseIndex[i])}
-                onFocus={() => setProbe(phaseIndex[i])}
-                onClick={() => setProbe(phaseIndex[i])}
+                onMouseEnter={() => setProbe(stage.index)}
+                onFocus={() => setProbe(stage.index)}
+                onClick={() => setProbe(stage.index)}
                 className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150 ${
                   active ? 'border-leaf-700 bg-leaf-700 text-white' : 'border-line-strong bg-surface text-ink-soft hover:border-faint'
                 }`}
               >
-                {ph.label}
+                {stage.label}
               </button>
             );
           })}
@@ -111,7 +120,7 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
         <div ref={wrapRef} className="relative mt-5" style={{ height }}>
           {geo && s && (
             <svg width={width} height={height} className="overflow-visible" role="img" aria-label={`On ${s.displayDate}, the 90% range is ${formatYield(s.lowerBound)} to ${formatYield(s.upperBound)} bushels per acre.`}>
-              {[140, 160, 180, 200].map((v) => (
+              {geo.ticks.map((v) => (
                 <g key={v}>
                   <line x1={margin.left} x2={width - margin.right + 40} y1={geo.sy(v)} y2={geo.sy(v)} stroke={C.line} />
                   <text x={margin.left - 8} y={geo.sy(v) + 4} textAnchor="end" className="data fill-faint text-[10.5px]">
@@ -180,7 +189,7 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
         {s && (
           <>
             <div className="text-[13px] text-muted">
-              {phase.label} · <span className="data">{s.displayDate}</span>
+              {imageryLabel(passes, s.date)} · <span className="data">{s.displayDate}</span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="data-tight text-[40px] leading-none font-medium text-ink">
@@ -192,8 +201,10 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
               90% of outcomes expected between <span className="data">{formatYield(s.lowerBound)}</span> and{' '}
               <span className="data">{formatYield(s.upperBound)}</span> bu/ac.
             </p>
-            <p className="mt-3 text-[14px] leading-relaxed text-muted">{phase.note}</p>
-            <p className="mt-5 text-[12px] text-faint">Demo field: {forecast.field.name}</p>
+            <p className="mt-3 text-[14px] leading-relaxed text-muted">{note}</p>
+            <p className="mt-5 text-[12px] text-faint">
+              {APP_CONFIG.demoMode ? 'Demo field' : 'Plot'}: {forecast.field.name}
+            </p>
           </>
         )}
       </div>

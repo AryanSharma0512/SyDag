@@ -31,23 +31,26 @@ export function OverviewPage() {
             className="mt-5 max-w-[34rem] text-[17px] leading-relaxed text-pretty text-muted sm:text-[19px]"
             {...rise(0.15)}
           >
-            SoilSignal turns crop observations and environmental context into progressive, interpretable yield
-            forecasts.
+            Estimate end-of-season maize yield from satellite imagery and field records, then identify the plots where a
+            scouting visit could matter most.
           </motion.p>
           <motion.div className="mt-8 flex flex-wrap items-center gap-3" {...rise(0.25)}>
             <Link
               to="dashboard"
               className="lift group inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white shadow-[0_1px_2px_rgb(8_108_76/0.25)] hover:bg-leaf-800 hover:shadow-lift"
             >
-              Explore Forecast
+              Review plots
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
             <Link
               to="methodology"
               className="lift inline-flex items-center rounded-full border border-line-strong bg-surface px-5 py-2.5 text-[15px] font-medium text-ink hover:border-faint hover:shadow-float"
             >
-              How It Works
+              See the method
             </Link>
+          </motion.div>
+          <motion.div {...rise(0.32)}>
+            <ChallengeScope />
           </motion.div>
         </div>
         <div className="mx-auto mt-8 max-w-6xl px-3 sm:mt-6 sm:px-6">
@@ -60,11 +63,11 @@ export function OverviewPage() {
       <Principles />
 
       <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-        <Reveal className="flex flex-col gap-6 rounded-2xl border border-line bg-surface px-6 py-8 sm:px-10 md:flex-row md:items-center md:justify-between">
+        <Reveal className="flex flex-col gap-6 border-t border-line pt-10 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-ink sm:text-[26px]">Move through a growing season.</h2>
+            <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-ink sm:text-[26px]">Review the trial.</h2>
             <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted">
-              Scrub from emergence to maturity and watch the forecast, its range and its drivers update together.
+              Sort every plot by forecast range or predicted yield, then open any plot's season.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -72,7 +75,7 @@ export function OverviewPage() {
               to="dashboard"
               className="lift inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white hover:bg-leaf-800 hover:shadow-lift"
             >
-              Explore Forecast
+              Review plots
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
@@ -85,5 +88,28 @@ export function OverviewPage() {
         </Reveal>
       </section>
     </>
+  );
+}
+
+/** What the challenge covers. It describes the challenge, not what this deployment runs on. */
+const SCOPE = ['Maize plots', 'Nebraska + Iowa', '2022–2023 trials', 'Six-band satellite imagery'];
+
+function ChallengeScope() {
+  return (
+    <dl className="mt-8 flex max-w-3xl flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:items-baseline sm:gap-5">
+      <dt className="shrink-0 text-[11px] font-medium tracking-[0.08em] text-faint uppercase">IoT4Ag challenge scope</dt>
+      <dd className="flex flex-wrap gap-x-2 gap-y-1 text-[14px] text-ink-soft">
+        {SCOPE.map((item, i) => (
+          <span key={item} className="whitespace-nowrap">
+            {i > 0 && (
+              <span className="mr-2 text-faint" aria-hidden="true">
+                ·
+              </span>
+            )}
+            {item}
+          </span>
+        ))}
+      </dd>
+    </dl>
   );
 }

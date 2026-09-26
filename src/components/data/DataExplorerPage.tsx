@@ -86,7 +86,7 @@ export function DataExplorerPage() {
       <header>
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink sm:text-[32px]">Data Explorer</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
-          Explore the public environmental and agricultural data SoilSignal uses to understand each field.
+          Inspect the NOAA and USDA data retrieved for this plot.
         </p>
       </header>
 

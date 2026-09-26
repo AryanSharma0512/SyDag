@@ -23,7 +23,7 @@ from app.features.build import build_features, season_status
 from app.features.catalog import info
 from app.features.weather import DailySeries, hargreaves_et0_mm
 from app.forecast.bundle import Bundle, ShowcaseField
-from app.model.artifact import Driver, ModelArtifact, ModelRegistry
+from app.model.artifact import Driver, ModelArtifact, ModelRegistry, Prediction
 from app.schemas import (
     Bounds,
     DataSource,
@@ -35,6 +35,7 @@ from app.schemas import (
     ForecastSnapshot,
     HistoricalContext,
     ModelExplanation,
+    PlotDecision,
     SoilContext,
     SpatialContext,
     SpatialZone,
@@ -102,16 +103,27 @@ class ForecastBuilder:
         year = bundle.season_year
         dated = [a for a in registry.artifacts if a.metadata.as_of is not None]
         self.dates = sorted({date(year, *map(int, a.metadata.as_of.split("-"))) for a in dated})
+        # Every bundled plot sits in some showcase field's 4 x 4 block; that block is its map.
+        self._blocks = {
+            pid: f.neighbours for f in bundle.fields for row in f.neighbours for pid in row
+        }
+        self._predictions: dict[date, list[Prediction]] = {}
 
     # ---- fields -----------------------------------------------------------------
 
     def field_id(self, field: ShowcaseField) -> str:
         return _slug(field.plot_id)
 
+    def plot_field(self, plot_id: str) -> ShowcaseField:
+        """Any bundled plot as a field: the showcase fields are listed, the rest are reachable
+        from the scouting queue."""
+        return ShowcaseField(plot_id, self._blocks.get(plot_id, []))
+
+    def _short_plot_id(self, plot_id: str) -> str:
+        return plot_id.removeprefix(self.bundle.site["id"]).strip("-")
+
     def _plot_name(self, plot_id: str) -> str:
-        site = self.bundle.site["name"]
-        rest = plot_id.removeprefix(self.bundle.site["id"]).strip("-")
-        return f"{site} plot {rest}"
+        return f"{self.bundle.site['name']} plot {self._short_plot_id(plot_id)}"
 
     def field_meta(self, field: ShowcaseField) -> FieldMeta:
         b, p = self.bundle, self.bundle.plots[field.plot_id]
@@ -119,6 +131,7 @@ class ForecastBuilder:
         if b.site["irrigated"]:
             raise ValueError("irrigation method unknown for this dataset; add it to the bundle")
         texture = (soil.get("texture") or "").lower()
+        nitrogen = p.management.get("nitrogen_lb_ac")
         return FieldMeta(
             id=self.field_id(field),
             name=self._plot_name(field.plot_id),
@@ -132,6 +145,11 @@ class ForecastBuilder:
             soil_classification=" ".join(x for x in (soil.get("series"), texture) if x)
             or "Unknown",
             irrigation_status="Dryland",
+            plot_id=self._short_plot_id(field.plot_id),
+            site=b.site["name"],
+            hybrid=p.management.get("genotype"),
+            nitrogen_lb_ac=float(nitrogen) if nitrogen is not None else None,
+            planting_date=p.planting_date.isoformat(),
         )
 
     def _five_year_average(self) -> float | None:
@@ -280,6 +298,8 @@ class ForecastBuilder:
 
     def _spatial(self, field: ShowcaseField, artifact: ModelArtifact, as_of: date):
         ids = [pid for row in field.neighbours for pid in row]
+        if not ids:
+            return None
         plots = [self.bundle.plots[pid] for pid in ids]
         images = [d for d in plots[0].nir if d <= as_of]
         if not images:
@@ -484,7 +504,7 @@ class ForecastBuilder:
             ),
             DataSource(
                 id="soilsignal-models",
-                name="SoilSignal progressive models",
+                name="SoilSignal forecast models",
                 short_name="Model",
                 purpose="Forecasts, ranges and drivers",
                 role="model",
@@ -495,6 +515,55 @@ class ForecastBuilder:
                 ).strip(),
             ),
         ]
+
+    # ---- decision support ---------------------------------------------------------
+
+    def _predict_all(self, as_of: date) -> list[Prediction]:
+        """Every bundled plot at one forecast date: the same features and model as that
+        date's snapshot, scored in one batch."""
+        if as_of not in self._predictions:
+            artifact = self.registry.for_date(as_of.isoformat())
+            ids = list(self.bundle.plots)
+            self._predictions[as_of] = artifact.predict(self._rows(artifact, ids, as_of))
+        return self._predictions[as_of]
+
+    def decisions(self, as_of: date) -> list[PlotDecision]:
+        """Each plot's forecast as of a date: the latest forecast date on or before it, and
+        the change from the forecast date before that. Empty before the first forecast."""
+        eligible = [d for d in self.dates if d <= as_of]
+        if not eligible:
+            return []
+        current = eligible[-1]
+        previous = eligible[-2] if len(eligible) > 1 else None
+        now = self._predict_all(current)
+        before = self._predict_all(previous) if previous else [None] * len(now)
+        out = []
+        for pid, pred, prior in zip(self.bundle.plots, now, before, strict=True):
+            meta = self.field_meta(self.plot_field(pid))
+            negative = next((d for d in _unique(pred.drivers) if d.direction == "negative"), None)
+            out.append(
+                PlotDecision(
+                    field_id=meta.id,
+                    plot_id=meta.plot_id,
+                    name=meta.name,
+                    site=meta.site,
+                    season=meta.season,
+                    hybrid=meta.hybrid,
+                    nitrogen_lb_ac=meta.nitrogen_lb_ac,
+                    irrigation_status=meta.irrigation_status,
+                    forecast_date=current.isoformat(),
+                    predicted_yield=pred.yield_,
+                    lower_bound=pred.lower_bound,
+                    upper_bound=pred.upper_bound,
+                    confidence=pred.confidence,
+                    confidence_rating=pred.confidence_rating,
+                    previous_forecast_date=previous.isoformat() if previous else None,
+                    previous_yield=prior.yield_ if prior else None,
+                    change_since_previous=round(pred.yield_ - prior.yield_, 1) if prior else None,
+                    top_negative_driver=negative.label if negative else None,
+                )
+            )
+        return out
 
     # ---- assemble -------------------------------------------------------------------
 

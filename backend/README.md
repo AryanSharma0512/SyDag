@@ -1,9 +1,11 @@
 # SoilSignal API
 
-FastAPI service that serves field forecasts to the dashboard and predictions from
-trained models. Forecast responses mirror `src/types/agricultural.ts` exactly
-(`app/schemas.py`). Forecasts currently come from the frontend's mock dataset;
-predictions come from whatever model artifacts are in `artifacts/`.
+FastAPI service that serves plot forecasts, the scouting queue and model evaluation
+to the dashboard, and predictions from trained models. Responses mirror
+`src/types/agricultural.ts` exactly (`app/schemas.py`). With the default
+`SOILSIGNAL_DATA_SOURCE=model`, forecasts are computed from the input bundles in
+`data/practice/` and the model artifacts in `artifacts/`; `mock` serves the frontend's
+demo dataset instead.
 
 ## Run locally
 
@@ -22,13 +24,15 @@ Vite forwards `/api` to `localhost:8000`.
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/api/health` | `{status, version, dataSource}` |
-| GET | `/api/fields` | `FieldMeta[]` |
-| GET | `/api/fields/{id}` | `FieldMeta` |
+| GET | `/api/health` | `{status, version, dataSource, modelsLoaded, datasetLabel}` |
+| GET | `/api/fields` | `FieldMeta[]`: the featured plots, with their trial record (`plotId`, `site`, `hybrid`, `nitrogenLbAc`, `plantingDate`) when the data has one |
+| GET | `/api/fields/{id}` | `FieldMeta` (any plot in `/api/decisions`, not only the featured ones) |
 | GET | `/api/fields/{id}/forecast` | `FieldForecast` |
 | GET | `/api/fields/{id}/weather?snapshotId=` | `WeatherContext` (latest snapshot by default) |
 | GET | `/api/fields/{id}/soil` | `SoilContext` |
-| GET | `/api/models` | loaded models: id, metrics, validation, `asOf`, features |
+| GET | `/api/decisions?asOfDate=` | `DecisionSet`: every plot in that season at its latest forecast on or before the date, with the change since the previous forecast and the input that pushed it down most |
+| GET | `/api/models` | loaded models: id, metrics, validation, `asOf`, features, `dataset`, `holdout` |
+| GET | `/api/evaluation/imagery` | `ImageryAblation`: validation error with and without imagery, or `status: "pending"` |
 | POST | `/api/predict` | yield, 90% interval, confidence, drivers |
 
 Unknown ids return `404 {"detail": "..."}`. Model endpoints return `503` when no
@@ -48,6 +52,16 @@ Give `modelId` to pick a model, or `asOfDate` to use the model with the latest
 season cutoff on or before that date (never a later one, so no future data leaks
 in). With neither, the latest model is used. Bad or missing features return `422`
 listing every problem.
+
+`GET /api/decisions` scores every plot in the bundle with the same features and model
+as that date's dashboard snapshot (one batch per forecast date, cached), so a plot's
+row always equals its dashboard forecast. A date between forecast dates uses the
+earlier one. `404` for a season with no plots or a date before the first forecast.
+
+`GET /api/evaluation/imagery` reads `artifacts/imagery_ablation.json` when the ML
+team publishes it (format in `app/forecast/evaluation.py`); until then it returns
+`{"status": "pending"}` and the dashboard says it is waiting for the training run.
+A malformed file returns `503`.
 
 ## Model artifacts
 
@@ -78,7 +92,7 @@ order not matching what the estimator was fitted on).
   `low_label` depending on the field's value, e.g. "Rainfall deficit, last 30 days",
   and ranked by share. These are associations the model learned, not causes. Without
   `typical`, drivers fall back to global `importance` (or `feature_importances_`).
-- **Progressive forecasts:** export one model per season cutoff (`as_of`), each
+- **Forecasts by date:** export one model per season cutoff (`as_of`), each
   trained only on features observable by that date.
 - **Features:** `app/features/` turns raw field inputs (images, daily weather, soil,
   management, county history) into model features as of a date. The ML pipeline in
@@ -108,7 +122,8 @@ uv run ruff check . && uv run ruff format --check .
 ```
 
 `tests/test_api.py` asserts each forecast response equals the mock JSON exactly,
-so the contract can't silently drift from the frontend types.
+so the contract can't silently drift from the frontend types. `tests/test_forecast.py`
+checks that every scouting-queue row equals the plot's own dashboard forecast.
 
 ## Location context (public data)
 

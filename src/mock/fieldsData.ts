@@ -8,10 +8,10 @@
 import { DataSource, FieldForecast, SpatialZone } from '../types/agricultural';
 
 /**
- * Provenance. The competition observations are challenge-provided. Soil (USDA
- * SSURGO), weather (NOAA NCEI) and county yields (USDA NASS) are public data the
- * backend already fetches for each field's coordinates. The rest are candidate enrichments, not connected yet;
- * the challenge rules and the actual dataset will determine the final integrations.
+ * Provenance for the demo build. Crop observations are demo values shaped like the
+ * challenge's plot observations. Soil (USDA SSURGO), weather (NOAA NCEI) and county
+ * yields (USDA NASS) are public data the backend fetches for each field's coordinates.
+ * The rest are candidate enrichments, not connected.
  */
 export const DATA_SOURCES: DataSource[] = [
   {
@@ -21,7 +21,7 @@ export const DATA_SOURCES: DataSource[] = [
     purpose: 'Crop observations',
     role: 'challenge',
     statusLabel: 'Challenge-provided',
-    detail: 'Field-level vegetation indices such as NDVI and NDRE. Demo values stand in until the challenge dataset is released.',
+    detail: 'Demo vegetation indices (NDVI, NDRE) shaped like the challenge plot observations. Deployed builds use the trial data the backend serves.',
   },
   {
     id: 'noaa-ncei',
@@ -227,7 +227,7 @@ export const PURDUE_104_DATA: FieldForecast = {
       explanations: [
         {
           id: 'exp-1',
-          title: 'Strong canopy closure and chlorophyll accumulation',
+          title: 'High canopy closure and chlorophyll (NDVI, NDRE)',
           influence: 'positive',
           influenceLabel: 'Positive influence',
           description:
@@ -363,7 +363,7 @@ export const PURDUE_104_DATA: FieldForecast = {
       explanations: [
         {
           id: 'exp-1',
-          title: 'Strong canopy vigor preceding pollination window',
+          title: 'High canopy vigor before pollination',
           influence: 'positive',
           influenceLabel: 'Positive influence',
           description:
@@ -590,7 +590,7 @@ export const PURDUE_104_DATA: FieldForecast = {
           influence: 'positive',
           influenceLabel: 'Positive influence',
           description:
-            'Over 80% of seasonal biological yield potential has been fixed by kernel count and initial ear fill rate.',
+            'Kernel count and early ear fill have already set most of the final yield.',
         },
       ],
       featureImportance: [

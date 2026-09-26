@@ -91,3 +91,54 @@ def test_unknown_ids_return_404(path):
     res = client.get(path)
     assert res.status_code == 404
     assert "not found" in res.json()["detail"]
+
+
+def test_decisions_default_to_the_latest_forecast_of_every_field():
+    res = client.get("/api/decisions")
+    assert res.status_code == 200
+    body = res.json()
+    assert {p["fieldId"] for p in body["plots"]} == set(FIELD_IDS)
+    for row in body["plots"]:
+        last = next(f for f in MOCK_DATA if f["field"]["id"] == row["fieldId"])["snapshots"][-1]
+        assert (row["forecastDate"], row["predictedYield"]) == (last["date"], last["yield"])
+
+
+def test_decisions_use_each_fields_latest_snapshot_on_or_before_the_date():
+    body = client.get("/api/decisions", params={"asOfDate": "2026-07-20"}).json()
+    for row in body["plots"]:
+        snaps = next(f for f in MOCK_DATA if f["field"]["id"] == row["fieldId"])["snapshots"]
+        eligible = [s for s in snaps if s["date"] <= "2026-07-20"]
+        assert row["forecastDate"] == eligible[-1]["date"]
+        assert row["previousYield"] == (eligible[-2]["yield"] if len(eligible) > 1 else None)
+
+
+def test_imagery_comparison_is_pending_until_published():
+    body = client.get("/api/evaluation/imagery").json()
+    assert body["status"] == "pending"
+    assert body["variants"] == []
+
+
+def test_imagery_comparison_reads_the_published_file(isolated_model_dir):
+    (isolated_model_dir / "imagery_ablation.json").write_text(
+        json.dumps(
+            {
+                "dataset_label": "Challenge data",
+                "validation": "leave-one-site-out",
+                "as_of": "07-31",
+                "variants": [
+                    {"id": "records", "label": "Records only", "uses_imagery": False, "mae": 31.4},
+                    {"id": "imagery", "label": "+ Imagery", "uses_imagery": True, "mae": 18.7},
+                ],
+            }
+        )
+    )
+    body = client.get("/api/evaluation/imagery").json()
+    assert body["status"] == "ready"
+    assert body["datasetLabel"] == "Challenge data"
+    assert [v["mae"] for v in body["variants"]] == [31.4, 18.7]
+
+
+def test_malformed_imagery_comparison_fails_loudly(isolated_model_dir):
+    (isolated_model_dir / "imagery_ablation.json").write_text('{"variants": []}')
+    res = client.get("/api/evaluation/imagery")
+    assert res.status_code == 503

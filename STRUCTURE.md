@@ -1,9 +1,9 @@
 # SoilSignal: Project Structure & Data-Day Map
 
-What exists, where it lives, and what to run or call once the challenge dataset
-arrives. **Keep this file updated in the same PR as any structural change.**
+What exists, where it lives, and what to run or call to move the site from the
+practice data to the challenge data. **Keep this file updated in the same PR as any structural change.**
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 ---
 
@@ -45,6 +45,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 9 | Real forecasts on the live site | Default already: compose builds the frontend with `VITE_DEMO_MODE=false` and runs the backend with `SOILSIGNAL_DATA_SOURCE=model`. `deploy.sh` rebuilds both and fails unless `/api/health` reports `"dataSource":"model"` with models loaded | Ready |
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server (the registry would mix them with real cutoffs) | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
+| 11b | Publish the imagery comparison | Write `backend/artifacts/imagery_ablation.json` (validation MAE with and without imagery; format in `backend/app/forecast/evaluation.py`) and deploy it with the models. The dashboard shows "Waiting for the current training run." until it exists | Ready (file to write) |
 | 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
 
 ---
@@ -56,12 +57,14 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | Method | Endpoint | Called by / when | Returns |
 |--------|----------|------------------|---------|
 | GET | `/api/health` | Deploy checks, Docker healthcheck, navigation badge | `status`, `version`, `dataSource` (`model`, `mock`, or `unavailable`), `modelsLoaded`, `datasetLabel` ("Practice data") |
-| GET | `/api/fields` | Frontend `getFields()` | `FieldMeta[]` |
-| GET | `/api/fields/{id}` | Frontend `getFieldById()` | `FieldMeta` |
+| GET | `/api/fields` | Frontend `getFields()` | `FieldMeta[]`: the featured plots, with `plotId`, `site`, `hybrid`, `nitrogenLbAc`, `plantingDate` when the bundle has them |
+| GET | `/api/fields/{id}` | Frontend `getFieldById()` | `FieldMeta`. Every plot in `/api/decisions` resolves here and in `/forecast`, not only the featured ones |
 | GET | `/api/fields/{id}/forecast` | Dashboard on load and on field switch (`getForecast()`) | `FieldForecast`: one snapshot per model cutoff (point-in-time features + model), vegetation, events, history, sources. `503` if the model data source can't serve |
 | GET | `/api/fields/{id}/weather?snapshotId=` | Frontend `getWeatherContext()` | `WeatherContext` (latest snapshot by default) |
 | GET | `/api/fields/{id}/soil` | Frontend `getSoilContext()` | `SoilContext` |
-| GET | `/api/models` | After deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list |
+| GET | `/api/decisions?asOfDate=` | Dashboard scouting queue and hybrid table, on every change of forecast date (`getDecisions()`) | `DecisionSet`: every plot in that season at its latest forecast on or before the date (same features and model as the dashboard snapshot), previous forecast and change, top negative driver. `404` for an unknown season or a date before the first forecast |
+| GET | `/api/models` | Dashboard "When does the forecast become useful?" (`getModels()`); after deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list, `dataset`, `holdout` (held-out site accuracy) |
+| GET | `/api/evaluation/imagery` | Dashboard "What did the satellite imagery add?" (`getImageryAblation()`) | `ImageryAblation`: `status` `pending` until `artifacts/imagery_ablation.json` exists, then the variants' validation MAE. `503` if the file is malformed |
 | POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence` (interval precision × share of inputs inside the training range), `confidenceRating`, `drivers` (this forecast's own drivers when the schema has typical values) |
 | GET | `/api/context/all?lat=&lon=&date=` | Dashboard once per field (`getLocationContext()`), with `date` repeated for every forecast date | `LocationContext`: `county`, and `soil` / `weather` / `yieldHistory` parts, each with its own `status` (`ok`, `unavailable`, `not_configured`) |
 | GET | `/api/context/soil?lat=&lon=` | Soil for one point | `SoilProfile` from USDA NRCS SSURGO |
@@ -110,7 +113,8 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `app/schemas.py` | API response models; **mirror of `src/types/agricultural.ts`** |
 | `app/providers.py` | `ForecastProvider` protocol, `ModelForecastProvider` (production), `MockForecastProvider`; `get_provider()` picks by `SOILSIGNAL_DATA_SOURCE`, no fallback; `get_registry()` loads models |
 | `app/forecast/bundle.py` | Loads a showcase bundle (raw inputs for the dashboard's fields) into `FieldInputs` |
-| `app/forecast/builder.py` | `FieldForecast` from inputs + models: per-cutoff snapshots, weather vs normals, soil, drivers as plain-language explanations, neighbouring-plot map, events, history, provenance |
+| `app/forecast/builder.py` | `FieldForecast` from inputs + models: per-cutoff snapshots, weather vs normals, soil, drivers as plain-language explanations, neighbouring-plot map, events, history, provenance; the trial record on `FieldMeta`; `decisions()` scores every bundled plot per forecast date for `/api/decisions` |
+| `app/forecast/evaluation.py` | Reads `artifacts/imagery_ablation.json` (the ML team's with/without imagery comparison) for `/api/evaluation/imagery` |
 | `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
 | `app/model/contract.py` | Model artifact format: `ModelMetadata` (incl. held-out evaluation), `FeatureSchema` (incl. typical values, training ranges, driver phrases) |
 | `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts, confidence; `ModelRegistry.for_date()` picks the point-in-time model |
@@ -145,6 +149,9 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `services/sources.ts` | Data provenance: the forecast's `sources` in API mode, the demo list in demo mode |
 | `services/dataset.ts` | Dataset label for the navigation badge ("Practice data" from `/api/health` in API mode) |
 | `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field; `getLocationContextCsv()` for downloads |
+| `services/decisions.ts` | `getDecisions(asOfDate)`: every plot at a date for the scouting queue (demo mode assembles it from the demo fields) |
+| `services/evaluation.ts` | `getModels()` and `getImageryAblation()` for the model reliability section (demo mode: none / pending) |
+| `utils/imagery.ts` | Satellite passes from the vegetation series: pass counts, "Before imagery" / "After pass N" labels, planting date |
 | `services/contextCsv.ts` | Demo-build CSV from the snapshot, mirroring `backend/app/context/export.py` |
 | `utils/useLocationContext.ts` | Hook that loads a field's location context once for all its forecast dates (dashboard and Data Explorer) |
 | `services/apiClient.ts` | `apiGet()` JSON client |
@@ -153,7 +160,10 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `mock/contextSnapshot.ts` | Generated snapshot of the public data for the demo fields, used in demo mode |
 | `App.tsx` | Page shell: route transitions, presentation (`?presentation=true`, `F`) and debug (`?debug=true`) flags |
 | `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/data`, `/methodology`, `/about` |
-| `components/dashboard/DashboardView.tsx` | Dashboard state: fields, selected field, active date, field-switch transition, shortcuts |
+| `components/dashboard/DashboardView.tsx` | Dashboard state and section order: fields, selected plot, active date, decisions for that date, models, field-switch transition, shortcuts |
+| `components/dashboard/ScoutingQueue.tsx` | "Plots to review": transparent sorts (most uncertain, lowest, highest, largest change), table on tablet/desktop, stacked rows on phones, top 10 with "View all" |
+| `components/dashboard/HybridPerformance.tsx` | Hybrid table from the same decisions; hidden unless at least 3 hybrids have 3+ plots |
+| `components/dashboard/ModelReliability.tsx`, `ImageryValue.tsx` | Validation error by forecast date (optional threshold line: `acceptableMaeBuAc` in `appConfig.ts`); the imagery comparison or "Waiting for the current training run." |
 | `components/dashboard/*` | One component per dashboard section; hand-built SVG charts |
 | `components/data/*` | Data Explorer (`/data`): source status, weather, soil and county-yield panels, Visual/Data views, CSV menu |
 | `components/overview/`, `components/methodology/`, `components/about/` | The other three pages |
@@ -202,6 +212,7 @@ Details in `ml/README.md`.
 | If you change… | Also change… | Guard |
 |----------------|--------------|-------|
 | `src/types/agricultural.ts` | `backend/app/schemas.py` | `test_forecast_matches_frontend_mock_exactly` |
+| Decision / evaluation types (`PlotDecision`, `DecisionSet`, `ModelInfo`, `ImageryAblation`) | `backend/app/schemas.py`, `src/services/decisions.ts` (demo assembly mirrors `MockForecastProvider.get_decisions`) | `test_decisions_*`, `test_imagery_comparison_*` |
 | `src/mock/fieldsData.ts` | Run `npm run export:mock` | Same test |
 | A field's coordinates or dates | Run `cd backend && uv run python -m scripts.snapshot_context` | `npm run lint` type-checks the snapshot |
 | Context types in `src/types/agricultural.ts` | `backend/app/schemas.py` (location context section) | `test_context.py` |

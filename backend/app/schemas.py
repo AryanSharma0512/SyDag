@@ -37,6 +37,12 @@ class FieldMeta(ApiModel):
     regional_baseline: float  # bu/ac 5-year average
     soil_classification: str
     irrigation_status: Literal["Dryland", "Center Pivot", "Drip"]
+    # Trial record, when the dataset has one (model-backed plots); demo fields leave it unset.
+    plot_id: str | None = None  # the plot's id within its site, e.g. "4353-10-42"
+    site: str | None = None  # trial site, e.g. "Crawfordsville"
+    hybrid: str | None = None  # genotype, e.g. "PHP02 X LH145"
+    nitrogen_lb_ac: float | None = None
+    planting_date: str | None = None  # ISO date
 
 
 class WeatherContext(ApiModel):
@@ -208,6 +214,17 @@ class Health(ApiModel):
     dataset_label: str
 
 
+class HoldoutInfo(ApiModel):
+    """Accuracy on the group kept out of training, tuning and interval fitting."""
+
+    group: str  # e.g. "site: Crawfordsville"
+    mae: float
+    rmse: float
+    r2: float
+    interval_coverage: float  # share of held-out yields inside the interval, 0-1
+    n: int
+
+
 class ModelInfo(ApiModel):
     model_id: str
     algorithm: str
@@ -221,6 +238,64 @@ class ModelInfo(ApiModel):
     as_of: str | None
     interval_level: float
     features: list[str]
+    dataset: str | None = None  # e.g. "Practice data: Shrestha et al. (2024) ..."
+    holdout: HoldoutInfo | None = None
+
+
+# ---- Decision support: every plot at one point in the season ------------------
+
+
+class PlotDecision(ApiModel):
+    """One plot's forecast as of a date, with the trial record needed to plan a visit."""
+
+    field_id: str  # use with /api/fields/{fieldId}/forecast
+    plot_id: str | None = None
+    name: str
+    site: str | None = None
+    season: int
+    hybrid: str | None = None
+    nitrogen_lb_ac: float | None = None
+    irrigation_status: Literal["Dryland", "Center Pivot", "Drip"]
+    forecast_date: str  # the forecast used: the latest on or before the requested date
+    predicted_yield: float
+    lower_bound: float
+    upper_bound: float
+    confidence: float
+    confidence_rating: Literal["LOW", "MODERATE", "HIGH"]
+    previous_forecast_date: str | None = None
+    previous_yield: float | None = None
+    change_since_previous: float | None = None  # bu/ac, this forecast minus the previous one
+    top_negative_driver: str | None = None  # the input that pushed this estimate down most
+
+
+class DecisionSet(ApiModel):
+    as_of_date: str  # the requested date; no plot uses data from after it
+    unit: str
+    interval_level: float
+    plots: list[PlotDecision]
+
+
+# ---- Evaluation: what satellite imagery adds -----------------------------------
+
+
+class AblationVariant(ApiModel):
+    id: str
+    label: str  # e.g. "Field records only", "+ Satellite imagery"
+    uses_imagery: bool
+    mae: float
+    rmse: float | None = None
+    r2: float | None = None
+
+
+class ImageryAblation(ApiModel):
+    """Validation error with and without imagery, exported by the ML team. `pending`
+    until they publish a result; nothing is estimated in its place."""
+
+    status: Literal["pending", "ready"]
+    dataset_label: str | None = None  # e.g. "Challenge data" or "Practice data"
+    validation: str | None = None  # e.g. "leave-one-site-out"
+    as_of: str | None = None  # "MM-DD" cutoff the comparison uses; None means full season
+    variants: list[AblationVariant] = []
 
 
 FeatureInput = float | int | str | None

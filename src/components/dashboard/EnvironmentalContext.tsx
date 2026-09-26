@@ -293,10 +293,10 @@ export function EnvironmentalContext({ weather, soil, asOf, observed, soilProfil
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="env-heading" className="text-[16px] font-semibold tracking-[-0.01em] text-ink">
-            Environmental context
+            Weather and soil
           </h2>
           <p className="mt-1 text-[14px] text-muted">
-            {tab === 'weather' ? 'Conditions around the crop on the selected date.' : 'The soil mapped at this field.'}
+            {tab === 'weather' ? 'Observed conditions up to the selected date.' : 'The soil mapped at this plot.'}
           </p>
         </div>
         <SegmentedControl
