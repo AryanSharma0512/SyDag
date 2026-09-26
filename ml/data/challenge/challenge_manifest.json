@@ -1,6 +1,6 @@
 {
-  "dataset": "challenge2022",
-  "generated_at": "2026-09-26T08:20:36+00:00",
+  "dataset": "sydag26",
+  "generated_at": "2026-09-26T12:32:48+00:00",
   "plot_key": "plot_id = '{year}-{site_id}-{experiment}-{range}-{row}' (experiment 'NA' when missing); practice_plot_id = '{site_id}-{experiment}-{range}-{row}'",
   "image_filename_pattern": "<Location>-TP<n>-<experiment>_<range>_<row>.<TIF|PNG>",
   "satellite_bands": [
@@ -224,326 +224,380 @@
   "acquisition_dates": [
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-15"
     },
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-23"
     },
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-10"
     },
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-08-31"
     },
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-09-11"
     },
     {
       "site_id": "Ames",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-09-24"
     },
     {
       "site_id": "Ames",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-12"
     },
     {
       "site_id": "Ames",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-26"
     },
     {
       "site_id": "Ames",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-10"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-10"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-20"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-02"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-09-13"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-10-01"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-10-09"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-12"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-26"
     },
     {
       "site_id": "Crawfordsville",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-11"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-18"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-08-06"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-09-03"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-09-11"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-09-19"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-09-27"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-13"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-28"
     },
     {
       "site_id": "Lincoln",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-04"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-13"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-21"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-08"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-09-03"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-09-11"
     },
     {
       "site_id": "MOValley",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-09-19"
     },
     {
       "site_id": "MOValley",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-13"
     },
     {
       "site_id": "MOValley",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-27"
     },
     {
       "site_id": "MOValley",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-10"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-09"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-17"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-04"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-08-22"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-09-02"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-09-25"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-13"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-19"
     },
     {
       "site_id": "NorthPlatte",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-03"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP1",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-04"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP2",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-17"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP3",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-07"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP4",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
       "date": "2022-08-18"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP5",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
       "date": "2022-09-09"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "satellite",
-      "time_point": "TP6",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
       "date": "2022-09-24"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "uav",
-      "time_point": "TP1",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
       "date": "2022-07-08"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "uav",
-      "time_point": "TP2",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
       "date": "2022-07-22"
     },
     {
       "site_id": "Scottsbluff",
-      "sensor": "uav",
-      "time_point": "TP3",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
       "date": "2022-08-12"
     }
   ],
@@ -561,7 +615,7 @@
       "by_site_time_point": [
         {
           "site_id": "Ames",
-          "time_point": "TP1",
+          "time_point": 1,
           "date": "2022-07-15",
           "days_after_planting_median": 54.0,
           "files": 114,
@@ -573,7 +627,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP2",
+          "time_point": 2,
           "date": "2022-07-23",
           "days_after_planting_median": 62.0,
           "files": 108,
@@ -585,7 +639,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP3",
+          "time_point": 3,
           "date": "2022-08-10",
           "days_after_planting_median": 80.0,
           "files": 124,
@@ -597,7 +651,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP4",
+          "time_point": 4,
           "date": "2022-08-31",
           "days_after_planting_median": 101.0,
           "files": 108,
@@ -609,7 +663,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP5",
+          "time_point": 5,
           "date": "2022-09-11",
           "days_after_planting_median": 112.0,
           "files": 100,
@@ -621,7 +675,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP6",
+          "time_point": 6,
           "date": "2022-09-24",
           "days_after_planting_median": 125.0,
           "files": 144,
@@ -633,7 +687,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP1",
+          "time_point": 1,
           "date": "2022-07-10",
           "days_after_planting_median": 60.0,
           "files": 77,
@@ -645,7 +699,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP2",
+          "time_point": 2,
           "date": "2022-07-20",
           "days_after_planting_median": 70.0,
           "files": 93,
@@ -657,7 +711,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP3",
+          "time_point": 3,
           "date": "2022-08-02",
           "days_after_planting_median": 83.0,
           "files": 81,
@@ -669,7 +723,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP4",
+          "time_point": 4,
           "date": "2022-09-13",
           "days_after_planting_median": 125.0,
           "files": 80,
@@ -681,7 +735,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP5",
+          "time_point": 5,
           "date": "2022-10-01",
           "days_after_planting_median": 143.0,
           "files": 78,
@@ -693,7 +747,7 @@
         },
         {
           "site_id": "Crawfordsville",
-          "time_point": "TP6",
+          "time_point": 6,
           "date": "2022-10-09",
           "days_after_planting_median": 151.0,
           "files": 91,
@@ -705,7 +759,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP1",
+          "time_point": 1,
           "date": "2022-07-18",
           "days_after_planting_median": 57.0,
           "files": 133,
@@ -717,7 +771,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP2",
+          "time_point": 2,
           "date": "2022-08-06",
           "days_after_planting_median": 76.0,
           "files": 133,
@@ -729,7 +783,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP3",
+          "time_point": 3,
           "date": "2022-09-03",
           "days_after_planting_median": 104.0,
           "files": 149,
@@ -741,7 +795,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP4",
+          "time_point": 4,
           "date": "2022-09-11",
           "days_after_planting_median": 112.0,
           "files": 133,
@@ -753,7 +807,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP5",
+          "time_point": 5,
           "date": "2022-09-19",
           "days_after_planting_median": 120.0,
           "files": 133,
@@ -765,7 +819,7 @@
         },
         {
           "site_id": "Lincoln",
-          "time_point": "TP6",
+          "time_point": 6,
           "date": "2022-09-27",
           "days_after_planting_median": 128.0,
           "files": 133,
@@ -819,7 +873,7 @@
       "by_site_time_point": [
         {
           "site_id": "Ames",
-          "time_point": "TP1",
+          "time_point": 1,
           "date": "2022-07-12",
           "days_after_planting_median": 51.0,
           "files": 126,
@@ -831,7 +885,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP2",
+          "time_point": 2,
           "date": "2022-07-26",
           "days_after_planting_median": 65.0,
           "files": 132,
@@ -843,7 +897,7 @@
         },
         {
           "site_id": "Ames",
-          "time_point": "TP3",
+          "time_point": 3,
           "date": "2022-08-10",
           "days_after_planting_median": 80.0,
           "files": 172,
@@ -1395,7 +1449,7 @@
         "nitrogen_lb_ac_raw": "float64",
         "irrigation_provided": "float64",
         "plot_length_ft": "float64",
-        "planting_date": "object",
+        "planting_date": "datetime64[s]",
         "total_stand_count": "float64",
         "days_to_anthesis": "float64",
         "gdd_to_anthesis": "float64",
@@ -1404,7 +1458,53 @@
         "nitrogen_lb_ac": "float64",
         "irrigated": "boolean",
         "is_hybrid_plot": "bool",
-        "planting_date_filled": "object",
+        "planting_date_filled": "datetime64[s]",
+        "planting_date_source": "str",
+        "practice_plot_id": "str",
+        "latitude": "float64",
+        "longitude": "float64",
+        "utm_epsg": "Int64",
+        "utm_x": "float64",
+        "utm_y": "float64",
+        "coord_images": "Int64",
+        "coord_spread_m": "float64",
+        "coord_source": "str",
+        "satellite_images": "int64",
+        "satellite_time_points": "str",
+        "uav_images": "int64",
+        "uav_time_points": "str"
+      }
+    },
+    "benchmark_plots.parquet": {
+      "rows": 1026,
+      "columns": {
+        "plot_id": "str",
+        "year": "int64",
+        "site_id": "string",
+        "field_id": "str",
+        "experiment": "string",
+        "range": "int64",
+        "row": "int64",
+        "gt_row": "int64",
+        "gt_index": "Int64",
+        "qr_code": "string",
+        "block": "Int64",
+        "plot_number": "Int64",
+        "genotype": "string",
+        "nitrogen_treatment": "string",
+        "nitrogen_lb_ac_raw": "float64",
+        "irrigation_provided": "float64",
+        "plot_length_ft": "float64",
+        "planting_date": "datetime64[s]",
+        "total_stand_count": "float64",
+        "days_to_anthesis": "float64",
+        "gdd_to_anthesis": "float64",
+        "final_yield": "float64",
+        "nitrogen_placeholder_zero": "bool",
+        "nitrogen_lb_ac": "float64",
+        "irrigated": "boolean",
+        "is_hybrid_plot": "bool",
+        "planting_date_filled": "datetime64[s]",
         "planting_date_source": "str",
         "practice_plot_id": "str",
         "latitude": "float64",
@@ -1425,13 +1525,38 @@
       "rows": 54,
       "columns": {
         "site_id": "str",
-        "location_label": "str",
-        "sensor": "str",
-        "time_point": "str",
-        "date": "object",
         "year": "int64",
+        "modality": "str",
+        "time_point": "int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
         "day_of_year": "int64",
-        "tp_index": "int64"
+        "location_label": "str"
+      }
+    },
+    "satellite_acquisitions.parquet": {
+      "rows": 36,
+      "columns": {
+        "site_id": "str",
+        "year": "int64",
+        "tp": "int64",
+        "date": "datetime64[s]"
+      }
+    },
+    "images.parquet": {
+      "rows": 2372,
+      "columns": {
+        "path": "str",
+        "modality": "str",
+        "site_id": "object",
+        "time_point": "int64",
+        "plot_id": "str",
+        "date": "datetime64[s]",
+        "experiment": "string",
+        "range": "Int64",
+        "row": "Int64",
+        "tp_label": "str",
+        "image_id": "string"
       }
     },
     "sites.parquet": {
@@ -1458,13 +1583,13 @@
       "rows": 2012,
       "columns": {
         "image_id": "string",
-        "sensor": "str",
+        "modality": "str",
         "plot_id": "str",
         "site_id": "object",
         "year": "float64",
-        "time_point": "str",
-        "tp_index": "int64",
-        "date": "object",
+        "time_point": "Int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
         "days_after_planting": "Int64",
         "experiment": "string",
         "range": "Int64",
@@ -1489,7 +1614,7 @@
         "field_id": "str",
         "genotype": "string",
         "final_yield": "float64",
-        "planting_date": "object",
+        "planting_date": "datetime64[s]",
         "is_hybrid_plot": "object",
         "image_key": "string",
         "copy_index": "int64",
@@ -1538,13 +1663,13 @@
       "rows": 430,
       "columns": {
         "image_id": "string",
-        "sensor": "str",
+        "modality": "str",
         "plot_id": "str",
         "site_id": "object",
         "year": "float64",
-        "time_point": "str",
-        "tp_index": "int64",
-        "date": "object",
+        "time_point": "Int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
         "days_after_planting": "Int64",
         "experiment": "string",
         "range": "Int64",
@@ -1569,7 +1694,7 @@
         "field_id": "str",
         "genotype": "string",
         "final_yield": "float64",
-        "planting_date": "object",
+        "planting_date": "datetime64[s]",
         "is_hybrid_plot": "object",
         "image_key": "string",
         "copy_index": "int64",
@@ -1598,9 +1723,10 @@
       "rows": 2372,
       "columns": {
         "plot_id": "str",
-        "date": "object",
+        "date": "datetime64[s]",
         "source": "str",
-        "time_point": "str",
+        "time_point": "Int64",
+        "tp_label": "str",
         "image_path": "str",
         "image_id": "string",
         "days_after_planting": "Int64"

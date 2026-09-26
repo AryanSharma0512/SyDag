@@ -6,7 +6,7 @@ Nothing written here holds a Drive file id, an owner's e-mail or a machine-local
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -16,6 +16,7 @@ from soilsignal_ml.ingest.challenge import (
     GROUND_TRUTH_CSV,
     SENSOR_TIME_POINTS,
     ChallengeTables,
+    find_input,
 )
 from soilsignal_ml.ingest.imagery import SATELLITE_BANDS, SATELLITE_REFLECTANCE_SCALE, sha256
 
@@ -187,7 +188,7 @@ def summarize(t: ChallengeTables, raw_root: Path) -> dict:
             if status != "ok":
                 anomalies.append(f"{sensor}: {n} files with status {status}.")
         if df["is_duplicate"].any():
-            groups = df[df["copies"] > 1].groupby(["site_id", "time_point"]).size() // 2
+            groups = df[df["copies"] > 1].groupby(["site_id", "tp_label"]).size() // 2
             anomalies.append(
                 f"{sensor}: {int(df['is_duplicate'].sum())} duplicate uploads (same plot, time "
                 f"point, name and size), by site/TP: "
@@ -196,7 +197,7 @@ def summarize(t: ChallengeTables, raw_root: Path) -> dict:
             )
         exp_tp = SENSOR_TIME_POINTS[sensor]
         for s, g in df.groupby("site_id"):
-            tps = sorted(g["time_point"].dropna().unique())
+            tps = sorted(g["tp_label"].dropna().unique())
             if len(tps) != exp_tp:
                 anomalies.append(f"{sensor} {s}: time points present {tps}, expected {exp_tp}.")
     img_sites = set(t.satellite["site_id"].dropna())
@@ -228,11 +229,11 @@ def summarize(t: ChallengeTables, raw_root: Path) -> dict:
 
     inputs = {}
     for rel in (GROUND_TRUTH_CSV, DATES_XLSX):
-        f = raw_root / rel
+        f = find_input(raw_root, rel)
         if f.exists():
             inputs[rel] = {"bytes": f.stat().st_size, "sha256": sha256(f)}
     manifest = {
-        "dataset": "challenge2022",
+        "dataset": "sydag26",
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "plot_key": "plot_id = '{year}-{site_id}-{experiment}-{range}-{row}' "
         "(experiment 'NA' when missing); practice_plot_id = '{site_id}-{experiment}-{range}-{row}'",
@@ -255,7 +256,7 @@ def summarize(t: ChallengeTables, raw_root: Path) -> dict:
             "duplicate_plot_ids": int(p["plot_id"].duplicated().sum()),
         },
         "acquisition_dates": t.acquisition_dates[
-            ["site_id", "sensor", "time_point", "date"]
+            ["site_id", "modality", "time_point", "tp_label", "date"]
         ].to_dict("records"),
         "images": {"satellite": _image_summary(t.satellite), "uav": _image_summary(t.uav)},
         "raster_metadata": {
@@ -277,12 +278,27 @@ def summarize(t: ChallengeTables, raw_root: Path) -> dict:
     return _jsonable(manifest)
 
 
+def parquet_ready(df: pd.DataFrame) -> pd.DataFrame:
+    """Calendar dates as datetime64 (midnight), the type pandas, the imagery and progressive
+    stages and most Parquet readers expect; Python date objects would come back as object."""
+    out = df.copy()
+    for c in out.columns:
+        if out[c].dtype == object:
+            values = out[c].dropna()
+            if len(values) and all(isinstance(v, date) for v in values.iloc[:200]):
+                out[c] = pd.to_datetime(out[c])
+    return out
+
+
 def write_outputs(t: ChallengeTables, out_root: Path, raw_root: Path) -> dict:
     out_root.mkdir(parents=True, exist_ok=True)
     listed = t.listed
     tables = {
         "plots": t.plots,
+        "benchmark_plots": t.benchmark_plots(),
         "acquisition_dates": t.acquisition_dates,
+        "satellite_acquisitions": t.satellite_acquisitions(),
+        "images": t.images(),
         "sites": t.sites,
         "satellite_manifest": _public(t.satellite),
         "uav_manifest": _public(t.uav),
@@ -308,6 +324,7 @@ def write_outputs(t: ChallengeTables, out_root: Path, raw_root: Path) -> dict:
     for name, df in tables.items():
         if df is None:
             continue
+        df = parquet_ready(df)
         df.to_parquet(out_root / f"{name}.parquet", index=False)
         schemas[f"{name}.parquet"] = _schema(df)
     manifest = summarize(t, raw_root)

@@ -90,35 +90,39 @@ only contains `backend/`.
 ## Challenge dataset (SyDAg26)
 
 `python -m soilsignal_ml challenge` reads the organizers' shared folder (a local copy at
-`ml/data/raw/challenge/`: `GroundTruth/`, `Satellite/<Location>/TP1..6/`, `UAV/<Location>/TP1..3/`)
-and writes compact tables to `ml/data/challenge/` (committed; no imagery):
+`ml/data/raw/challenge/`: `Groundtruth/` (any case), `Satellite/<Location>/TP1..6/`,
+`UAV/<Location>/TP1..3/`) and writes compact tables to `ml/data/challenge/` (committed; no
+imagery). `time_point` is an int per site and modality, and dates are datetime64:
 
-| File | One row per |
-|---|---|
-| `plots.parquet` | ground-truth plot: `plot_id` = `{year}-{site}-{experiment}-{range}-{row}`, management, target, coordinates, image counts |
-| `acquisition_dates.parquet` | site + sensor + TP → date (from `DateofCollection.xlsx`; TPs differ by site) |
-| `satellite_manifest.parquet`, `uav_manifest.parquet` | image file: parsed name, `match_status`, `use`, date, days after planting, raster metadata when the file is local |
-| `observations.parquet` | usable plot image (`plot_id`, `date`, `source`, `time_point`, `image_path`) |
-| `sites.parquet`, `drive_inventory.parquet` | site; every file listed on Drive (names and sizes, no ids) |
-| `challenge_manifest.json` | counts, joins, anomalies and every output's schema |
+| File | One row per | Read by |
+|---|---|---|
+| `plots.parquet` | ground-truth plot: `plot_id` = `{year}-{site}-{experiment}-{range}-{row}`, records, target, coordinates | imagery `--plots`, progressive `--plots` |
+| `images.parquet` | usable image: `path, modality, site_id, time_point, plot_id, date` | imagery `--manifest` |
+| `acquisition_dates.parquet` | site × modality × pass → date (`DateofCollection.xlsx`) | imagery `--acquisitions` |
+| `satellite_acquisitions.parquet` | satellite pass: `site_id, year, tp, date` | progressive `--acquisitions` |
+| `satellite_manifest.parquet`, `uav_manifest.parquet` | every file, incl. unmatched and duplicates, with raster metadata | audit |
+| `observations.parquet`, `sites.parquet`, `drive_inventory.parquet`, `challenge_manifest.json` | usable image; site; Drive file; counts, anomalies, schemas | reference |
 
 ```bash
-# images local (restartable: raster metadata is cached per file)
-uv run --project ../backend --group ml python -m soilsignal_ml challenge --inventory data/challenge/drive_inventory.parquet
-uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 ingest   # canonical tables
-uv run --project ../backend --group ml python -m soilsignal_ml challenge-sql                     # optional Postgres/PostGIS load
+PY="uv run --project ../backend --group ml python"
+$PY -m soilsignal_ml challenge --inventory data/challenge/drive_inventory.parquet  # restartable
+$PY -m soilsignal_ml --dataset sydag26 ingest     # canonical tables (--dataset before the command)
+$PY -m soilsignal_ml challenge-sql                # optional Postgres/PostGIS load
 ```
 
-`ChallengeDatasetAdapter` (`ingest/challenge_adapter.py`) turns these into the canonical tables;
-it uses `ml/data/challenge/satellite_features.parquet` (image_id + indices) when the spectral
-stage has written it, else computes the indices from the GeoTIFFs. Details, statistics and
-anomalies: `AGENT1_HANDOFF.md` at the repository root.
+`HackathonDatasetAdapter` (`ingest/dataset_adapter.py`, dataset `sydag26`) turns these into the
+canonical tables. It takes indices from the imagery stage's
+`data/interim/imagery/canonical_observations.csv` when present, else from the GeoTIFFs.
+Weather, soil and county yields stay separate context tables; `plots` holds records only.
+Details, statistics and anomalies: `AGENT1_HANDOFF.md` at the repository root.
 
 ## Data day: switching to the challenge dataset
 
-1. Fill in `HackathonDatasetAdapter.build()` so it returns the canonical tables. Keep only
-   columns the data has; don't fabricate indices for missing bands.
-2. `ingest`, `validate`, `profile`. Read the profile before changing anything.
+1. `challenge` (above), then `--dataset sydag26 ingest` and `validate`
+   (`HackathonDatasetAdapter` is implemented). Read `experiments/reports/sydag26_dataset_profile.md`
+   before changing anything.
+2. The early-signal benchmark (records only, then + TP1, + TP1–TP2, …) runs in
+   `progressive_experiment.py` (`AGENT3_HANDOFF.md`).
 3. Revisit `configs/`: the held-out group (site? year?), the cutoff dates for that season,
    and `primary_validation` in `splits.py` terms (with several years, `year` is the honest split).
 4. `train`, `report`, `export`. Add the winning library to the backend if it isn't there

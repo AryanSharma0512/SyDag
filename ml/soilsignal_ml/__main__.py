@@ -12,9 +12,10 @@ SoilSignal ML command line. Run from ml/:
     showcase  write the held-out plots' raw inputs to backend/data/practice for the API
     progressive  records only vs + imagery through TP1..TP6: early signal and scouting
                  (all options: python -m soilsignal_ml progressive --help)
-    challenge inventory + join the challenge dataset -> ml/data/challenge/ (see
-              soilsignal_ml/ingest/challenge.py); `--dataset challenge2022 ingest` then
-              builds the canonical tables from it
+    challenge    inventory + join the challenge dataset -> ml/data/challenge/ (see
+                 soilsignal_ml/ingest/challenge.py); `--dataset sydag26 ingest` then
+                 builds the canonical tables from it (HackathonDatasetAdapter)
+    challenge-sql  CSV + psql load script for ml/data/challenge/ (optional database)
 """
 
 import argparse
@@ -57,12 +58,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "ingest":
-        from soilsignal_ml.ingest.challenge_adapter import ChallengeDatasetAdapter
         from soilsignal_ml.ingest.context import add_public_context
         from soilsignal_ml.ingest.dataset_adapter import ADAPTERS
 
-        adapters = {**ADAPTERS, ChallengeDatasetAdapter.name: ChallengeDatasetAdapter}
-        dataset = adapters[args.dataset]().build()
+        dataset = ADAPTERS[args.dataset]().build()
         dataset = add_public_context(dataset)
         print(f"saved {dataset.save()}")
     elif args.command == "context":

@@ -19,7 +19,7 @@ TABLES = {
     # table: (parquet files, primary key)
     "sites": (["sites"], ["site_id"]),
     "plots": (["plots"], ["plot_id"]),
-    "acquisition_dates": (["acquisition_dates"], ["site_id", "sensor", "time_point"]),
+    "acquisition_dates": (["acquisition_dates"], ["site_id", "modality", "time_point"]),
     "images": (["satellite_manifest", "uav_manifest"], ["image_id"]),
     "observations": (["observations"], ["image_id"]),
 }
@@ -68,11 +68,13 @@ def pg_type(dtype) -> str:
 
 
 def _column_type(s: pd.Series) -> str:
-    """Dates are stored as Python date objects in object columns."""
+    """Calendar dates (datetime64 at midnight, or Python dates) become `date`."""
     kind = pg_type(s.dtype)
-    if kind == "text":
-        sample = s.dropna()
-        if len(sample) and all(hasattr(v, "isoformat") and len(str(v)) == 10 for v in sample[:50]):
+    sample = s.dropna()
+    if kind == "timestamptz" and len(sample) and (sample == sample.dt.normalize()).all():
+        return "date"
+    if kind == "text" and len(sample):
+        if all(hasattr(v, "isoformat") and len(str(v)) == 10 for v in sample[:50]):
             return "date"
     return kind
 

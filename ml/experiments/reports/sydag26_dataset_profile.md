@@ -1,4 +1,4 @@
-# Dataset profile: challenge2022
+# Dataset profile: sydag26
 
 SyDAg26 IoT4Ag hackathon challenge data (organizers' shared folder); the plots, images and README match Shrestha N., Powadi A., Davis J., et al. (2024), doi:10.5061/dryad.905qftttm.
 
@@ -8,6 +8,7 @@ SyDAg26 IoT4Ag hackathon challenge data (organizers' shared folder); the plots, 
 - Acquisition dates from DateofCollection.xlsx; TP numbers differ by site.
 - Satellite indices: mean over the plot's pixels of per-pixel indices, reflectance = DN x 1e-4.
 - Fill plots without a planting date take their site + experiment's date.
+- Weather, soil and county yields are context tables, not plot records.
 
 ## Sites
 
@@ -15,7 +16,7 @@ SyDAg26 IoT4Ag hackathon challenge data (organizers' shared folder); the plots, 
 |---|---|---|---|---|---|---|
 | Ames | Boone County | IA | 42.015 | -93.732 | Ames 8 Wsw, IA | 3.500 |
 | Crawfordsville | Washington County | IA | 41.199 | -91.487 | Columbus Junction, IA | 13.800 |
-| Lincoln | Lancaster County | NE | 40.852 | -96.615 | Lincoln 8 Ene, NE | 4.200 |
+| Lincoln | Lancaster County | NE | 40.852 | -96.615 | Lincoln Airport, NE | 12.600 |
 
 ## Yield (bu/ac at 15.5% moisture)
 
@@ -56,8 +57,8 @@ Between-site differences dwarf within-site ones: Lincoln (rainfed, 2022 drought)
 | Site | Planted | Rain, planting-Sep 30 (mm) | GDD, planting-Sep 30 | Days ≥ 95 °F | Nights ≥ 70 °F | Filled from other stations (days) |
 |---|---|---|---|---|---|---|
 | Ames | 2022-05-22 | 527 | 2,855 | 3 | 21 | 0 |
-| Crawfordsville | 2022-05-11 | 369 | 2,956 | 2 | 11 | 3 |
-| Lincoln | 2022-05-22 | 305 | 2,886 | 15 | 18 | 1 |
+| Crawfordsville | 2022-05-11 | 326 | 2,954 | 2 | 11 | 3 |
+| Lincoln | 2022-05-22 | 251 | 3,022 | 27 | 26 | 0 |
 
 ## Growth stage check
 
@@ -65,7 +66,7 @@ Features place silking at 1,300 GDD after planting (ISU PMR 1009). Two sites rec
 
 | Site | Plots | Days to anthesis (median) | GDD to anthesis, NOAA weather (median) | GDD to anthesis, as recorded (median) | Feature milestone (GDD) |
 |---|---|---|---|---|---|
-| Lincoln | 413 | 59 | 1,339 | 1,346 | 1,300 |
+| Lincoln | 413 | 59 | 1,393 | 1,346 | 1,300 |
 
 ## Soil (SSURGO dominant component at each plot)
 
@@ -77,8 +78,18 @@ Features place silking at 1,300 GDD after planting (ISU PMR 1009). Two sites rec
 
 ## County corn yield history (USDA NASS, bu/ac)
 
-| Year |
-|---|
+| Year | Ames | Crawfordsville | Lincoln |
+|---|---|---|---|
+| 2013 | 154.2 | 159.0 | 146.0 |
+| 2014 | 180.9 | 191.3 | 155.7 |
+| 2015 | 192.3 | 195.0 | 157.2 |
+| 2016 | 208.4 | 208.2 | 163.2 |
+| 2017 | 192.4 | 220.4 | 165.5 |
+| 2018 | 193.7 | 214.3 | 179.7 |
+| 2019 | 194.8 | 178.9 | 158.2 |
+| 2020 | 160.7 | 185.4 | 167.0 |
+| 2021 | 208.4 | – | 181.2 |
+| 2022 | 202.4 | 185.7 | 112.1 |
 
 ## Missing values
 

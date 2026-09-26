@@ -3,7 +3,8 @@ Dataset adapters: each turns one source's files into the CanonicalDataset.
 
 PublicDatasetAdapter   Shrestha et al. (2024), multistate maize hybrid trials with
                        Pléiades Neo satellite imagery (the practice dataset).
-HackathonDatasetAdapter  The SyDAg26 challenge data, once released.
+HackathonDatasetAdapter  The SyDAg26 challenge data (dataset "sydag26"), from the tables
+                       `python -m soilsignal_ml challenge` writes to ml/data/challenge/.
 
 Swapping datasets means writing an adapter, never touching features or training.
 """
@@ -19,8 +20,12 @@ import pandas as pd
 import tifffile
 from pyproj import Transformer
 
-from app.features.vegetation import compute_indices
-from soilsignal_ml.ingest.canonical import CanonicalDataset
+from app.features.vegetation import INDEX_NAMES, compute_indices
+from soilsignal_ml import ML_ROOT
+from soilsignal_ml.ingest.canonical import PLOT_COLUMNS, SOIL_COLUMNS, CanonicalDataset
+from soilsignal_ml.ingest.challenge import OUT_ROOT as CHALLENGE_TABLES
+from soilsignal_ml.ingest.challenge import RAW_ROOT as CHALLENGE_RAW
+from soilsignal_ml.ingest.imagery import SATELLITE_BANDS, SATELLITE_REFLECTANCE_SCALE
 from soilsignal_ml.ingest.remote_zip import RemoteZip
 
 Progress = Callable[[str], None]
@@ -34,14 +39,130 @@ class DatasetAdapter(Protocol):
         ...
 
 
+# ---- SyDAg26 challenge data ------------------------------------------------------------
+
+# Agent 2's per-image index means in the canonical observations layout (soilsignal_ml.imagery).
+IMAGERY_OBSERVATIONS = ML_ROOT / "data" / "interim" / "imagery" / "canonical_observations.csv"
+CHALLENGE_PLOT_EXTRAS = [
+    "experiment",
+    "range",
+    "row",
+    "practice_plot_id",
+    "stand_count",
+    "days_to_anthesis",
+    "gdd_to_anthesis",
+]
+
+
+def image_indices(path) -> dict[str, float]:
+    """Mean of each per-pixel index over a plot GeoTIFF's valid pixels (all six bands
+    non-zero), and the mean NIR reflectance (showcase reads it as `nir`)."""
+    cube = tifffile.imread(path).astype(float)  # (rows, cols, 6)
+    valid = (cube != 0).all(axis=-1)
+    if not valid.any():
+        return {}
+    bands = {
+        name: cube[..., i][valid] * SATELLITE_REFLECTANCE_SCALE
+        for i, name in enumerate(SATELLITE_BANDS)
+    }
+    out = {
+        name: float(np.nanmean(values)) if np.isfinite(values).any() else np.nan
+        for name, values in compute_indices(bands).items()
+    }
+    out["nir"] = float(bands["nir"].mean())
+    return out
+
+
 class HackathonDatasetAdapter:
-    """Fill in on data day: map the challenge files onto the canonical tables
-    (see canonical.py), then `python -m soilsignal_ml ingest --dataset hackathon`."""
+    """SyDAg26 challenge data -> the canonical tables (plots, observations, sites).
+
+    Reads `python -m soilsignal_ml challenge`'s outputs (ml/data/challenge/). Vegetation
+    indices come from Agent 2's canonical_observations.csv when it exists (matched on plot_id
+    and date), else from the GeoTIFFs under ml/data/raw/challenge/. Plots kept: those with a
+    usable satellite image and coordinates, as in the practice dataset. `ingest` then adds
+    weather, soil and county yields as separate context tables; none of them enter `plots`.
+    UAV images are not used here (RGB only, not calibrated between flights)."""
 
     name = "sydag26"
 
+    def __init__(
+        self,
+        tables=CHALLENGE_TABLES,
+        raw_root=CHALLENGE_RAW,
+        imagery_observations=IMAGERY_OBSERVATIONS,
+    ) -> None:
+        self.tables = tables
+        self.raw_root = raw_root
+        self.imagery_observations = imagery_observations
+
+    def _indices(self, sat: pd.DataFrame, progress: Progress) -> pd.DataFrame:
+        if self.imagery_observations.exists():
+            progress(f"indices from {self.imagery_observations}")
+            f = pd.read_csv(self.imagery_observations)
+            f["date"] = pd.to_datetime(f["date"]).dt.normalize()
+            cols = ["plot_id", "date", *[i for i in (*INDEX_NAMES, "nir") if i in f]]
+            return sat.merge(f[cols], on=["plot_id", "date"], how="inner")
+        progress(f"indices computed from the GeoTIFFs under {self.raw_root}")
+        rows = [
+            {"image_id": r.image_id, **image_indices(self.raw_root / r.image_path)}
+            for r in sat.itertuples()
+            if (self.raw_root / r.image_path).exists()
+        ]
+        if not rows:
+            raise FileNotFoundError(
+                f"no satellite images under {self.raw_root} and no {self.imagery_observations}"
+            )
+        return sat.merge(pd.DataFrame(rows), on="image_id", how="inner")
+
     def build(self, progress: Progress = print) -> CanonicalDataset:
-        raise NotImplementedError("the challenge dataset is released at kickoff")
+        plots = pd.read_parquet(self.tables / "plots.parquet")
+        sat = pd.read_parquet(self.tables / "satellite_manifest.parquet")
+        sites = pd.read_parquet(self.tables / "sites.parquet")
+
+        sat = sat[sat["use"]].assign(date=lambda d: pd.to_datetime(d["date"]).dt.normalize())
+        obs = self._indices(sat, progress).assign(source="satellite")
+        obs["date"] = obs["date"].dt.date
+        values = [i for i in (*INDEX_NAMES, "nir") if i in obs]
+        # time_point: the pass number at its site (1-6), as in the practice dataset.
+        obs = obs[["plot_id", "date", "source", "time_point", *values]]
+        for i in (*INDEX_NAMES, "nir"):
+            if i not in obs:
+                obs[i] = np.nan
+
+        p = plots.rename(columns={"total_stand_count": "stand_count"}).copy()
+        # Fill plots share their site + experiment's planting date (planting_date_source).
+        p["planting_date"] = pd.to_datetime(p["planting_date_filled"]).dt.date
+        keep = p["plot_id"].isin(obs["plot_id"]) & p["latitude"].notna()
+        p = p.loc[keep, PLOT_COLUMNS + CHALLENGE_PLOT_EXTRAS].reset_index(drop=True)
+        obs = obs[obs["plot_id"].isin(p["plot_id"])].reset_index(drop=True)
+        s = sites[sites["site_id"].isin(p["site_id"])][
+            ["site_id", "name", "state", "latitude", "longitude"]
+        ].reset_index(drop=True)
+        return CanonicalDataset(
+            name=self.name,
+            plots=p,
+            observations=obs,
+            weather=pd.DataFrame(columns=["site_id", "date", "tmax_f", "tmin_f", "prcp_mm"]),
+            soil=pd.DataFrame(columns=SOIL_COLUMNS),
+            county_yields=pd.DataFrame(columns=["site_id", "year", "yield"]),
+            sites=s,
+            provenance={
+                "dataset": self.name,
+                "citation": "SyDAg26 IoT4Ag hackathon challenge data (organizers' shared "
+                "folder); the plots, images and README match Shrestha N., Powadi A., Davis J., "
+                "et al. (2024), doi:10.5061/dryad.905qftttm.",
+                "license": "As distributed by the hackathon organizers; satellite imagery "
+                "© Airbus DS (2022).",
+                "notes": [
+                    "Plot key: {year}-{site}-{experiment}-{range}-{row} (ml/data/challenge).",
+                    "Acquisition dates from DateofCollection.xlsx; TP numbers differ by site.",
+                    "Satellite indices: mean over the plot's pixels of per-pixel indices, "
+                    "reflectance = DN x 1e-4.",
+                    "Fill plots without a planting date take their site + experiment's date.",
+                    "Weather, soil and county yields are context tables, not plot records.",
+                ],
+            },
+        )
 
 
 # ---- Shrestha et al. (2024) ---------------------------------------------------------

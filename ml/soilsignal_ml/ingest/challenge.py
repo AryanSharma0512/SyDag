@@ -8,6 +8,7 @@ Inputs, a local copy of the organizers' shared folder (default ml/data/raw/chall
 
     GroundTruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv   one row per plot (authoritative key + target)
     GroundTruth/DateofCollection.xlsx           location + sensor + TPn -> acquisition date
+    (the folder is "Groundtruth" on Drive; folder names are matched case-insensitively)
     Satellite/<Location>/TP1..TP6/<Location>-TPn-<experiment>_<range>_<row>.TIF
     UAV/<Location>/TP1..TP3/<Location>-TPn-<experiment>_<range>_<row>.PNG
 
@@ -19,9 +20,14 @@ no plot, or duplicate another file stay in the manifest with a status saying so.
 
 Outputs (default ml/data/challenge/, see write_outputs):
 
-    plots.parquet, acquisition_dates.parquet, sites.parquet,
-    satellite_manifest.parquet, uav_manifest.parquet, observations.parquet,
+    plots.parquet, benchmark_plots.parquet, acquisition_dates.parquet,
+    satellite_acquisitions.parquet, sites.parquet,
+    images.parquet, satellite_manifest.parquet, uav_manifest.parquet, observations.parquet,
     drive_inventory.parquet, challenge_manifest.json
+
+Conventions shared with the imagery (Agent 2) and progressive (Agent 3) stages: `modality`
+is satellite | uav, `time_point` is the pass number (int, per site and modality), `tp_label`
+is its "TP3" spelling, and `date` is the acquisition date.
 """
 
 import json
@@ -81,6 +87,20 @@ SITE_FACTS = {
 }
 
 
+def find_input(root: Path, rel: str) -> Path:
+    """root / rel, matching each folder and file name case-insensitively (the shared folder
+    has "Groundtruth", the organizers' README says "GroundTruth")."""
+    path = Path(root)
+    for part in Path(rel).parts:
+        exact = path / part
+        if exact.exists() or not path.is_dir():
+            path = exact
+            continue
+        match = [c for c in path.iterdir() if c.name.lower() == part.lower()]
+        path = match[0] if match else exact
+    return path
+
+
 def site_id(name: str) -> str:
     name = str(name).strip()
     return SITE_ALIASES.get(name, name)
@@ -93,9 +113,13 @@ def make_plot_id(year: int, site: str, experiment: str | None, rng: int, row: in
 
 
 def practice_plot_id(site: str, experiment: str | None, rng: int, row: int) -> str:
-    """The id the practice pipeline (shrestha2024) gave the same physical plot."""
-    exp = "NA" if experiment is None or pd.isna(experiment) else str(experiment)
-    return f"{site}-{exp}-{int(rng)}-{int(row)}"
+    """The id the practice pipeline (shrestha2024) gives the same physical plot, which is
+    also the imagery stage's default when it runs without this manifest."""
+    from soilsignal_ml.ingest.dataset_adapter import plot_id
+
+    if experiment is None or pd.isna(experiment):
+        return f"{site}-NA-{int(rng)}-{int(row)}"
+    return plot_id(site, str(experiment), rng, row)
 
 
 # ---- ground truth --------------------------------------------------------------------
@@ -219,31 +243,32 @@ def load_acquisition_dates(xlsx_path: Path) -> pd.DataFrame:
     for loc, day, image, tp in (r[:4] for r in rows[1:]):
         if loc is None:
             continue
-        sensor = SENSOR_FOLDERS.get(str(image).strip())
-        if sensor is None:
+        modality = SENSOR_FOLDERS.get(str(image).strip())
+        if modality is None:
             raise ValueError(f"unknown image type {image!r} in DateofCollection.xlsx")
         d = _as_date(day)
+        label = str(tp).strip().upper()
         out.append(
             {
                 "site_id": site_id(loc),
-                "location_label": str(loc).strip(),
-                "sensor": sensor,
-                "time_point": str(tp).strip().upper(),
-                "date": d,
                 "year": d.year,
+                "modality": modality,
+                "time_point": int(label.removeprefix("TP")),
+                "tp_label": label,
+                "date": d,
                 "day_of_year": d.timetuple().tm_yday,
+                "location_label": str(loc).strip(),
             }
         )
     df = pd.DataFrame(out)
-    df["tp_index"] = df["time_point"].str.removeprefix("TP").astype(int)
-    if df.duplicated(["site_id", "sensor", "time_point"]).any():
-        raise ValueError("DateofCollection.xlsx lists a site/sensor/time point twice")
-    # TP order must be chronological within a site and sensor.
-    for (s, sensor), g in df.groupby(["site_id", "sensor"]):
-        g = g.sort_values("tp_index")
+    if df.duplicated(["site_id", "modality", "time_point"]).any():
+        raise ValueError("DateofCollection.xlsx lists a site/modality/time point twice")
+    # TP order must be chronological within a site and modality.
+    for (s, modality), g in df.groupby(["site_id", "modality"]):
+        g = g.sort_values("time_point")
         if not g["date"].is_monotonic_increasing:
-            raise ValueError(f"{s} {sensor}: time points are not in date order")
-    return df.sort_values(["site_id", "sensor", "tp_index"]).reset_index(drop=True)
+            raise ValueError(f"{s} {modality}: time points are not in date order")
+    return df.sort_values(["site_id", "modality", "time_point"]).reset_index(drop=True)
 
 
 # ---- image files -----------------------------------------------------------------------
@@ -382,7 +407,8 @@ def parse_filenames(files: pd.DataFrame) -> pd.DataFrame:
     parsed = files["filename"].str.extract(FILENAME)
     out = files.copy()
     out["name_location"] = parsed["location"]
-    out["time_point"] = parsed["time_point"].str.upper()
+    out["tp_label"] = parsed["time_point"].str.upper()
+    out["time_point"] = pd.to_numeric(out["tp_label"].str.removeprefix("TP")).astype("Int64")
     out["experiment"] = parsed["experiment"]
     out["range"] = pd.to_numeric(parsed["range"]).astype("Int64")
     out["row"] = pd.to_numeric(parsed["row"]).astype("Int64")
@@ -397,7 +423,7 @@ def build_manifest(
     """One row per file of one sensor, joined to its plot and acquisition date."""
     folder = next(k for k, v in SENSOR_FOLDERS.items() if v == sensor)
     df = parse_filenames(files[files["sensor_folder"] == folder]).reset_index(drop=True)
-    df.insert(0, "sensor", sensor)
+    df.insert(0, "modality", sensor)
     df["site_id"] = df["name_location"].map(lambda s: site_id(s) if isinstance(s, str) else None)
 
     status = pd.Series("ok", index=df.index, dtype="string")
@@ -407,11 +433,13 @@ def build_manifest(
     status[bad_ext] = "wrong_file_type"
     ok = status == "ok"
     folder_mismatch = ok & (
-        (df["name_location"] != df["location_folder"]) | (df["time_point"] != df["tp_folder"])
+        (df["name_location"] != df["location_folder"])
+        | (df["tp_label"] != df["tp_folder"].str.upper())
     )
     status[folder_mismatch] = "folder_name_mismatch"
 
-    d = dates[dates["sensor"] == sensor][["site_id", "time_point", "date", "tp_index"]]
+    d = dates[dates["modality"] == sensor][["site_id", "time_point", "date"]]
+    d = d.astype({"time_point": "Int64"})
     df = df.merge(d, on=["site_id", "time_point"], how="left")
     status[(status == "ok") & df["date"].isna()] = "no_acquisition_date"
 
@@ -437,7 +465,7 @@ def build_manifest(
     # (by Drive upload time, then path) is kept for use; identical copies are expected.
     parts = [
         df[c].astype("string").fillna("?")
-        for c in ("site_id", "time_point", "experiment", "range", "row")
+        for c in ("site_id", "tp_label", "experiment", "range", "row")
     ]
     df["image_key"] = pd.Series(sensor, index=df.index, dtype="string").str.cat(parts, sep="|")
     order = df.sort_values(["image_key", "drive_created_time", "rel_path"], na_position="last")
@@ -462,12 +490,12 @@ def build_manifest(
     )
     first = [
         "image_id",
-        "sensor",
+        "modality",
         "plot_id",
         "site_id",
         "year",
         "time_point",
-        "tp_index",
+        "tp_label",
         "date",
         "days_after_planting",
         "experiment",
@@ -500,7 +528,7 @@ def raster_metadata(
 ) -> pd.DataFrame:
     """Read every local image once. Results are cached by (path, size, mtime), saved every
     `checkpoint_every` files, so an interrupted run resumes where it stopped."""
-    local = manifest.dropna(subset=["local_path"])[["local_path", "sensor"]].drop_duplicates()
+    local = manifest.dropna(subset=["local_path"])[["local_path", "modality"]].drop_duplicates()
     stamps = {p: (Path(p).stat().st_size, Path(p).stat().st_mtime_ns) for p in local["local_path"]}
     cache = pd.read_parquet(cache_path) if cache_path.exists() else pd.DataFrame()
     if len(cache):
@@ -614,24 +642,58 @@ class ChallengeTables:
     listed: pd.DataFrame  # the Drive listing / inventory as given, before local files win
     notes: dict = field(default_factory=dict)
 
+    def _usable(self, cols: list[str]) -> pd.DataFrame:
+        parts = [df.loc[df["use"], cols] for df in (self.satellite, self.uav) if len(df)]
+        if not parts:
+            return pd.DataFrame(columns=cols)
+        return pd.concat(parts, ignore_index=True)
+
     def observations(self) -> pd.DataFrame:
-        """Canonical observation rows: every usable, matched plot image of either sensor."""
+        """Canonical observation rows: every usable, matched plot image of either modality."""
         cols = [
             "plot_id",
             "date",
-            "source",
+            "modality",
             "time_point",
+            "tp_label",
             "image_path",
             "image_id",
             "days_after_planting",
         ]
-        parts = []
-        for df in (self.satellite, self.uav):
-            if len(df):
-                parts.append(df[df["use"]].assign(source=df["sensor"])[cols])
-        if not parts:
-            return pd.DataFrame(columns=cols)
-        return pd.concat(parts, ignore_index=True).sort_values(["plot_id", "date", "source"])
+        obs = self._usable(cols).rename(columns={"modality": "source"})
+        return obs.sort_values(["plot_id", "date", "source"]).reset_index(drop=True)
+
+    def images(self) -> pd.DataFrame:
+        """The imagery stage's manifest (`soilsignal_ml.imagery ... --manifest`): usable
+        images only, `path` relative to the raw folder, ids and dates from this join."""
+        cols = [
+            "image_path",
+            "modality",
+            "site_id",
+            "time_point",
+            "plot_id",
+            "date",
+            "experiment",
+            "range",
+            "row",
+            "tp_label",
+            "image_id",
+        ]
+        out = self._usable(cols).rename(columns={"image_path": "path"})
+        out["time_point"] = out["time_point"].astype(int)
+        return out.sort_values(["modality", "site_id", "time_point", "path"]).reset_index(drop=True)
+
+    def benchmark_plots(self) -> pd.DataFrame:
+        """The records-vs-imagery benchmark population: plots with at least one usable
+        satellite image (the same plots the imagery stage's table and the canonical dataset
+        hold). Every stage, records only included, is scored on these plots."""
+        return self.plots[self.plots["satellite_images"] > 0].reset_index(drop=True)
+
+    def satellite_acquisitions(self) -> pd.DataFrame:
+        """One row per satellite pass, in the progressive stage's `--acquisitions` shape."""
+        a = self.acquisition_dates
+        a = a[a["modality"] == "satellite"].rename(columns={"time_point": "tp"})
+        return a[["site_id", "year", "tp", "date"]].reset_index(drop=True)
 
 
 def build(
@@ -644,9 +706,10 @@ def build(
     limit: int | None = None,
     progress: Progress = print,
 ) -> ChallengeTables:
-    progress(f"ground truth: {raw_root / GROUND_TRUTH_CSV}")
-    plots = load_plots(raw_root / GROUND_TRUTH_CSV)
-    dates = load_acquisition_dates(raw_root / DATES_XLSX)
+    gt = find_input(raw_root, GROUND_TRUTH_CSV)
+    progress(f"ground truth: {gt}")
+    plots = load_plots(gt)
+    dates = load_acquisition_dates(find_input(raw_root, DATES_XLSX))
 
     local = local_files(raw_root)
     notes: dict = {"local_files": len(local)}
@@ -691,7 +754,7 @@ def build(
         plots[f"{sensor}_images"] = plots["plot_id"].map(used.groupby("plot_id").size())
         plots[f"{sensor}_images"] = plots[f"{sensor}_images"].fillna(0).astype(int)
         plots[f"{sensor}_time_points"] = plots["plot_id"].map(
-            used.groupby("plot_id")["time_point"].agg(lambda s: ",".join(sorted(s)))
+            used.groupby("plot_id")["tp_label"].agg(lambda s: ",".join(sorted(s)))
         )
 
     sites = build_sites(plots, dates)
@@ -723,8 +786,10 @@ def build_sites(plots: pd.DataFrame, dates: pd.DataFrame) -> pd.DataFrame:
                 "hybrid_plots": int(g["is_hybrid_plot"].sum()),
                 "yield_plots": int(g["final_yield"].notna().sum()),
                 "hybrids": int(g["genotype"].nunique()),
-                "satellite_dates": ",".join(str(x) for x in d[d["sensor"] == "satellite"]["date"]),
-                "uav_dates": ",".join(str(x) for x in d[d["sensor"] == "uav"]["date"]),
+                "satellite_dates": ",".join(
+                    str(x) for x in d[d["modality"] == "satellite"]["date"]
+                ),
+                "uav_dates": ",".join(str(x) for x in d[d["modality"] == "uav"]["date"]),
             }
         )
     return pd.DataFrame(rows)

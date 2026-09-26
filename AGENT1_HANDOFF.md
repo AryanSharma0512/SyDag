@@ -1,84 +1,164 @@
 # Agent 1 handoff: challenge dataset ingestion, joins, dates, spatial metadata
 
-Written 2026-09-26 (night before data day) for Agents 2 and 3 and the humans on the ML team.
+For Agents 2 and 3 and the humans on the ML team. Last updated 2026-09-26, after rebasing
+on `main` (Agent 3's progressive framework, PR #13) and a real-data smoke test through
+Agent 2's imagery pipeline (PR #12/#15) into Agent 3's experiments.
 
 ## TL;DR
 
 - **Every file in the shared Drive folder is inventoried and joined to the ground truth** on
   one key: `plot_id = {year}-{site}-{experiment}-{range}-{row}` (e.g. `2022-Ames-4231-17-3`).
   2,012 satellite TIFFs and 430 UAV PNGs; 1,960 + 412 are usable; nothing was dropped.
-- **Acquisition dates are real dates** from `DateofCollection.xlsx`, per site and sensor.
+- **All 2,426 distinct image files were downloaded and read.** All 1,996 local satellite
+  files have 6 bands in the order Red, Green, Blue, NIR, Red Edge, Deep Blue (the organizers'
+  README lists another order and is wrong). CRS is EPSG:32615 at Ames and Crawfordsville and
+  EPSG:32614 at Lincoln.
+- **Acquisition dates are real dates** from `DateofCollection.xlsx`, per site and modality.
   TP numbers mean different dates at different sites.
-- **Band order confirmed from the files:** Red, Green, Blue, NIR, Red Edge, Deep Blue. The
-  organizers' README lists them in a different order and is wrong; their notebook is right.
-- **Spatial metadata:** each GeoTIFF carries its UTM CRS, pixel size (0.30 m) and origin. The
-  plot centroid is computed from the plot's own pixels, and agrees with the practice
-  pipeline's coordinate to 0.17 m.
-- **Full extraction done.** Once network access was opened, all 2,426 distinct image files
-  were downloaded (sizes match Drive) and every one was read. All 1,996 local satellite files
-  have 6 bands in the expected order; the 16 Lincoln duplicate uploads are byte-identical.
-  The canonical dataset `challenge2022` was built with NOAA weather and SSURGO soil and passes
-  every data check; its profile is `ml/experiments/reports/challenge_dataset_profile.md`.
+- **One adapter:** `HackathonDatasetAdapter` in `ingest/dataset_adapter.py` is the challenge
+  adapter, registered as dataset **`sydag26`**. This is the name Agents 2 and 3 already
+  use. The stub and the earlier `challenge2022` name are gone.
+- **The records-only baseline is records only:** genotype, nitrogen, irrigation and planting
+  date. NOAA weather, SSURGO soil and NASS county yields exist only as separate context
+  tables in the canonical dataset. They are never columns of `plots.parquet`, and a test
+  guards that.
+- **Smoke test passed on real data:** Agent 1 tables → Agent 2 `imagery run` → Agent 3
+  `progressive_experiment.py --imagery-table … --plots …`. The plot ids, sites, yields and
+  cutoff dates line up exactly. See [Real-data smoke test](#real-data-smoke-test).
 - **The subset is sparse in time:** at Crawfordsville and Lincoln each time point images a
   mostly different set of plots. Only Ames TP1 to TP5 is a real panel (~94 to 118 plots).
-  See [For Agent 3](#for-agent-3-and-the-early-season-question).
 - **This is the same dataset the practice models were trained on** (Shrestha et al. 2024).
-  Same file names, same yields and the same per-site counts. The practice models have seen
-  Ames and Lincoln, so do not score them on this data as if it were unseen.
+  Do not score the practice models on Ames or Lincoln as if they were unseen.
+
+## Final interface: what Agents 2 and 3 read
+
+All paths are relative to the repository root. `ml/data/challenge/` is committed. The raw
+folder and `ml/data/processed/` are git-ignored and rebuilt by the commands below.
+
+| File | Rows | Read by | Shape |
+|---|---|---|---|
+| `ml/data/challenge/plots.parquet` | 2,291 (every ground-truth plot, 5 sites) | Agent 2 `--plots` | `plot_id, year, site_id, field_id, experiment, range, row, genotype, nitrogen_lb_ac, irrigated, planting_date, final_yield, latitude, longitude`, … |
+| `ml/data/challenge/benchmark_plots.parquet` | 1,026 plots with a usable satellite image (960 with yield) | **Agent 3 `--plots`** | same columns as `plots.parquet`; the benchmark population, identical to Agent 2's table and the canonical `sydag26` |
+| `ml/data/challenge/images.parquet` | 2,372 usable images | Agent 2 `--manifest` | `path` (relative to `ml/data/raw/challenge/`), `modality` (satellite/uav), `site_id`, `time_point` (int), `plot_id`, `date`, `experiment, range, row, tp_label, image_id` |
+| `ml/data/challenge/acquisition_dates.parquet` | 54 passes, both modalities, 6 sites | Agent 2 `--acquisitions` | `site_id, year, modality, time_point` (int), `tp_label, date, day_of_year, location_label` |
+| `ml/data/challenge/satellite_acquisitions.parquet` | 36 satellite passes | Agent 3 `--acquisitions` | `site_id, year, tp, date` (satellite only: Agent 3 rejects two dates for one pass) |
+| `ml/data/challenge/satellite_manifest.parquet`, `uav_manifest.parquet` | 2,012 / 430 files | audit, humans | every file incl. unmatched and duplicates: `match_status, use, is_duplicate`, raster metadata |
+| `ml/data/challenge/observations.parquet` | 2,372 | reference | usable images: `plot_id, date, source, time_point, tp_label, image_path, image_id, days_after_planting` |
+| `ml/data/challenge/sites.parquet`, `drive_inventory.parquet`, `challenge_manifest.json` | – | humans | sites; every Drive file (no ids); counts, anomalies, schemas |
+| `ml/data/processed/sydag26/` | 1,026 plots, 1,960 observations | Agent 3 `--canonical sydag26`, `train` | canonical CSVs: `plots, observations` (ndvi, ndre, gndvi, evi, nir, `time_point`), and the **context** tables `weather, soil, county_yields, sites` |
+| `ml/experiments/reports/sydag26_dataset_profile.md` | – | humans | profile of the canonical dataset |
+
+Conventions: `modality` is satellite | uav. `time_point` is the pass number per site and
+modality, as an int (`tp_label` is the "TP3" spelling). `date` is the acquisition date, and
+all dates are `datetime64` in Parquet. `site_id` uses the ground-truth spelling (`Ames`,
+`Crawfordsville`, `Lincoln`, `MOValley`, `Scottsbluff`). `year` is 2022. `final_yield` is
+bu/ac at 15.5% moisture. `planting_date` is null only on fill plots, which have no yield.
+
+## Commands
+
+From `ml/` (the backend's environment with the `ml` group). **`--dataset` goes before the
+command.**
+
+```bash
+PY="uv run --project ../backend --group ml python"
+
+# 0. The organizers' folder at ml/data/raw/challenge/ (Groundtruth/ or GroundTruth/,
+#    Satellite/, UAV/). This session fetched each file by id from a Drive listing:
+#    https://drive.usercontent.google.com/download?id=<id>&export=download
+
+# 1. Inventory + joins + raster metadata -> ml/data/challenge/  (6 s; restartable, cached)
+$PY -m soilsignal_ml challenge --inventory data/challenge/drive_inventory.parquet
+#    (tonight's run used --drive-listing data/raw/challenge/_drive_listing instead)
+
+# 2. Canonical tables -> ml/data/processed/sydag26/  (about 10 s; NOAA sometimes drops a
+#    connection: just rerun). County yields need SOILSIGNAL_NASS_API_KEY in backend/.env.
+$PY -m soilsignal_ml --dataset sydag26 ingest
+$PY -m soilsignal_ml --dataset sydag26 validate
+#    `profile` always overwrites the practice report; the challenge profile was written to
+#    experiments/reports/sydag26_dataset_profile.md with ingest.profile.build_profile().
+
+# 3. Downstream, as smoke-tested (Agent 2's code is on PR #15's branch):
+$PY -m soilsignal_ml.imagery run --data-root data/raw/challenge \
+    --manifest data/challenge/images.parquet --plots data/challenge/plots.parquet \
+    --acquisitions data/challenge/acquisition_dates.parquet
+$PY progressive_experiment.py --imagery-table data/interim/imagery/satellite_features.parquet \
+    --plots data/challenge/benchmark_plots.parquet --name sydag26
+#    or straight from the canonical tables (no Agent 2 step):
+$PY progressive_experiment.py --canonical sydag26 --name sydag26-canonical
+
+# 4. Optional database
+$PY -m soilsignal_ml challenge-sql
+cd data/challenge/postgres && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f load.sql
+
+# Tests
+uv run --project ../backend --group ml --group dev pytest tests/test_challenge.py
+```
+
+## Records only vs context (the benchmark)
+
+The benchmark is **records only** (hybrid, nitrogen, irrigation, planting date), then
+records **+ satellite TP1**, **+ TP1–TP2**, and so on. Public context is kept apart:
+
+- Every stage, records only included, is scored on the same plots: those with a satellite
+  image (`benchmark_plots.parquet`). Passing the full `plots.parquet` to Agent 3 would add 652
+  MOValley and Scottsbluff plots that can never have imagery, plus two imagery-free sites in
+  leave-one-site-out.
+- `plots.parquet` carries no weather, soil or county-yield column. That is checked by
+  `test_records_only_baseline_has_no_weather_or_soil`, which also feeds the file through
+  Agent 3's contract and asserts that its record set is at most `genotype, nitrogen_lb_ac,
+  irrigated, planting_day_of_year`.
+- Agent 2's `records_only` rows carry only planting-known columns (checked on the real run:
+  no weather, soil or county columns anywhere in its 143 columns).
+- Agent 3's `--canonical` loader reads only the canonical `plots` and `observations`. The
+  `weather`, `soil` and `county_yields` tables in `ml/data/processed/sydag26/` are **optional
+  enrichment**, available for a separate "records + context" comparison later. They are used
+  automatically only by the legacy `train` pipeline, whose feature-set screening names them
+  explicitly (`Crop plus weather`, `… soil`).
+- The NASS key is in `backend/.env` (git-ignored, never committed). County yields for 2013 to
+  2022 match the practice profile exactly. NOAA's nearest-station search is not stable
+  between runs for Lincoln (Lincoln 8 ENE, 4.2 km, or Lincoln Airport, 12.6 km). That changes
+  the context weather only.
 
 ## What I inspected
 
 | Source | How | Result |
 |---|---|---|
 | `Documentation/Readme.md`, `Documentation.ipynb` | Drive connector, decoded locally | Layout, file naming, band list, notebook code (see anomalies) |
-| `GroundTruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv` | Drive connector, **byte-exact** (289,497 bytes = Drive size) | 2,291 plots, 5 sites, 18 columns |
-| `GroundTruth/DateofCollection.xlsx` | Drive connector, byte-exact (8,444 bytes; zip CRCs pass) | 54 site/sensor/TP dates (6 sites incl. North Platte) |
-| `Satellite/`, `UAV/` folder listings | Drive connector metadata (name, size, upload time) for every file | 2,446 entries → 2,442 files (4 listed twice) |
-| QA sample: 2 GeoTIFFs, 2 PNGs | Drive connector, byte-exact (see below) | Formats, bands, CRS, padding, centroids, indices verified |
-| All images | Direct Drive download by file id once the network was opened; size checked against Drive per file | 2,426 files (the 16 Lincoln second uploads compared separately: identical), all read |
+| `Groundtruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv` | **byte-exact** (289,497 bytes = Drive size) | 2,291 plots, 5 sites, 18 columns |
+| `Groundtruth/DateofCollection.xlsx` | byte-exact (8,444 bytes; zip CRCs pass) | 54 site/modality/TP dates (6 sites incl. North Platte) |
+| `Satellite/`, `UAV/` listings | Drive metadata (name, size, upload time) for every file | 2,446 entries → 2,442 files (4 listed twice) |
+| All images | direct download by file id; size checked against Drive per file | 2,426 files, all read; the 16 Lincoln second uploads are byte-identical |
 
-The two sample GeoTIFFs are `Satellite/Ames/TP3/Ames-TP3-4231_17_3.TIF` and
-`Satellite/Crawfordsville/TP2/Crawfordsville-TP2-4353_9_42.TIF`. For both, the per-band means
-over the plot pixels reproduce the `STATISTICS_MEAN` values the producer embedded in the file,
-to 4 decimals, so the pixel data is exact. For the Crawfordsville plot, the four vegetation
-indices and the NIR mean match the practice pipeline's values
-(`backend/data/practice/shrestha2024.json`) to 5 decimals.
+Two sample GeoTIFFs reproduce the producer's embedded per-band statistics to 4 decimals. For
+`Crawfordsville-4353-9-42`, NDVI, NDRE, GNDVI, EVI and NIR match the practice pipeline
+(`backend/data/practice/shrestha2024.json`) to 5 decimals, and the centroid is within 0.17 m.
 
 ## What I implemented
 
-All in `ml/soilsignal_ml/ingest/`, inside the existing pipeline (same environment, CLI and
-canonical tables):
+All in `ml/soilsignal_ml/ingest/`, inside the existing pipeline:
 
 | Module | Does |
 |---|---|
-| `challenge.py` | Ground-truth loader and cleaning, `DateofCollection.xlsx` parser, filename parser, file inventory from disk and/or a Drive listing / the committed inventory, manifest joins (match status, duplicates, days after planting), restartable raster-metadata pass, plot coordinates |
-| `imagery.py` | Per-file metadata: GeoTIFF (bands and their order from the GDAL band descriptions, CRS, pixel size, bbox, valid/padding pixels, centroid and bbox-centre lat/lon, per-band means for QA, sha256) and PNG (size, mode, alpha mask, valid pixels, means) |
-| `challenge_report.py` | Writes the Parquet outputs and `challenge_manifest.json` (counts, anomalies, schemas). Drops Drive ids and machine paths |
-| `challenge_adapter.py` | `ChallengeDatasetAdapter` (dataset `challenge2022`) → canonical `plots`, `observations` (ndvi, ndre, gndvi, evi, nir), `sites`; `ingest` then adds weather/soil/county yields as usual |
-| `challenge_postgres.py` | CSV + `load.sql` for Postgres; PostGIS points and footprints when the extension exists |
-| `__main__.py` | New commands `challenge` and `challenge-sql`; `--dataset challenge2022 ingest` |
+| `challenge.py` | Ground-truth loader and cleaning, `DateofCollection.xlsx` parser, filename parser, file inventory from disk and/or a Drive listing, manifest joins (match status, duplicates, days after planting), restartable raster-metadata pass, plot coordinates, and the downstream views (`images`, `satellite_acquisitions`) |
+| `imagery.py` | Per-file metadata: GeoTIFF (band order from the GDAL band descriptions, CRS, pixel size, bbox, valid/padding pixels, centroid, per-band means, sha256) and PNG (size, alpha mask, valid pixels, means) |
+| `challenge_report.py` | Writes the Parquet outputs (dates as datetime64) and `challenge_manifest.json`. Drops Drive ids and machine paths |
+| `dataset_adapter.py` → `HackathonDatasetAdapter` (`sydag26`) | Canonical `plots`, `observations` (ndvi, ndre, gndvi, evi, nir; `time_point`), `sites`. Indices come from Agent 2's `ml/data/interim/imagery/canonical_observations.csv` when it exists, else from the GeoTIFFs |
+| `challenge_postgres.py` | CSV + `load.sql`; PostGIS points and footprints when the extension exists |
+| `__main__.py` | `challenge` and `challenge-sql` commands |
 
-Tests: `ml/tests/test_challenge.py` (15 tests). They build a synthetic copy of the folder
-(ground truth, workbook, hand-built GeoTIFFs with known geometry and padding, an RGBA PNG) and
-check the key, the cleaning rules, the date joins, every match status, duplicates, metadata,
-restartability, that outputs hold no private fields, and the adapter. Three tests use the
-real files when present.
-
-### `HackathonDatasetAdapter`
-
-`ingest/dataset_adapter.py`, which holds the `HackathonDatasetAdapter` stub, was not opened in
-this session (a tool-permission rule blocked reading it). So the implementation lives in
-`ChallengeDatasetAdapter` and is registered in `__main__.py` alongside the existing `ADAPTERS`.
-The stub itself is untouched. Humans: either make the stub delegate
-(`HackathonDatasetAdapter = ChallengeDatasetAdapter`) or delete it. Nothing else depends on it.
+Tests: `ml/tests/test_challenge.py` (20). They build a synthetic copy of the folder and check
+the key, cleaning, date joins, every match status, duplicates, metadata, restartability,
+private fields, the adapter, the lower-case `Groundtruth` folder, the downstream shapes
+(Agent 3's own contract functions) and the records-only guard. Three tests use the real
+files when present.
 
 ## Exact folder assumptions
 
 A local copy of the shared folder at `ml/data/raw/challenge/` (override with `--raw`):
 
 ```
-GroundTruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv
-GroundTruth/DateofCollection.xlsx          # Sheet1: Location, Date, Image, time
+Groundtruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv  # folder names matched case-insensitively
+Groundtruth/DateofCollection.xlsx          # Sheet1: Location, Date, Image, time
 Satellite/<Location>/TP1..TP6/<Location>-TP<n>-<experiment>_<range>_<row>.TIF
 UAV/<Location>/TP1..TP3/<Location>-TP<n>-<experiment>_<range>_<row>.PNG
 Documentation/                             # not read by the code
@@ -88,7 +168,7 @@ Documentation/                             # not read by the code
   `<Sensor>/<Location>/<TP>/` pattern gets `match_status = folder_name_mismatch` or
   `unparseable_name`; it is never skipped.
 - The folder's location and TP must equal the name's location and TP.
-- Sensor is decided by the top folder. The extension must be TIF/TIFF (satellite) or PNG (UAV).
+- Modality is decided by the top folder. The extension must be TIF/TIFF (satellite) or PNG (UAV).
 - If Drive's "download folder" zip renames a clashing name (e.g. `... (1).TIF`), that file
   shows up as `unparseable_name`, which is the intended behaviour.
 
@@ -111,11 +191,13 @@ Scottsbluff). Location → `site_id` uses the ground-truth spelling. Aliases (fo
 - **Key:** (year, site_id, experiment, range, row). It is unique in the ground truth (checked;
   `load_plots` raises on a duplicate). `plot_id = f"{year}-{site}-{experiment}-{range}-{row}"`.
   `experiment` is `NA` for the 16 Scottsbluff fill plots that have none.
-  `practice_plot_id` = the practice pipeline's id for the same plot (no year).
+  `practice_plot_id` = the practice pipeline's id for the same plot (no year), computed with
+  `dataset_adapter.plot_id`. It is also the imagery stage's default id when run without the
+  manifest.
 - **Year:** the CSV has no year column. It is the planting year, 2022 for every site. Fill
   plots take their site's year, and the loader raises if a site spans two years.
 - **Image → plot:** exact match on (site_id, experiment, range, row). Image → date: exact
-  match on (site_id, sensor, time_point) in `acquisition_dates`.
+  match on (site_id, modality, time_point) in `acquisition_dates`.
 - **`gt_row`** is the row position in the CSV, which the organizers' notebook uses as a
   record id. The CSV's own `index` column is **not unique** and is kept only as `gt_index`.
 
@@ -283,108 +365,114 @@ absolute DN across flights. The organizers' notebook computes GLI and NGRDI.
   (`psql` is enough), and plot polygons (the footprint is the image bbox). The exact plot
   polygon could be vectorised from the valid-pixel mask tomorrow if the maps work needs it.
 
-## Commands to reproduce
+## Real-data smoke test
 
-From `ml/` (the backend's environment with the `ml` group, which now includes `pyarrow`):
+Run on the downloaded subset, to prove the hand-offs, not to pick a model. Outputs were
+written to a scratch folder, not committed. Agent 2's code was run from a separate checkout
+of PR #15's branch and was not merged into this PR.
 
-```bash
-# 0. Get the data: download the shared Drive folder and unzip so that
-#    ml/data/raw/challenge/{GroundTruth,Satellite,UAV,Documentation}/ exist.
-#    (This session fetched each file by id from a Drive listing:
-#     https://drive.usercontent.google.com/download?id=<id>&export=download)
+1. **Agent 1 → Agent 2.** `soilsignal_ml.imagery run --manifest images.parquet --plots
+   plots.parquet --acquisitions acquisition_dates.parquet` read all 1,960 satellite and 412
+   UAV images in 44 s. It wrote 7,182 rows = 1,026 plots × (records only + TP1–TP6).
+   - Every `plot_id` is in `plots.parquet`, and `site_id` and `final_yield` agree row for row.
+   - Each site's cutoff dates equal `acquisition_dates.parquet`, and the per-site/TP image
+     counts equal the usable counts here.
+   - The `records_only` rows hold planting-known columns only, and none of the 143 columns
+     is weather, soil or county data.
+   - The first attempt found one interface bug: Python `date` objects in Parquet come back as
+     `object`, and Agent 2 calls `.dt` on the manifest's `date`. All Parquet dates are now
+     datetime64.
+2. **Agent 2 → Agent 3.** `progressive_experiment.py --imagery-table satellite_features.parquet
+   --plots benchmark_plots.parquet --models mean catboost --fast` (headline: leave-one-site-out,
+   3 folds). A first attempt with the full `plots.parquet` pulled in the two sites that have
+   no imagery, which is why `benchmark_plots.parquet` exists:
 
-# 1. Inventory + joins + raster metadata for every local file. Restartable: metadata is
-#    cached per file (path, size, mtime) in ml/data/challenge/cache/ and checkpointed every
-#    200 files. --inventory also lists files that are on Drive but not on disk yet.
-uv run --project ../backend --group ml python -m soilsignal_ml challenge \
-    --inventory data/challenge/drive_inventory.parquet --workers 8
-#    Quick dev pass over a sample:  add --limit 200
-#    Tonight's run (from saved Drive listings): --drive-listing data/raw/challenge/_drive_listing
+{{CHAIN_TABLE}}
 
-# 2. Canonical tables for training (indices from the GeoTIFFs, or from Agent 2's
-#    ml/data/challenge/satellite_features.parquet if present) + weather/soil/county context
-#    (--dataset goes before the command; NOAA sometimes drops a connection: rerun on error.
-#    `profile` overwrites the practice report, so the challenge one was written to
-#    experiments/reports/challenge_dataset_profile.md with build_profile() instead.)
-uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 ingest
-uv run --project ../backend --group ml python -m soilsignal_ml --dataset challenge2022 validate
+3. **Agent 1 → Agent 3 directly.** `progressive_experiment.py --canonical sydag26 --models mean
+   catboost --fast` runs end to end too: 5 indices per pass, accumulated by Agent 3. MAE was
+   94.0 for records only, 89.5 for + TP1–TP2 and 94.7 for + TP1–TP6.
 
-# 3. Optional database
-uv run --project ../backend --group ml python -m soilsignal_ml challenge-sql
-cd data/challenge/postgres && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f load.sql
+With 3 sites whose yield levels differ several-fold (Lincoln's 2022 drought), leave-one-site-out
+MAE is dominated by the site level. Treat these numbers as plumbing checks, and read Agent 3's
+real run with all models.
 
-# Tests
-uv run --project ../backend --group ml --group dev pytest tests/test_challenge.py
-```
+## For Agent 2
 
-Measured here: step 1 reads all 2,426 files in 6 s (4 cores). `ingest` takes about 10 s
-(weather and soil fetches).
+- Run with **all three** Agent 1 inputs: `--manifest ml/data/challenge/images.parquet`,
+  `--plots ml/data/challenge/plots.parquet` and `--acquisitions
+  ml/data/challenge/acquisition_dates.parquet`. Without `--manifest`, your parser builds
+  practice-style ids (`Ames-4231-17-3`), which do not match `plots.parquet`
+  (`2022-Ames-4231-17-3`). `plots.parquet` keeps that id as `practice_plot_id` for
+  cross-reference.
+- `images.parquet` lists usable images only (matched, first copy of any duplicate upload).
+  `satellite_manifest.parquet` / `uav_manifest.parquet` list every file, with `match_status`
+  and the raster metadata (`band_names`, `crs_epsg`, centroid, per-band means `mean_red` …
+  `mean_deep_blue` over valid pixels) to check your extraction against.
+- `HackathonDatasetAdapter` reads your `data/interim/imagery/canonical_observations.csv` when it
+  exists, so the canonical tables do not decode the TIFFs a second time.
 
-## What Agent 2 should consume
+## For Agent 3
 
-- **`ml/data/challenge/satellite_manifest.parquet`**, filtered to `use == True`. Each row is
-  one plot image: `image_id`, `plot_id`, `site_id`, `time_point`, **`date`**,
-  `days_after_planting`, `image_path` (relative to `ml/data/raw/challenge/`), plus the raster
-  metadata of every file, including per-band means over the plot pixels (`mean_red` …
-  `mean_deep_blue`) as a baseline to check your extraction against. Join to targets and
-  management through `plots.parquet` on `plot_id`.
-- The canonical observations built here (`ml/data/processed/challenge2022/observations.csv`,
-  git-ignored; rebuild with step 2) already hold ndvi, ndre, gndvi, evi and nir per image.
-- **Bands:** index 0 to 5 = red, green, blue, nir, red_edge, deep_blue. Reflectance = DN × 1e-4.
-  Valid pixel = all bands > 0.
-- **Output contract:** to feed the existing training pipeline, write
-  `ml/data/challenge/satellite_features.parquet` with `image_id` plus any of `ndvi`, `ndre`,
-  `gndvi`, `evi` (mean of the per-pixel index over valid pixels) and `nir` (mean NIR
-  reflectance). `ChallengeDatasetAdapter` picks it up automatically. Extra columns (other
-  indices, percentiles, texture) are fine: keep them there and extend
-  `backend/app/features/vegetation.py` and `catalog.py` if they should become model features.
-  `challenge_adapter.image_indices()` is the reference implementation; it reproduces the
-  practice values exactly.
-- `uav_manifest.parquet` has the same structure for the PNGs (Ames only). Mask with alpha.
-- Always use `date` or `days_after_planting`. **Never compare TP numbers across sites.**
+- Inputs: **`--plots ml/data/challenge/benchmark_plots.parquet`** with Agent 2's
+  `--imagery-table`, plus `--acquisitions ml/data/challenge/satellite_acquisitions.parquet`
+  for the `--tp-features` / `--tp-observations` routes. `--canonical sydag26` also works.
+- Use `benchmark_plots.parquet`, not `plots.parquet`. The contract keeps every plot with a
+  yield, so the full table would add the 652 MOValley/Scottsbluff plots that have no imagery.
+  The benchmark population is 960 plots with a yield and at least one satellite image.
+- There is no `harvest_date` in the ground truth, so your Oct 15 default applies.
+- Timing: all images fall 54 to 151 days after planting (Jul 10 to Oct 9). The first pass per
+  site is Crawfordsville 07-10, Ames 07-15, Lincoln 07-18. Nothing is observed before July.
+- Sparse panel: only Ames TP1–TP5 follows the same ~94 plots. At Crawfordsville and Lincoln any
+  two passes share only 8 to 42 plots. `plots.parquet` → `satellite_time_points` lists the
+  passes per plot, and `challenge_manifest.json` → `images.satellite.time_points_per_plot_by_site`
+  counts them.
+- Within-site NDVI–yield correlation by pass (`sydag26_dataset_profile.md`):
 
-## For Agent 3 and the early-season question
-
-- All images fall 54 to 151 days after planting (July 10 to October 9). The earliest image
-  per site is Crawfordsville 07-10, Ames 07-15, Lincoln 07-18 (UAV: 07-12, 07-12, 07-13).
-- In this subset, per-plot time series exist only at Ames (94 plots with TP1 to TP5). At
-  Crawfordsville and Lincoln, compare cutoffs cross-sectionally ("models using the images
-  available by date D") rather than as per-plot trajectories, or wait for the full dataset.
-  `plots.parquet` has `satellite_time_points` per plot for exactly this.
-- Before trusting per-plot trajectories, check how many plots are imaged at every TP
-  (`challenge_manifest.json` → `images.satellite.time_points_per_plot_by_site`).
-- **Within-site NDVI vs yield correlation, by image** (`challenge_dataset_profile.md`):
-
-  | Site | Img 1 | Img 2 | Img 3 | Img 4 | Img 5 | Img 6 |
+  | Site | TP1 | TP2 | TP3 | TP4 | TP5 | TP6 |
   |---|---|---|---|---|---|---|
   | Ames | -0.00 | 0.36 | 0.65 | 0.69 | 0.60 | 0.29 |
   | Crawfordsville | 0.19 | 0.17 | 0.38 | 0.34 | 0.04 | -0.31 |
   | Lincoln | 0.46 | 0.64 | -0.22 | -0.55 | -0.52 | -0.54 |
 
-  At Ames the signal peaks at Aug 10 to Aug 31. At Lincoln it is strongest early (Aug 6) and
-  inverts once the drought sets in, which matches the practice data. At Crawfordsville it is
-  weak throughout.
-- The held-out-site logic in `ml/configs/project.yaml` holds out Crawfordsville. The practice
-  models were trained on the other sites, which are the same plots as this data, so any
-  evaluation on Ames/Lincoln with those models is in-sample.
+- The Ames 75 lb N block (experiment 4233) has no images in this subset.
 
 ## What tomorrow's humans should verify first
 
-1. Done here for the subset: every file was read, band order and CRS were consistent, there
-   were no partial-zero pixels, and the coordinate spread was 0. Repeat the check when the
-   full dataset arrives: in `challenge_manifest.json`,
+1. Run Agent 3's full model set on the chain above (step 3 of [Commands](#commands)) and read
+   `summary.md` critically. The smoke test used 2 models and `--fast`.
+2. When the full dataset arrives, rerun step 1 on it. Then check `challenge_manifest.json`:
    `raster_metadata.satellite.metadata_status` should be all `read`, `band_order_not_ok` and
-   `partial_zero_pixel_files` empty, and `crs_epsg_by_site` one EPSG per site.
-2. Whether the **full** dataset (more files than this subset) has the same layout. Rerun step 1
-   without `--inventory` on the full download; unmatched and duplicate counts are reported.
-3. Ask the organizers or teammates whether **UAV for Crawfordsville and Lincoln** is coming.
-4. Look at 3 or 4 images by eye (one per site, early and late TP) against the manifest's
-   `plot_id` and `date`.
-5. Decide the evaluation split in light of the practice-model overlap (see TL;DR).
-6. Set `SOILSIGNAL_NASS_API_KEY` locally and rerun step 2 to add county yield history
-   (skipped here).
-7. `pyarrow` was added to the backend's `ml` dependency group (Parquet I/O). With it
-   installed, pandas 3 stores strings with Arrow. After ingesting the practice dataset here,
-   the ML suite passes (46 tests, including the practice-data checks) and so does the backend
-   suite (139). The 5 end-to-end tests still skipped need a local `train` → `export` →
-   `showcase` run; do that once before trusting a retrain.
+   `partial_zero_pixel_files` empty, and `crs_epsg_by_site` one EPSG per site. The same code
+   and names apply.
+3. Ask the organizers whether **UAV for Crawfordsville and Lincoln** is coming.
+4. Look at 3 or 4 images by eye (one per site, early and late pass) against `images.parquet`.
+5. Decide the evaluation split given the practice-model overlap (see TL;DR).
+6. `pyarrow` is in the backend's `ml` dependency group (training only). PR #15 adds it too, so
+   expect a trivial `uv.lock` conflict; regenerate the lock rather than hand-merging it.
+7. The 5 end-to-end ML tests still skipped need a local `train` → `export` → `showcase` run.
+
+## Coordination-doc post
+
+> **[Agent 1]** Challenge ingestion is on PR #14 (rebased on main after #13). Guide:
+> `AGENT1_HANDOFF.md`.
+> **Plot key:** `plot_id = {year}-{site}-{experiment}-{range}-{row}` (e.g. `2022-Ames-4231-17-3`);
+> `practice_plot_id` keeps the practice-style id.
+> **Files (committed, `ml/data/challenge/`):**
+> - `plots.parquet` (all 2,291 GT plots) → Agent 2 `--plots`
+> - `benchmark_plots.parquet` (1,026 imaged plots) → **Agent 3 `--plots`**. The full table would add 2 sites with no imagery to your records-only stage and site folds.
+> - `images.parquet` → Agent 2 `--manifest` (path, modality, site_id, time_point int, plot_id, date)
+> - `acquisition_dates.parquet` → Agent 2 `--acquisitions` (both modalities)
+> - `satellite_acquisitions.parquet` → Agent 3 `--acquisitions` (site_id, year, tp, date; satellite only)
+>
+> **Conventions:** `time_point` is an int per site and modality (`tp_label` = "TP3"); dates are
+> datetime64; site ids use the ground-truth spelling (MOValley etc.).
+> **Canonical dataset:** `sydag26` (`HackathonDatasetAdapter`, the only challenge adapter). Build
+> with `python -m soilsignal_ml --dataset sydag26 ingest` (`--dataset` goes before the command).
+> **Records only** = genotype, nitrogen, irrigation, planting date. Weather, soil and county
+> yields are separate context tables in `data/processed/sydag26/`, never plot columns.
+> **Agent 2:** always pass `--manifest`, or your ids won't match `plots.parquet`.
+> **Smoke test on the real subset passed:** Agent 1 → Agent 2 `imagery run` (7,182 rows) →
+> Agent 3 `--imagery-table` + `--plots`. Fix made on my side: Parquet dates are datetime64.
+> **Subset facts:** 3 sites, sparse per-plot TP coverage (only Ames TP1–5 is a panel), UAV at
+> Ames only, first pass mid-July, README band order wrong (the files are R,G,B,NIR,RE,DB).

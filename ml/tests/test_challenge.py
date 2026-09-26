@@ -154,11 +154,12 @@ def test_duplicate_plot_keys_are_rejected(raw: Path) -> None:
 
 def test_acquisition_dates_are_per_site_and_sensor(raw: Path) -> None:
     d = ch.load_acquisition_dates(raw / ch.DATES_XLSX)
-    got = {(r.site_id, r.sensor, r.time_point): str(r.date) for r in d.itertuples()}
-    assert got[("Ames", "satellite", "TP1")] == "2022-07-15"
-    assert got[("Ames", "uav", "TP1")] == "2022-07-12"
-    assert got[("Lincoln", "satellite", "TP1")] == "2022-07-18"
-    assert ("MOValley", "satellite", "TP1") in got  # "Missouri Valley" aliased
+    got = {(r.site_id, r.modality, r.time_point): str(r.date) for r in d.itertuples()}
+    assert got[("Ames", "satellite", 1)] == "2022-07-15"
+    assert got[("Ames", "uav", 1)] == "2022-07-12"
+    assert got[("Lincoln", "satellite", 1)] == "2022-07-18"
+    assert ("MOValley", "satellite", 1) in got  # "Missouri Valley" aliased
+    assert list(d.columns[:6]) == ["site_id", "year", "modality", "time_point", "tp_label", "date"]
 
 
 def test_filename_parsing() -> None:
@@ -173,9 +174,10 @@ def test_filename_parsing() -> None:
         }
     )
     p = ch.parse_filenames(files)
-    assert p.loc[0, ["name_location", "time_point", "experiment"]].tolist() == [
+    assert p.loc[0, ["name_location", "tp_label", "time_point", "experiment"]].tolist() == [
         "Ames",
         "TP3",
+        3,
         "4231",
     ]
     assert (p.loc[0, "range"], p.loc[0, "row"]) == (17, 3)
@@ -282,7 +284,7 @@ def test_outputs_hold_no_private_fields(raw: Path, tmp_path: Path) -> None:
         cols = pd.read_parquet(out / f"{name}.parquet").columns
         assert "drive_id" not in cols and "local_path" not in cols
     assert manifest["ground_truth"]["duplicate_plot_ids"] == 0
-    assert json.loads((out / "challenge_manifest.json").read_text())["dataset"] == "challenge2022"
+    assert json.loads((out / "challenge_manifest.json").read_text())["dataset"] == "sydag26"
 
 
 def test_wrong_band_order_is_flagged(tmp_path: Path) -> None:
@@ -313,7 +315,7 @@ def test_real_ground_truth_keys() -> None:
     # Every zero N rate is a placeholder on a plot without genotype.
     assert (p.loc[p["nitrogen_lb_ac_raw"] == 0, "genotype"]).isna().all()
     d = ch.load_acquisition_dates(REAL / ch.DATES_XLSX)
-    assert len(d[d["sensor"] == "satellite"].groupby("site_id")) == 6
+    assert len(d[d["modality"] == "satellite"].groupby("site_id")) == 6
 
 
 REAL_TIF = REAL / "Satellite/Crawfordsville/TP2/Crawfordsville-TP2-4353_9_42.TIF"
@@ -333,14 +335,17 @@ def test_real_geotiff_matches_practice_coordinates() -> None:
 
 def test_canonical_adapter_builds_training_tables(raw: Path, tmp_path: Path) -> None:
     from soilsignal_ml.ingest.canonical import PLOT_COLUMNS, CanonicalDataset
-    from soilsignal_ml.ingest.challenge_adapter import ChallengeDatasetAdapter
+    from soilsignal_ml.ingest.dataset_adapter import HackathonDatasetAdapter
     from soilsignal_ml.ingest.validate import validate
 
     out = tmp_path / "out"
     write_outputs(
         ch.build(raw_root=raw, out_root=out, workers=1, progress=lambda _: None), out, raw
     )
-    ds = ChallengeDatasetAdapter(out_root=out, raw_root=raw).build()
+    ds = HackathonDatasetAdapter(
+        tables=out, raw_root=raw, imagery_observations=tmp_path / "none.csv"
+    ).build(progress=lambda _: None)
+    assert ds.name == "sydag26"
     # Plots with a usable satellite image and coordinates; UAV-only plots are not kept.
     assert set(ds.plots["plot_id"]) == {"2022-Ames-4231-17-3", "2022-Lincoln-hybrids-2-2"}
     assert set(PLOT_COLUMNS) <= set(ds.plots.columns)
@@ -357,23 +362,123 @@ def test_canonical_adapter_builds_training_tables(raw: Path, tmp_path: Path) -> 
     assert len(back.observations) == len(ds.observations)
 
 
-def test_canonical_adapter_prefers_spectral_features(raw: Path, tmp_path: Path) -> None:
-    from soilsignal_ml.ingest.challenge_adapter import ChallengeDatasetAdapter
+def test_canonical_adapter_prefers_the_imagery_stage_observations(
+    raw: Path, tmp_path: Path
+) -> None:
+    from soilsignal_ml.ingest.dataset_adapter import HackathonDatasetAdapter
 
     out = tmp_path / "out"
     t = ch.build(raw_root=raw, out_root=out, workers=1, progress=lambda _: None)
     write_outputs(t, out, raw)
     used = t.satellite[t.satellite["use"]]
-    pd.DataFrame({"image_id": used["image_id"], "ndvi": 0.5, "ndre": 0.3}).to_parquet(
-        out / "satellite_features.parquet"
-    )
-    ds = ChallengeDatasetAdapter(out_root=out, raw_root=tmp_path / "nowhere").build()
+    # The imagery stage's canonical_observations.csv: plot x date index means.
+    agent2 = tmp_path / "canonical_observations.csv"
+    pd.DataFrame(
+        {
+            "plot_id": used["plot_id"],
+            "date": used["date"],
+            "source": "satellite",
+            "time_point": used["time_point"],
+            "ndvi": 0.5,
+            "ndre": 0.3,
+        }
+    ).to_csv(agent2, index=False)
+    ds = HackathonDatasetAdapter(
+        tables=out, raw_root=tmp_path / "nowhere", imagery_observations=agent2
+    ).build(progress=lambda _: None)
+    assert len(ds.observations) == len(used)
     assert (ds.observations["ndvi"] == 0.5).all() and ds.observations["evi"].isna().all()
+
+
+def test_one_challenge_adapter_is_registered() -> None:
+    from soilsignal_ml.ingest.dataset_adapter import ADAPTERS, HackathonDatasetAdapter
+
+    assert ADAPTERS["sydag26"] is HackathonDatasetAdapter
+    assert HackathonDatasetAdapter.name == "sydag26"
+    # practice_plot_id is the practice pipeline's own id (experiment normalized).
+    assert ch.practice_plot_id("MOValley", "Hyrbrids", 23, 5) == "MOValley-hybrids-23-5"
+    assert ch.practice_plot_id("Ames", "4231", 17, 3) == "Ames-4231-17-3"
+
+
+def test_ground_truth_folder_name_is_case_insensitive(raw: Path, tmp_path: Path) -> None:
+    (raw / "GroundTruth").rename(raw / "Groundtruth")  # the Drive folder's spelling
+    t = ch.build(raw_root=raw, out_root=tmp_path / "o", read_rasters=False, progress=lambda _: None)
+    assert len(t.plots) == len(GT_ROWS)
+
+
+def test_outputs_match_the_downstream_interfaces(raw: Path, tmp_path: Path) -> None:
+    """The imagery stage's manifest and acquisition shapes, and the progressive stage's
+    contract (soilsignal_ml/progressive/contract.py) on plots + satellite acquisitions."""
+    from soilsignal_ml.progressive import contract
+
+    out = tmp_path / "out"
+    t = ch.build(raw_root=raw, out_root=out, workers=1, progress=lambda _: None)
+    write_outputs(t, out, raw)
+    images = pd.read_parquet(out / "images.parquet")
+    assert {"path", "modality", "site_id", "time_point", "plot_id", "date"} <= set(images)
+    assert images["time_point"].dtype.kind in "iu" or str(images["time_point"].dtype) == "Int64"
+    assert images["plot_id"].notna().all() and set(images["modality"]) == {"satellite", "uav"}
+    # Dates are datetime64 in every Parquet output (the imagery stage uses .dt on them).
+    assert pd.api.types.is_datetime64_any_dtype(images["date"])
+    for name in ("acquisition_dates", "satellite_acquisitions", "observations"):
+        assert pd.api.types.is_datetime64_any_dtype(
+            pd.read_parquet(out / f"{name}.parquet")["date"]
+        )
+    assert pd.api.types.is_datetime64_any_dtype(
+        pd.read_parquet(out / "plots.parquet")["planting_date"]
+    )
+    assert all((raw / p).exists() for p in images["path"])
+    acq = pd.read_parquet(out / "acquisition_dates.parquet")
+    assert {"site_id", "modality", "time_point", "date"} <= set(acq)
+
+    # The benchmark population: imaged plots only, so no stage is scored on plots that can
+    # never have imagery (the full ground truth stays in plots.parquet).
+    bench = pd.read_parquet(out / "benchmark_plots.parquet")
+    assert set(bench["plot_id"]) == set(images.loc[images["modality"] == "satellite", "plot_id"])
+    assert list(bench.columns) == list(pd.read_parquet(out / "plots.parquet").columns)
+    plots = contract.normalize_plots(bench)
+    sat_acq = contract.normalize_acquisitions(
+        pd.read_parquet(out / "satellite_acquisitions.parquet")
+    )
+    assert set(plots["plot_id"]) >= set(
+        images.loc[images["plot_id"].isin(plots["plot_id"]), "plot_id"]
+    )
+    assert sat_acq.set_index(["site_id", "tp"]).loc[("Ames", 1), "date"] == pd.Timestamp(
+        "2022-07-15"
+    )
+
+
+def test_records_only_baseline_has_no_weather_or_soil(raw: Path, tmp_path: Path) -> None:
+    """Records = what a grower knows at planting. Weather, soil and county yields are
+    context tables for later comparisons, never plot columns."""
+    from soilsignal_ml.ingest.canonical import SOIL_COLUMNS, WEATHER_COLUMNS
+    from soilsignal_ml.progressive import contract
+
+    out = tmp_path / "out"
+    t = ch.build(raw_root=raw, out_root=out, workers=1, progress=lambda _: None)
+    write_outputs(t, out, raw)
+    plots = pd.read_parquet(out / "plots.parquet")
+    context = (set(SOIL_COLUMNS) | set(WEATHER_COLUMNS) | {"county_yield", "yield_history"}) - {
+        "plot_id",
+        "site_id",
+        "date",
+    }
+    assert not context & set(plots.columns)
+    obs = t.observations()
+    sat = obs[obs["source"] == "satellite"].rename(columns={"time_point": "tp"})
+    data = contract.from_frames(
+        "records-check",
+        plots,
+        tp_observations=sat.assign(ndvi=0.8)[["plot_id", "tp", "date", "ndvi"]],
+        acquisitions=pd.read_parquet(out / "satellite_acquisitions.parquet"),
+    )
+    assert set(data.record_columns) <= set(contract.RECORD_COLUMNS)
+    assert not any(c in context for c in data.imagery_columns)
 
 
 @pytest.mark.skipif(not REAL_TIF.exists(), reason="sample GeoTIFF absent")
 def test_real_indices_match_the_practice_pipeline() -> None:
-    from soilsignal_ml.ingest.challenge_adapter import image_indices
+    from soilsignal_ml.ingest.dataset_adapter import image_indices
 
     # backend/data/practice/shrestha2024.json, Crawfordsville-4353-9-42 on 2022-07-20.
     practice = {"ndvi": 0.82918, "ndre": 0.37175, "gndvi": 0.76413, "evi": 0.78364, "nir": 0.50254}
