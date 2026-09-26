@@ -384,6 +384,7 @@ Measured here: step 1 reads all 2,426 files in 6 s (4 cores). `ingest` takes abo
 6. Set `SOILSIGNAL_NASS_API_KEY` locally and rerun step 2 to add county yield history
    (skipped here).
 7. `pyarrow` was added to the backend's `ml` dependency group (Parquet I/O). With it
-   installed, pandas 3 stores strings with Arrow. The ML suite and the backend suite (139
-   tests) pass with it. The practice-data tests were skipped here because the practice
-   dataset isn't ingested in this container, so run those once locally.
+   installed, pandas 3 stores strings with Arrow. After ingesting the practice dataset here,
+   the ML suite passes (46 tests, including the practice-data checks) and so does the backend
+   suite (139). The 5 end-to-end tests still skipped need a local `train` → `export` →
+   `showcase` run; do that once before trusting a retrain.
