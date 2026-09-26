@@ -1,0 +1,179 @@
+{
+  "library": "supplied",
+  "label": "Challenge weather file, 2018-2023 (exploratory)",
+  "created": "2026-09-26T16:42:39+00:00",
+  "variables": {
+    "tmax_c": "daily maximum air temperature, C",
+    "tmin_c": "daily minimum air temperature, C",
+    "precip_mm": "daily precipitation, mm"
+  },
+  "qc": {
+    "window": [
+      "04-01",
+      "11-30"
+    ],
+    "min_completeness": 0.97,
+    "precip_ratio_tolerance": 1.5,
+    "temperature_tolerance_c": 1.0,
+    "max_temperature_gap_days": 2,
+    "rule": "one station per site; neighbours flag seasons, never fill them; temperature gaps of at most max_temperature_gap_days are interpolated within the station (temp_filled = 1); precipitation is never filled"
+  },
+  "outlook": {
+    "season_start": "04-01",
+    "season_end": "10-15",
+    "analog_features": [
+      "gdd_to_date",
+      "rain_to_date_mm",
+      "rain_30d_mm",
+      "tmean_30d_c"
+    ],
+    "bandwidth": 1.0,
+    "min_ess_fraction": 0.4,
+    "min_days_observed": 21,
+    "bootstrap_samples": 500,
+    "interval_level": 0.8,
+    "robust_min_seasons": 20
+  },
+  "sites": {
+    "Ames": {
+      "analog_weighting": false,
+      "latitude": 42.014713,
+      "longitude": -93.732245,
+      "irrigated": false,
+      "reference_planting": "05-22",
+      "root_zone_water_mm": 191,
+      "station": {
+        "id": "AMW",
+        "name": "Ames",
+        "network": "IA_ASOS",
+        "source": "IEM computed daily summary (challenge weather file)",
+        "latitude": 41.9904,
+        "longitude": -93.6185,
+        "distance_km": 9.8,
+        "tobs_shift_days": 0
+      },
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "excluded_seasons": {},
+      "observed_through": "2023-11-30"
+    },
+    "Crawfordsville": {
+      "analog_weighting": false,
+      "latitude": 41.198935,
+      "longitude": -91.486866,
+      "irrigated": false,
+      "reference_planting": "05-11",
+      "root_zone_water_mm": 195,
+      "station": {
+        "id": "CRFI4",
+        "name": "Crawfordsville - Southeast ISU-RDF",
+        "network": "ISUSM",
+        "source": "IEM ISU Soil Moisture Network daily (challenge weather file)",
+        "latitude": 41.19334,
+        "longitude": -91.48388,
+        "distance_km": 0.7,
+        "tobs_shift_days": 0
+      },
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "excluded_seasons": {},
+      "observed_through": "2023-11-30"
+    },
+    "Lincoln": {
+      "analog_weighting": false,
+      "latitude": 40.8522,
+      "longitude": -96.615341,
+      "irrigated": false,
+      "reference_planting": "05-22",
+      "root_zone_water_mm": 153,
+      "station": {
+        "id": "LNK",
+        "name": "Lincoln",
+        "network": "NE_ASOS",
+        "source": "IEM computed daily summary (challenge weather file)",
+        "latitude": 40.8312,
+        "longitude": -96.7633,
+        "distance_km": 12.7,
+        "tobs_shift_days": 0
+      },
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "excluded_seasons": {},
+      "observed_through": "2023-11-30"
+    },
+    "MOValley": {
+      "analog_weighting": false,
+      "latitude": 41.671,
+      "longitude": -95.942,
+      "irrigated": false,
+      "reference_planting": "04-29",
+      "root_zone_water_mm": 214,
+      "station": {
+        "id": "TQE",
+        "name": "Tekamah",
+        "network": "NE_ASOS",
+        "source": "IEM computed daily summary (challenge weather file)",
+        "latitude": 41.7635,
+        "longitude": -96.1779,
+        "distance_km": 22.1,
+        "tobs_shift_days": 0
+      },
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "excluded_seasons": {},
+      "observed_through": "2023-11-30"
+    },
+    "Scottsbluff": {
+      "analog_weighting": false,
+      "latitude": 41.95,
+      "longitude": -103.703,
+      "irrigated": true,
+      "reference_planting": "05-19",
+      "root_zone_water_mm": 180,
+      "station": {
+        "id": "BFF",
+        "name": "Scottsbluff",
+        "network": "NE_ASOS",
+        "source": "IEM computed daily summary (challenge weather file)",
+        "latitude": 41.87403,
+        "longitude": -103.59564,
+        "distance_km": 12.3,
+        "tobs_shift_days": 0
+      },
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "excluded_seasons": {},
+      "observed_through": "2023-11-30"
+    }
+  }
+}

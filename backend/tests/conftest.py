@@ -3,12 +3,14 @@ import pytest
 from app.config import get_settings
 from app.context.cache import get_context_cache
 from app.providers import get_provider, get_registry
+from app.weather_outlook.service import get_engine
 
 
 def _clear_caches() -> None:
     get_settings.cache_clear()
     get_provider.cache_clear()
     get_registry.cache_clear()
+    get_engine.cache_clear()
     get_context_cache.cache_clear()
 
 

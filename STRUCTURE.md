@@ -47,6 +47,7 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server (the registry would mix them with real cutoffs) | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
 | 11b | Publish the imagery comparison | Write `backend/artifacts/imagery_ablation.json` (validation MAE with and without imagery; format in `backend/app/forecast/evaluation.py`) and deploy it with the models. The dashboard shows "Waiting for the current training run." until it exists | Ready (file to write) |
+| 11c | Historical weather outlook | Put the challenge weather file in `ml/data/raw/weather/`, then `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml.weather_outlook history` (NOAA/IEM download, season QC, publishes `backend/data/weather_history/{supplied,long}/`) and `... backtest --library long`. Serve with `GET /api/weather-outlook`. Method and results: `ml/research/weather_outlook.md` | Ready (no dashboard section yet) |
 | 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
 
 ---
@@ -66,6 +67,7 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/decisions?asOfDate=` | Dashboard scouting queue and hybrid table, on every change of forecast date (`getDecisions()`) | `DecisionSet`: every plot in that season at its latest forecast on or before the date (same features and model as the dashboard snapshot), previous forecast and change, top negative driver. `404` for an unknown season or a date before the first forecast |
 | GET | `/api/models` | Dashboard "When does the forecast become useful?" (`getModels()`); after deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list, `dataset`, `holdout` (held-out site accuracy) |
 | GET | `/api/evaluation/imagery` | Dashboard "What did the satellite imagery add?" (`getImageryAblation()`) | `ImageryAblation`: `status` `pending` until `artifacts/imagery_ablation.json` exists, then the variants' validation MAE. `503` if the file is malformed |
+| GET | `/api/weather-outlook?site=&asOfDate=&horizonDays=&plantingDate=&library=` | Not called by the dashboard yet (planned: a compact section under the yield forecast) | Historical analog outlook (contract in `backend/app/weather_outlook/contract.py`, `contractVersion`): favorable / typical / adverse probabilities with bootstrap intervals, historical and effective seasons, weather outcome percentiles, representative seasons, analog weights. `horizonDays` is days or `season`. `404` unknown site or library name, `422` a date/horizon the library cannot answer, `503` library missing |
 | POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence` (interval precision × share of inputs inside the training range), `confidenceRating`, `drivers` (this forecast's own drivers when the schema has typical values) |
 | GET | `/api/context/all?lat=&lon=&date=` | Dashboard once per field (`getLocationContext()`), with `date` repeated for every forecast date | `LocationContext`: `county`, and `soil` / `weather` / `yieldHistory` parts, each with its own `status` (`ok`, `unavailable`, `not_configured`) |
 | GET | `/api/context/soil?lat=&lon=` | Soil for one point | `SoilProfile` from USDA NRCS SSURGO |
@@ -116,6 +118,7 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `app/forecast/bundle.py` | Loads a showcase bundle (raw inputs for the dashboard's fields) into `FieldInputs` |
 | `app/forecast/builder.py` | `FieldForecast` from inputs + models: per-cutoff snapshots, weather vs normals, soil, drivers as plain-language explanations, neighbouring-plot map, events, history, provenance; the trial record on `FieldMeta`; `decisions()` scores every bundled plot per forecast date for `/api/decisions` |
 | `app/forecast/evaluation.py` | Reads `artifacts/imagery_ablation.json` (the ML team's with/without imagery comparison) for `/api/evaluation/imagery` |
+| `app/weather_outlook/` | Historical weather outlook: `history.py` (library loader), `features.py` (season-to-date descriptors and horizon outcomes from `app/features/weather.py`), `analogs.py` (robust standardization, kernel weights, effective sample size, terciles), `stress.py` (provisional FAO water/heat stress scorer), `scenarios.py` (`WeatherOutlook.generate`, trajectories, bootstrap, `couple_yield`), `coupling.py` (`artifact_predictor`: a yield model scores each trajectory), `contract.py` (JSON + trajectory table), `service.py` (API) |
 | `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
 | `app/model/contract.py` | Model artifact format: `ModelMetadata` (incl. held-out evaluation), `FeatureSchema` (incl. typical values, training ranges, driver phrases) |
 | `app/model/artifact.py` | Loads and checks artifacts, validates inputs, predicts, confidence; `ModelRegistry.for_date()` picks the point-in-time model |
@@ -134,6 +137,7 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `artifacts/<model_id>/` | Deployed models (`model.joblib`, `metadata.json`, `feature_schema.json`). `soilsignal-maize-0531` … `-1015` are the practice-data models, committed so a pull deploys them; `dummy-*` is git-ignored |
 | `data/mock/fields.json` | Mock forecasts, generated from `src/mock/fieldsData.ts` |
 | `data/practice/<dataset>.json` | Showcase bundle: raw inputs (images, weather, soil, management, county history, climate normals) for the held-out plots the dashboard shows. Written by `ml ... showcase`; holds no yields |
+| `data/weather_history/<library>/` | Weather libraries for the outlook: `daily.csv.gz` (one station per site) and `manifest.json` (station, seasons kept and left out with reasons, site parameters, outlook settings). `supplied` = challenge file 2018-2023; `long` = NOAA GHCN-Daily 1994-2025. Written by `ml ... weather_outlook history` |
 | `scripts/make_dummy_model.py` | Trains 3 synthetic cutoff models; export reference |
 | `scripts/snapshot_context.py` | Fetches public data for every demo field; writes `src/mock/contextSnapshot.ts` and warms the cache |
 | `tests/` | `test_api.py` (endpoints + contract, no-fallback), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_forecast.py` (model-backed forecasts recomputed from raw inputs), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
@@ -201,8 +205,9 @@ Details in `ml/README.md`.
 | `soilsignal_ml/export/showcase.py` | Writes the showcase bundle for the held-out plots, with 1991–2020 rain normals and a 10-year GDD pace from NOAA |
 | `soilsignal_ml/imagery/` | Challenge imagery -> progressive features: TIFF masking and band/index statistics, records_only/TP1..TP6 table with temporal and site-relative features, UAV RGB features by flight date, quality flags and report, visual QA. CLI: `python -m soilsignal_ml.imagery` (`run`, `benchmark`, `dictionary`, `synthetic`). Handoff: `ml/AGENT2_HANDOFF.md` |
 | `configs/` | `project.yaml` (held-out site, seed, trials) and one file per cutoff (`may` … `full`) |
-| `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results) |
+| `research/` | `agronomy_thresholds.md`/`.yaml` (sourced thresholds), `model_benchmarks.md` (published results), `weather_outlook.md` (weather outlook method, data, backtest, limitations) |
 | `experiments/` | `results.csv` + `runs/` (every evaluated model), `reports/` (dataset profile, model report), `progressive/` (early-signal runs; `_template_synthetic/` shows the format and is not a result) |
+| `soilsignal_ml/weather_outlook/`, `weather_outlook.py` | Weather outlook research: `history.py` (NOAA/IEM download, observation-time alignment, gap handling, neighbour QC, publish), `backtest.py` + `report.py` (leave-one-season-out), `cli.py`. Config `configs/weather_outlook.yaml`; outputs `experiments/weather_outlook/` (`data_qc.md`, `<library>/backtest.md`, `summary.csv`, `cases.csv`, `figures/`, `examples/`) |
 | `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
 | `tests/` | Data checks, leakage, splits, models + artifact round trip, research ↔ code |
 | `data/` | Git-ignored datasets (`processed/` canonical tables, `interim/` feature tables, `raw/challenge/` the organizers' folder), except `data/challenge/*.parquet` + `challenge_manifest.json` (compact challenge tables, committed) |
@@ -227,6 +232,8 @@ Details in `ml/README.md`.
 | Driver categories (`FeatureImportanceItem.category`) | `src/types/agricultural.ts`, `backend/app/schemas.py`, `app/model/contract.py` | — |
 | Source roles, `SpatialContext.description`/`provenance`, optional `ForecastSnapshot.spatial` | `src/types/agricultural.ts` ↔ `backend/app/schemas.py`; `DataSources.tsx`, `DataBadge.tsx` | `test_forecast.py` |
 | Forecast cutoffs (`ml/configs/*.yaml`) | Re-export models and re-run `showcase` (the bundle's dates) | `ml/tests/test_end_to_end.py` |
+| Weather outlook contract (`app/weather_outlook/contract.py`) | bump `CONTRACT_VERSION`; this file | `backend/tests/test_weather_outlook.py` |
+| `ml/configs/weather_outlook.yaml` (stations, QC, per-site weighting) | Re-run `weather_outlook history` (republishes the libraries) and the backtest | `ml/tests/test_weather_outlook.py` |
 | An endpoint | `src/services/*.ts`, this file | — |
 
 ---
@@ -246,6 +253,8 @@ Details in `ml/README.md`.
 | `SOILSIGNAL_CACHE_DIR` | Backend | `backend/cache` | Public-data cache |
 | `SOILSIGNAL_CONTEXT_TIMEOUT_SECONDS` | Backend | `20` | Timeout for USDA / NOAA requests |
 | `SOILSIGNAL_SEASON_START` | Backend | `05-01` | Season totals (degree days, heat days, dry spells) count from this date |
+| `SOILSIGNAL_WEATHER_HISTORY_DIR` | Backend | `backend/data/weather_history` | Weather outlook libraries |
+| `SOILSIGNAL_WEATHER_OUTLOOK_LIBRARY` | Backend | `long` | Library `/api/weather-outlook` uses when the request names none |
 
 ---
 

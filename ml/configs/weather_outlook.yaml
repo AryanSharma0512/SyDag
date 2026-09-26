@@ -1,0 +1,158 @@
+# Historical weather outlook (historical analog ensemble). Research record and method:
+# ml/research/weather_outlook.md. Fixed before any backtest was run; change it only with a
+# note in that file.
+#
+# Two libraries are built from this file:
+#   supplied  the challenge weather file (2018-2023, one station per site), used as delivered
+#   long      the long-record library: one station per site, the same physical station as
+#             `supplied` wherever its record allows (all but Crawfordsville)
+# Each library uses exactly one station per site for every season. Stations are never
+# spliced together; `qc_neighbors` are only used to flag seasons, never to fill them.
+
+seasons:
+  # A season enters a library only if tmax, tmin and precipitation are each at least this
+  # complete over the QC window (which covers every outlook horizon), and it passes the
+  # neighbour cross-check below.
+  qc_window: ["04-01", "11-30"]
+  min_completeness: 0.97
+  # Temperature gaps of at most this many days are interpolated within the same station
+  # (flagged per day). Precipitation is never filled.
+  max_temperature_gap_days: 2
+  long_first_season: 1994
+  long_last_season: 2025
+  # A season is flagged against a neighbour when its QC-window precipitation ratio to that
+  # neighbour departs from the pair's usual ratio by more than this factor (either way)...
+  precip_ratio_tolerance: 1.5
+  # ...or its mean tmax/tmin difference departs from the pair's usual difference by more
+  # than this (degrees C). "Usual" is the median over the nearest seasons (this many,
+  # centred), so a neighbour's own station change cannot flag the primary.
+  temperature_tolerance_c: 1.0
+  usual_window_seasons: 11
+  # A neighbour's season is usable for the temperature comparison at this completeness
+  # (means tolerate a few missing days); precipitation totals need min_completeness.
+  neighbour_temperature_completeness: 0.9
+  # A season is left out only if every neighbour able to check it flags it.
+
+supplied:
+  # Six seasons: analog weights over five analogs lost to equal weights in the backtest
+  # (RPSS -0.16), so every site weights its seasons equally.
+  analog_weighting: false
+  file: data/raw/weather/weather_daily_2018-02-01_2023-11-30.csv
+  metadata: data/raw/weather/weather_station_metadata.csv
+  qc_summary: data/raw/weather/weather_qc_summary_2018-02-01_2023-11-30.csv
+  drive_folder: https://drive.google.com/drive/folders/1P19qvDNSiuot2E9yjfVKSxzYIAFDrj09
+
+sites:
+  Ames:
+    latitude: 42.014713
+    longitude: -93.732245
+    irrigated: false
+    # 2022 trial planting date (ml/data/challenge/sites.parquet); every historical season is
+    # evaluated as if planted on the same month-day. Override per request.
+    # Backtest (long library, 2026-09-26): analog weighting did not beat equal weights at
+    # the rainfed sites (RPSS -0.018, 90% CI -0.028 to -0.008), so seasons weigh equally.
+    analog_weighting: false
+    reference_planting: "05-22"
+    # SSURGO aws0100wta at the site (available water storage, top 100 cm), mm.
+    root_zone_water_mm: 191
+    long:
+      station: USW00094989
+      name: Ames Municipal Airport (AMW)
+      same_as_supplied: true
+      tobs_shift_days: 0
+      qc_neighbors: [USC00130203, USC00130200]  # Ames 5 SE (6 km), Ames 8 WSW (13 km)
+  Crawfordsville:
+    latitude: 41.198935
+    longitude: -91.486866
+    irrigated: false
+    # Backtest (long library, 2026-09-26): analog weighting did not beat equal weights at
+    # the rainfed sites (RPSS -0.018, 90% CI -0.028 to -0.008), so seasons weigh equally.
+    analog_weighting: false
+    reference_planting: "05-11"
+    root_zone_water_mm: 195
+    long:
+      # CRFI4 (the challenge station, 0.7 km) only begins 2013-12-17: ten seasons. Washington
+      # (NWS COOP, 21 km) is complete for 1994-2025 and tracks CRFI4 closely once its 07:00
+      # observation day is aligned (see ml/research/weather_outlook.md).
+      station: USC00138688
+      name: Washington, IA (NWS COOP)
+      same_as_supplied: false
+      # 07:00 observer: the value recorded on day D covers 07:00 D-1 to 07:00 D, so it is
+      # assigned to D-1. Applied to tmax, tmin and precipitation.
+      tobs_shift_days: -1
+      # Mount Pleasant 1 SW (27 km), Iowa City (46 km), and CRFI4 itself from 2014.
+      qc_neighbors: [USC00135796, USC00134101, "isusm:CRFI4"]
+      # The overlap with the on-site station is used to measure the proxy's bias (reported,
+      # and applied to exported trajectories only; never used to fill or splice).
+      overlap_reference: CRFI4
+  Lincoln:
+    latitude: 40.8522
+    longitude: -96.615341
+    irrigated: false
+    # Backtest (long library, 2026-09-26): analog weighting did not beat equal weights at
+    # the rainfed sites (RPSS -0.018, 90% CI -0.028 to -0.008), so seasons weigh equally.
+    analog_weighting: false
+    reference_planting: "05-22"
+    root_zone_water_mm: 153
+    long:
+      station: USW00014939
+      name: Lincoln Airport (LNK)
+      same_as_supplied: true
+      tobs_shift_days: 0
+      # Lincoln WWTP (to 2020), Crete 4 ESE (26 km), Seward (29 km)
+      qc_neighbors: [USW00014971, USC00252020, USC00257715]
+  MOValley:
+    latitude: 41.671
+    longitude: -95.942
+    irrigated: false
+    # Backtest (long library, 2026-09-26): analog weighting did not beat equal weights at
+    # the rainfed sites (RPSS -0.018, 90% CI -0.028 to -0.008), so seasons weigh equally.
+    analog_weighting: false
+    reference_planting: "04-29"
+    root_zone_water_mm: 214
+    long:
+      station: USW00094978
+      name: Tekamah Municipal Airport (TQE)
+      same_as_supplied: true
+      tobs_shift_days: 0
+      # Logan 1 WNW (11.5 km from the site), Tekamah COOP (5 km from TQE, to 2023)
+      qc_neighbors: [USC00134894, USC00258480]
+  Scottsbluff:
+    latitude: 41.95
+    longitude: -103.703
+    irrigated: true
+    # Backtest (long library, 2026-09-26): analog weighting beat equal weights here
+    # (RPSS +0.095, 90% CI +0.044 to +0.140), through heat persistence.
+    analog_weighting: true
+    reference_planting: "05-19"
+    root_zone_water_mm: 180
+    long:
+      station: USW00024028
+      name: Scottsbluff Heilig Field (BFF)
+      same_as_supplied: true
+      tobs_shift_days: 0
+      # Minatare Dam (10 km), Scottsbluff 1 E (4 km, from 2002)
+      qc_neighbors: [USC00255555, USC00257667]
+
+outlook:
+  # Season-to-date descriptors are counted from this month-day (pre-planting rain recharges
+  # the root zone, so it belongs in the season so far).
+  season_start: "04-01"
+  # The remainder-of-season horizon ends here (the last model cutoff, 10-15).
+  season_end: "10-15"
+  # Analog descriptors (names from app.weather_outlook.features.DESCRIPTORS).
+  analog_features: [gdd_to_date, rain_to_date_mm, rain_30d_mm, tmean_30d_c]
+  # Gaussian kernel bandwidth, in root-mean-square robust z units.
+  bandwidth: 1.0
+  # The bandwidth widens until the effective sample size is at least this share of seasons.
+  min_ess_fraction: 0.4
+  # Before this many days of season have been observed, every season weighs the same.
+  min_days_observed: 21
+  bootstrap_samples: 500
+  interval_level: 0.8
+  # Below this many seasons the outlook is labelled exploratory.
+  robust_min_seasons: 20
+
+backtest:
+  as_of: ["05-01", "05-15", "06-01", "06-15", "07-01", "07-15", "08-01", "08-15"]
+  horizons: [30, 60, 90, season]

@@ -1,0 +1,242 @@
+"""Backtest report: backtest.md and figures for one library."""
+
+import math
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm  # noqa: E402
+
+from app.weather_outlook.history import WeatherLibrary  # noqa: E402
+from soilsignal_ml.weather_outlook.backtest import CRPS_OUTCOMES, overall, reliability  # noqa: E402
+
+# Reference palette (dataviz skill): categorical slots 1-2, diverging blue <-> gray <-> red.
+ANALOG, CLIMATOLOGY = "#2a78d6", "#eb6834"
+SURFACE, INK, INK_2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
+DIVERGING = LinearSegmentedColormap.from_list("skill", ["#e34948", "#f0efec", "#2a78d6"])
+HORIZON_ORDER = ["30", "60", "90", "season"]
+
+
+def _style(ax) -> None:
+    ax.set_facecolor(SURFACE)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(GRID)
+    ax.tick_params(colors=INK_2, labelsize=9)
+    ax.grid(color=GRID, linewidth=0.6)
+    ax.set_axisbelow(True)
+
+
+def reliability_figure(cases: pd.DataFrame, path: Path, title: str) -> None:
+    fig, ax = plt.subplots(figsize=(5.2, 5), facecolor=SURFACE)
+    _style(ax)
+    ax.plot(
+        [0, 1], [0, 1], color=INK_2, linewidth=1, linestyle=(0, (3, 3)), label="Perfect reliability"
+    )
+    for prefix, color, label in (
+        ("p", ANALOG, "Analog-weighted"),
+        ("c", CLIMATOLOGY, "Climatology (equal weights)"),
+    ):
+        table = reliability(cases, prefix)
+        ax.plot(
+            table["forecast"],
+            table["observed"],
+            color=color,
+            linewidth=2,
+            marker="o",
+            markersize=7,
+            markeredgecolor=SURFACE,
+            markeredgewidth=1.5,
+            label=label,
+        )
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Forecast probability of a category", color=INK_2)
+    ax.set_ylabel("Observed frequency", color=INK_2)
+    ax.set_title(title, color=INK, fontsize=11, loc="left")
+    ax.legend(frameon=False, fontsize=9, labelcolor=INK_2, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def skill_heatmap(summary: pd.DataFrame, path: Path, title: str) -> None:
+    pooled = summary[summary["site"] == "ALL"]
+    grid = pooled.pivot(index="as_of", columns="horizon", values="rpss")
+    grid = grid[[h for h in HORIZON_ORDER if h in grid.columns]].sort_index()
+    values = grid.to_numpy(dtype=float)
+    limit = max(0.1, float(np.nanmax(np.abs(values))) if values.size else 0.1)
+    fig, ax = plt.subplots(figsize=(5.6, 0.45 * len(grid) + 1.6), facecolor=SURFACE)
+    ax.set_facecolor(SURFACE)
+    ax.imshow(values, cmap=DIVERGING, norm=TwoSlopeNorm(0, -limit, limit), aspect="auto")
+    for i in range(values.shape[0]):
+        for j in range(values.shape[1]):
+            if not math.isnan(values[i, j]):
+                ax.text(
+                    j, i, f"{values[i, j]:+.2f}", ha="center", va="center", fontsize=9, color=INK
+                )
+    ax.set_xticks(
+        range(len(grid.columns)), [f"{h} d" if h != "season" else "season" for h in grid.columns]
+    )
+    ax.set_yticks(range(len(grid.index)), grid.index)
+    ax.tick_params(colors=INK_2, labelsize=9, length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_xlabel("Horizon", color=INK_2)
+    ax.set_ylabel("As-of date", color=INK_2)
+    ax.set_title(title, color=INK, fontsize=11, loc="left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def _table(frame: pd.DataFrame, columns: list[str]) -> list[str]:
+    lines = ["| " + " | ".join(columns) + " |", "|" + "---|" * len(columns)]
+    for _, row in frame[columns].iterrows():
+        lines.append("| " + " | ".join(_fmt(row[c]) for c in columns) + " |")
+    return lines
+
+
+def _fmt(value) -> str:
+    if isinstance(value, float):
+        return (
+            ""
+            if math.isnan(value)
+            else f"{value:.3f}".rstrip("0").rstrip(".")
+            if abs(value) < 1000
+            else f"{value:.0f}"
+        )
+    return str(value)
+
+
+def write_backtest_report(
+    library: WeatherLibrary, cases: pd.DataFrame, summary: pd.DataFrame, out: Path, cfg: dict
+) -> None:
+    fig_dir = out / "figures"
+    reliability_figure(
+        cases, fig_dir / "reliability.png", f"Category reliability, {library.name} library"
+    )
+    skill_heatmap(summary, fig_dir / "rpss_by_date_horizon.png", "RPSS vs climatology, all sites")
+    stats = overall(cases)
+    seasons = {s: len(i.seasons) for s, i in library.sites.items()}
+    exploratory = min(seasons.values()) < library.settings.get("robust_min_seasons", 20)
+    lines = [
+        f"# Weather outlook backtest: `{library.name}` library",
+        "",
+        f"Generated by `python -m soilsignal_ml.weather_outlook backtest --library {library.name}`. "
+        "Method: `ml/research/weather_outlook.md`.",
+        "",
+    ]
+    if exploratory:
+        lines += [
+            f"> **Exploratory.** {min(seasons.values())} seasons per site. Each "
+            "leave-one-season-out outlook rests on one season fewer (5 analogs), and tercile "
+            "categories over five seasons can only be 40/20/40 or similar. Treat every number "
+            "here as a check that the pipeline runs, not as evidence of skill.",
+            "",
+        ]
+    lines += [
+        "Seasons per site: " + ", ".join(f"{s} {n}" for s, n in seasons.items()) + ".",
+        "",
+        "Each case pretends one season is the current one, builds the outlook from the other "
+        "seasons (the engine never lets a season be its own analog and reads the current season "
+        "only through the as-of date), and scores it against what that season did. The "
+        "reference is the same outlook with every season weighted equally (climatology), so "
+        "skill measures the analog weighting alone.",
+        "",
+        "## Overall",
+        "",
+        f"- Cases: {stats['cases']} ({stats['site_seasons']} site-seasons x "
+        f"{len(cfg['backtest']['as_of'])} as-of dates x {len(cfg['backtest']['horizons'])} horizons); "
+        f"favorable/typical/adverse formed in {stats['categorical_cases']}"
+        + (
+            "."
+            if stats["categorical_cases"] == stats["cases"]
+            else " (in the rest every trajectory scored the same, so no categories could be formed)."
+        ),
+        "",
+    ]
+    if stats["categorical_cases"]:
+        lo, hi = stats["rpss_ci"]
+        lines += [
+            f"- Ranked probability score: analog {stats['rps']:.4f}, climatology {stats['rps_clim']:.4f}; "
+            f"**RPSS {stats['rpss']:+.3f}** (90% interval over seasons {lo:+.3f} to {hi:+.3f}).",
+            f"- Brier score: analog {stats['brier']:.4f}, climatology {stats['brier_clim']:.4f} (BSS {stats['bss']:+.3f}).",
+            f"- Most likely category correct: analog {stats['accuracy']:.1%}, climatology {stats['accuracy_clim']:.1%} "
+            "(chance is about 33%).",
+            f"- Mean effective sample size: {stats['mean_ess']:.1f} seasons.",
+            "",
+        ]
+    lines += [
+        "Continuous horizon outcomes (CRPSS vs equal weights; 90% interval over seasons):",
+        "",
+    ]
+    for name in CRPS_OUTCOMES:
+        g = cases.rename(columns={f"crps_{name}": "c", f"crps_clim_{name}": "c_clim"})
+        skill = 1 - g["c"].mean() / g["c_clim"].mean()
+        lo, hi = stats[f"crpss_{name}_ci"]
+        lines.append(f"- `{name}`: {skill:+.3f} ({lo:+.3f} to {hi:+.3f})")
+    lines += [
+        "",
+        "![RPSS by as-of date and horizon](figures/rpss_by_date_horizon.png)",
+        "",
+        "![Reliability](figures/reliability.png)",
+        "",
+    ]
+    pooled = summary[summary["site"] == "ALL"].copy()
+    pooled["horizon"] = pd.Categorical(pooled["horizon"], HORIZON_ORDER, ordered=True)
+    pooled = pooled.sort_values(["horizon", "as_of"])
+    lines += ["## By as-of date and horizon (all sites)", ""]
+    lines += _table(
+        pooled,
+        [
+            "as_of",
+            "horizon",
+            "cases",
+            "mean_ess",
+            "rpss",
+            "bss",
+            "accuracy",
+            "accuracy_clim",
+            "crpss_precip_mm",
+            "crpss_gdd",
+            "crpss_water_deficit_mm",
+        ],
+    )
+    lines += ["", "## By site and horizon (all as-of dates)", ""]
+    rows = []
+    cat = cases[cases["categories_available"]]
+    from soilsignal_ml.weather_outlook.backtest import _metrics
+
+    for (site, horizon), g in cat.groupby(["site", "horizon"]):
+        rows.append({"site": site, "horizon": horizon} | _metrics(g))
+    by_site = pd.DataFrame(rows)
+    if not by_site.empty:
+        by_site["horizon"] = pd.Categorical(by_site["horizon"], HORIZON_ORDER, ordered=True)
+        by_site = by_site.sort_values(["site", "horizon"])
+        lines += _table(
+            by_site,
+            [
+                "site",
+                "horizon",
+                "cases",
+                "seasons",
+                "mean_ess",
+                "rpss",
+                "bss",
+                "accuracy",
+                "accuracy_clim",
+            ],
+        )
+    lines += ["", "## Reliability (pooled categories)", ""]
+    for prefix, name in (("p", "analog"), ("c", "climatology")):
+        table = reliability(cases, prefix)
+        table["bin"] = table["bin"].astype(str)
+        lines += [f"{name}:", ""] + _table(table, ["bin", "forecast", "observed", "n"]) + [""]
+    lines += ["Per-case rows: `cases.csv`; per site x as-of x horizon: `summary.csv`.", ""]
+    (out / "backtest.md").write_text("\n".join(lines) + "\n")

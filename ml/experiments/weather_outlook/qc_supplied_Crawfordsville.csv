@@ -1,0 +1,7 @@
+season,tmax_c_complete,tmin_c_complete,precip_mm_complete,precip_total_mm,tmax_mean_c,tmin_mean_c,complete,neighbours_checked,neighbour_flags,included,reason
+2018,1.0,1.0,1.0,733.8,22.59,10.12,True,0,,True,
+2019,1.0,1.0,1.0,744.7,22.1,10.5,True,0,,True,
+2020,1.0,1.0,1.0,820.9,22.78,10.11,True,0,,True,
+2021,1.0,1.0,1.0,721.6,23.62,11.31,True,0,,True,
+2022,1.0,1.0,1.0,453.1,23.35,9.71,True,0,,True,
+2023,1.0,1.0,1.0,363.7,24.11,10.0,True,0,,True,

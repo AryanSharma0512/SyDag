@@ -39,6 +39,17 @@ KC_MID = 1.2
 KC_END = 0.6
 GDD_KC_RISE_START = 350.0  # end of the initial stage, roughly V4-V5 at ~84 GDD per leaf
 
+# Water stress, used only by the weather outlook's provisional scenario scorer
+# (app/weather_outlook/stress.py), never as a model feature. FAO-56 Table 22: field maize
+# tolerates depletion of this share of root-zone available water before transpiration
+# drops. FAO-33 (Doorenbos & Kassam 1979) yield response factors for maize by growth period:
+# relative yield loss = Ky x relative evapotranspiration deficit.
+DEPLETION_FRACTION_P = 0.55
+KY_VEGETATIVE = 0.4
+KY_FLOWERING = 1.5
+KY_YIELD_FORMATION = 0.5
+KY_RIPENING = 0.2
+
 # Soil drainage classes (USDA NRCS), ordered from driest to wettest.
 DRAINAGE_ORDER = (
     "Excessively drained",
