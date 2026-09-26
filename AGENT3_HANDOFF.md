@@ -13,20 +13,65 @@ evidence, and the team chooses the narrative.
 | Template outputs | `ml/experiments/progressive/_template_synthetic/` (**synthetic, not a result**) |
 | Backend file | `backend/artifacts/imagery_ablation.json`, written only by `--publish` from a real run |
 
-## 0. Status tonight: read this first
+## 0. Status: real results on the practice data
 
-- **No real results yet.** This environment's network policy blocks `zenodo.org` (practice
-  imagery), NOAA, and `pgadmin.aboutsharma.com`. The Drive connector returns files as
-  inline base64, which is unworkable for about 9,000 plot TIFFs. The practice dataset
-  therefore could not be rebuilt here (`ml/data/processed/` is git-ignored and empty).
-- The framework runs end to end on a **synthetic fixture** (`progressive/synthetic.py`). It
-  copies the practice data's *structure*: the three sites in the team Drive (Ames,
-  Crawfordsville, Lincoln), their real TP acquisition dates and planting dates, site yield
-  means and spreads, nitrogen rates confounded with blocks, 84 hybrids, and per-site
-  NDVI-yield correlations by TP from `ml/experiments/reports/dataset_profile.md`. The yields
-  and pixels are random. Every synthetic output says so, and `--publish` refuses it.
-- **First thing tomorrow:** run §4a on Agent 1 + Agent 2's files. On any machine with normal
-  internet you can also get real practice-data results in about 15 minutes with §4e.
+Real practice-data runs (Shrestha et al. 2024, 2022 season), default config (CatBoost primary,
+leave-one-site-out, nested intervals):
+
+- `ml/experiments/progressive/practice_3sites/`: **the challenge's three locations** (Ames,
+  Crawfordsville, Lincoln; `--sites Ames Crawfordsville Lincoln`). 30 minutes on 4 cores.
+- `ml/experiments/progressive/practice_5sites/`: all five practice sites. 16 minutes.
+
+Read `summary.md` in each. The three-site headline (CatBoost, MAE in bu/ac, lower is better):
+
+| Information | Acquired (range over sites) | Median DAP | MAE | vs records only | Better in | 90% coverage | Recall @ 20% (within-site model) |
+|---|---|---|---|---|---|---|---|
+| Training mean (Baseline A) | – | – | 74.5 | – | – | 69% | – |
+| Records only | – | – | 95.5 | reference | – | 69% | 24% |
+| + TP1 | Jul 10–18 | 57 | 72.4 | −24% | 3/3 sites | 70% | 39% |
+| + TP1–TP2 | Jul 20–Aug 6 | 70 | 52.3 | −45% | 3/3 | 71% | 35% |
+| + TP1–TP3 | Aug 2–Sep 3 | 83 | **48.2** | **−49%** | 3/3 | 76% | 25% |
+| + TP1–TP4 | Aug 31–Sep 13 | 112 | 63.3 | −34% | 3/3 | 80% | 38% |
+| + TP1–TP6 | Sep 24–Oct 9 | 128 | 79.3 | −17% | 3/3 | 76% | 30% |
+
+Random scouting recalls 20% at a 20% budget; a perfect ranking recalls 80%.
+
+What the evidence says (for the team to turn into a narrative):
+
+- **Imagery helps from the very first pass.** Every stage beats records only, at every held-out
+  site and with every model. Error is lowest with TP1–TP3 (early August at Ames and
+  Crawfordsville), and **late passes make cross-site error worse again** (senescence timing
+  differs by site). This matches the published within-location finding that
+  late-July/early-August images carry the signal.
+- **Records only is worse than predicting the average** at an unseen site (95.5 vs 74.5): the
+  hybrid and nitrogen effects learned at two sites transfer badly to the third (nitrogen is
+  confounded with blocks). Say "imagery vs records" *and* "vs the training mean".
+- **Scouting value is earliest:** with TP1 (mid-July, ~57 days after planting, ~3 months before
+  harvest), the within-site model finds 39% of the eventual bottom-quartile plots when scouting
+  20%, vs 24% with records only and 20% at random. The no-model "lowest NDVI" ranking is
+  competitive early (34–36% at TP1–TP2) and collapses late (15% at TP6). The model's value is
+  in keeping the ranking useful later in the season.
+- **No stage passes all five checks, only because of calibration:** coverage is 70–81%
+  against a 90% target, and one site is far worse (e.g. 14% at TP2). With three sites, the
+  intervals are calibrated from 2-site folds that don't capture a whole new site's offset.
+  TP1 and TP2 pass the other four checks. The honest statement is: *the ranking is useful from
+  mid-July; the absolute yield level at a new site is not yet trustworthy, and the stated
+  range is too narrow.*
+- **Absolute accuracy is weak across sites** (R² ≤ 0.08 at best). Lincoln's 2022 drought
+  (site mean ~41 bu/ac) dominates the error. The random-split contrast (MAE 14–22) shows how
+  flattering a non-grouped split would be.
+- **Residuals are spatially clustered** (Moran's I 0.2–0.4, p < 0.05 at every site-season, plot
+  spacing ~3 m). Neighbouring plots miss together, so neighbour-relative features (in Python)
+  are the most promising next feature to try. This strengthens the case for a residual map
+  layer, but not for PostGIS in the model (§10).
+- Five sites (`practice_5sites`): same shape, a smaller gain at TP1 (+4%, not significant under
+  the checks), and TP1–TP2 through TP1–TP5 at −28% to −34%.
+
+`imagery_ablation.json` in each folder is ready to publish (`--publish`, default stage TP6). It
+was **not** copied into `backend/artifacts/`, because that changes the live dashboard. Choose the
+stage first (e.g. `--ablation-stage tp3`).
+
+The synthetic fixture (`_template_synthetic/`) is still used by the tests. It is not a result.
 
 ## 1. Where this sits in the pipeline
 
@@ -335,9 +380,9 @@ structure, which the fixture copies):
 7. **Agent 2's table has no coordinates** (only per-image centroids in EPSG 32615 in
    `satellite_image_features.parquet`), so the spatial residual check and the GeoJSON need
    Agent 1's `--plots` with latitude/longitude.
-8. **Could not verify on real data tonight** (network). The first real run should be read
-   critically: check `summary.md` notes, the validation-contrast table and the per-site-season
-   timing table.
+8. **Calibration at a new site** fails everywhere on the practice data (coverage 70–81%). The
+   options are to widen by a documented factor, to calibrate per site-season (Mondrian), or to
+   report ranges as indicative. This is a team decision.
 
 ## 13. Coordination-doc briefing (paste as-is)
 
@@ -355,7 +400,10 @@ structure, which the fixture copies):
 > **Outputs:** progression table (records → TP1…TP6 with dates/DAP), ΔMAE + bootstrap CI,
 > 90% coverage/width (nested conformal + CQR), scouting recall @10/20/25%, 5 transparent
 > "earliest useful" checks, `imagery_ablation.json` for the backend (`--publish`).
-> **Blocker:** this environment can't reach zenodo/NOAA/pgadmin, so tonight's outputs are a
-> labelled SYNTHETIC template; first real run = §4a of the handoff.
+> **Real practice results (3 challenge sites, leave-one-site-out):** imagery beats records at
+> every TP and every site; lowest error with TP1–TP3 (MAE 48 vs 95.5 records only); within-site
+> scouting from TP1 (mid-July) finds 39% of bottom-quartile plots at a 20% budget vs 24% records,
+> 20% random. The 90% ranges under-cover at a new site (70–81%). See
+> `ml/experiments/progressive/practice_3sites/summary.md`.
 > **PostGIS:** DO NOT PRIORITIZE for ML (scipy does the spatial checks); `predictions.geojson`
 > is ready for the map layer.

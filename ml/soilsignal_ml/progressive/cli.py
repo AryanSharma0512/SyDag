@@ -49,6 +49,7 @@ def parser() -> argparse.ArgumentParser:
     src.add_argument("--synthetic-scale", type=float, default=1.0)
     src.add_argument("--synthetic-2023", action="store_true", help="add an invented 2023 season")
     src.add_argument("--name", help="dataset name for the outputs")
+    src.add_argument("--sites", nargs="*", help="keep only these site_ids")
 
     exp = p.add_argument_group("experiment")
     exp.add_argument("--config", default=str(CONFIG), help="YAML config (default progressive.yaml)")
@@ -116,6 +117,8 @@ def load_data(args) -> contract.ExperimentData:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     data = load_data(args)
+    if args.sites:
+        data = contract.subset_sites(data, args.sites)
     if args.name:
         data.name = args.name
     overrides = {

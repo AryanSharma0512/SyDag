@@ -1,0 +1,514 @@
+{
+  "validation": "site",
+  "model": "catboost",
+  "thresholds": {
+    "min_mae_reduction_pct": 5.0,
+    "require_ci_above_zero": true,
+    "min_group_win_share": 0.67,
+    "min_model_agreement": 0.75,
+    "coverage_tolerance": 0.05,
+    "min_group_coverage": 0.75,
+    "scouting_budget": 0.2,
+    "min_recall_gain": 0.05,
+    "scouting_ranker": "relative_forecast",
+    "min_lead_days": 30
+  },
+  "stages": [
+    {
+      "stage": "tp1",
+      "label": "+ TP1",
+      "order": 1,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 24.1391,
+            "delta_mae": 23.0437,
+            "ci_low": 22.1235
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 72.4 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.7032,
+            "worst_group_coverage": 0.1508,
+            "width": 205.4124
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": true,
+          "value": {
+            "recall": 0.3892,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.1459
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": true,
+          "value": {
+            "lead_days_median": 92.0,
+            "dap_median": 57.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 4,
+      "n_unknown": 0
+    },
+    {
+      "stage": "tp2",
+      "label": "+ TP1-TP2",
+      "order": 2,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 45.1658,
+            "delta_mae": 43.1162,
+            "ci_low": 41.8524
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 52.3 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.7066,
+            "worst_group_coverage": 0.1448,
+            "width": 187.8617
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": true,
+          "value": {
+            "recall": 0.3541,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.1108
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": true,
+          "value": {
+            "lead_days_median": 84.0,
+            "dap_median": 70.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 4,
+      "n_unknown": 0
+    },
+    {
+      "stage": "tp3",
+      "label": "+ TP1-TP3",
+      "order": 3,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 49.461,
+            "delta_mae": 47.2166,
+            "ci_low": 46.0348
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 48.2 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.764,
+            "worst_group_coverage": 0.3075,
+            "width": 198.3474
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": false,
+          "value": {
+            "recall": 0.2459,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.0027
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": true,
+          "value": {
+            "lead_days_median": 66.0,
+            "dap_median": 83.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 3,
+      "n_unknown": 0
+    },
+    {
+      "stage": "tp4",
+      "label": "+ TP1-TP4",
+      "order": 4,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 33.6635,
+            "delta_mae": 32.1359,
+            "ci_low": 30.964
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 63.3 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.7965,
+            "worst_group_coverage": 0.4087,
+            "width": 218.3052
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": true,
+          "value": {
+            "recall": 0.3757,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.1324
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": true,
+          "value": {
+            "lead_days_median": 34.0,
+            "dap_median": 112.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 4,
+      "n_unknown": 0
+    },
+    {
+      "stage": "tp5",
+      "label": "+ TP1-TP5",
+      "order": 5,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 25.024,
+            "delta_mae": 23.8884,
+            "ci_low": 22.8658
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 71.6 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.808,
+            "worst_group_coverage": 0.4405,
+            "width": 224.1274
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": true,
+          "value": {
+            "recall": 0.373,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.1297
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": false,
+          "value": {
+            "lead_days_median": 26.0,
+            "dap_median": 120.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 3,
+      "n_unknown": 0
+    },
+    {
+      "stage": "tp6",
+      "label": "+ TP1-TP6",
+      "order": 6,
+      "checks": {
+        "beats_records": {
+          "passed": true,
+          "value": {
+            "pct_mae_reduction": 16.9257,
+            "delta_mae": 16.1576,
+            "ci_low": 15.2123
+          },
+          "threshold": {
+            "min_pct": 5.0,
+            "ci_above_zero": true
+          },
+          "detail": "MAE 79.3 vs records-only 95.5 bu/ac"
+        },
+        "consistent": {
+          "passed": true,
+          "value": {
+            "group_win_share": 1.0,
+            "model_agreement": 1.0,
+            "improving_models": [
+              "ridge",
+              "random_forest",
+              "hist_gradient_boosting",
+              "catboost"
+            ]
+          },
+          "threshold": {
+            "min_group_win_share": 0.67,
+            "min_model_agreement": 0.75
+          },
+          "detail": "lower MAE in 3/3 held-out site-seasons, 4/4 models"
+        },
+        "calibrated": {
+          "passed": false,
+          "value": {
+            "coverage": 0.7586,
+            "worst_group_coverage": 0.3234,
+            "width": 220.4224
+          },
+          "threshold": {
+            "nominal": 0.9,
+            "tolerance": 0.05,
+            "min_group": 0.75
+          },
+          "detail": "nested conformal interval around the primary model"
+        },
+        "scouting": {
+          "passed": false,
+          "value": {
+            "recall": 0.2892,
+            "records_recall": 0.2432,
+            "random_recall": 0.2001,
+            "gain": 0.0459
+          },
+          "threshold": {
+            "budget": 0.2,
+            "min_gain": 0.05,
+            "ranker": "relative_forecast"
+          },
+          "detail": "bottom-quartile recall at 20% budget (relative_forecast)"
+        },
+        "early": {
+          "passed": false,
+          "value": {
+            "lead_days_median": 18.0,
+            "dap_median": 128.0
+          },
+          "threshold": {
+            "min_lead_days": 30
+          },
+          "detail": "assumed 10-15 each season"
+        }
+      },
+      "all_passed": false,
+      "n_passed": 2,
+      "n_unknown": 0
+    }
+  ],
+  "earliest_candidate": null,
+  "stages_passing_accuracy_checks": [
+    "tp1",
+    "tp2",
+    "tp3",
+    "tp4",
+    "tp5",
+    "tp6"
+  ],
+  "note": "Evidence for the team's decision, not a verdict: thresholds are in configs/progressive.yaml and every value is reported."
+}

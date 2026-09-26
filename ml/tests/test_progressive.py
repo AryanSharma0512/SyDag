@@ -453,3 +453,13 @@ def test_experiment_runs_on_the_imagery_table(imagery_table, tmp_path):
     assert any(s["ranker"] == "naive_imagery" for s in result["scouting"])  # ndvi_current
     report.write_outputs(result, tmp_path)
     assert (tmp_path / "imagery_ablation.json").exists()
+
+
+def test_sites_can_be_subset(frames):
+    plots, obs, acq = frames
+    d = contract.from_frames("fixture", plots, tp_observations=obs, acquisitions=acq)
+    d = contract.subset_sites(d, ["Ames", "Lincoln"])
+    assert set(d.plots["site_id"]) == {"Ames", "Lincoln"}
+    assert d.tp_features["plot_id"].isin(d.plots["plot_id"]).all()
+    with pytest.raises(contract.ContractError):
+        contract.subset_sites(d, ["Nowhere"])

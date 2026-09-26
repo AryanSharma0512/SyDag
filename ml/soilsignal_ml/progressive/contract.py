@@ -522,6 +522,23 @@ def from_canonical(
     )
 
 
+def subset_sites(data: ExperimentData, sites: list[str]) -> ExperimentData:
+    """Keep only these sites (e.g. the challenge's three locations within the practice data)."""
+    unknown = sorted(set(sites) - set(data.plots["site_id"]))
+    if unknown:
+        raise ContractError(
+            f"unknown sites {unknown}; have {sorted(data.plots['site_id'].unique())}"
+        )
+    plots = data.plots[data.plots["site_id"].isin(sites)].reset_index(drop=True)
+    data.plots = plots
+    data.tp_features = data.tp_features[
+        data.tp_features["plot_id"].isin(plots["plot_id"])
+    ].reset_index(drop=True)
+    data.acquisitions = data.acquisitions[data.acquisitions["site_id"].isin(sites)]
+    data.notes.append(f"restricted to sites: {', '.join(sorted(sites))}")
+    return data
+
+
 def validate(data: ExperimentData) -> None:
     """Fail loudly on inputs that would make the comparison meaningless."""
     problems = []
