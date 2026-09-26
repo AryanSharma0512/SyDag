@@ -1,0 +1,129 @@
+"""
+Postgres export of the challenge tables: CSVs plus one psql script that creates schema
+`challenge`, loads them, and (only if the server has PostGIS) adds plot points and image
+footprints. No image bytes go to the database: rows hold paths, dates, keys and numbers.
+
+    python -m soilsignal_ml challenge-sql              # writes ml/data/challenge/postgres/
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ml/data/challenge/postgres/load.sql
+
+The table layouts come from the Parquet files, so the database always matches them.
+"""
+
+from pathlib import Path
+
+import pandas as pd
+
+from soilsignal_ml.ingest.challenge import OUT_ROOT
+
+TABLES = {
+    # table: (parquet files, primary key)
+    "sites": (["sites"], ["site_id"]),
+    "plots": (["plots"], ["plot_id"]),
+    "acquisition_dates": (["acquisition_dates"], ["site_id", "modality", "time_point"]),
+    "images": (["satellite_manifest", "uav_manifest"], ["image_id"]),
+    "observations": (["observations"], ["image_id"]),
+}
+# Columns that repeat what the images table already says in a nested form.
+DROP = {"images": ["image_key", "name_parsed"]}
+
+POSTGIS = """
+-- PostGIS, only when the server offers it; everything above works without it.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'postgis') THEN
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    ALTER TABLE challenge.plots ADD COLUMN IF NOT EXISTS geom geometry(Point, 4326);
+    UPDATE challenge.plots SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+      WHERE latitude IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS plots_geom_idx ON challenge.plots USING gist (geom);
+    ALTER TABLE challenge.sites ADD COLUMN IF NOT EXISTS geom geometry(Point, 4326);
+    UPDATE challenge.sites SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+      WHERE latitude IS NOT NULL;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'challenge'
+               AND table_name = 'images' AND column_name = 'bbox_minx') THEN
+      -- Each satellite image's bounding box, from its own UTM zone to WGS 84.
+      ALTER TABLE challenge.images ADD COLUMN IF NOT EXISTS footprint geometry(Polygon, 4326);
+      UPDATE challenge.images SET footprint = ST_Transform(
+          ST_MakeEnvelope(bbox_minx, bbox_miny, bbox_maxx, bbox_maxy, crs_epsg::int), 4326)
+        WHERE bbox_minx IS NOT NULL AND crs_epsg IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS images_footprint_idx ON challenge.images USING gist (footprint);
+    END IF;
+  ELSE
+    RAISE NOTICE 'PostGIS not available: latitude/longitude columns only';
+  END IF;
+END $$;
+"""
+
+
+def pg_type(dtype) -> str:
+    if pd.api.types.is_bool_dtype(dtype):
+        return "boolean"
+    if pd.api.types.is_integer_dtype(dtype):
+        return "bigint"
+    if pd.api.types.is_float_dtype(dtype):
+        return "double precision"
+    if pd.api.types.is_datetime64_any_dtype(dtype):
+        return "timestamptz"
+    return "text"
+
+
+def _column_type(s: pd.Series) -> str:
+    """Calendar dates (datetime64 at midnight, or Python dates) become `date`."""
+    kind = pg_type(s.dtype)
+    sample = s.dropna()
+    if kind == "timestamptz" and len(sample) and (sample == sample.dt.normalize()).all():
+        return "date"
+    if kind == "text" and len(sample):
+        if all(hasattr(v, "isoformat") and len(str(v)) == 10 for v in sample[:50]):
+            return "date"
+    return kind
+
+
+def _q(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def export_postgres(out_root: Path = OUT_ROOT) -> Path:
+    dest = out_root / "postgres"
+    dest.mkdir(parents=True, exist_ok=True)
+    drops = [f"DROP TABLE IF EXISTS challenge.{t} CASCADE;" for t in reversed(TABLES)]
+    creates, loads = [], []
+    for table, (files, key) in TABLES.items():
+        df = pd.concat(
+            [pd.read_parquet(out_root / f"{f}.parquet") for f in files], ignore_index=True
+        )
+        df = df.drop(columns=[c for c in DROP.get(table, []) if c in df.columns])
+        cols = [f"  {_q(c)} {_column_type(df[c])}" for c in df.columns]
+        cols.append(f"  PRIMARY KEY ({', '.join(_q(k) for k in key)})")
+        creates.append(f"CREATE TABLE challenge.{table} (\n" + ",\n".join(cols) + "\n);")
+        df.to_csv(dest / f"{table}.csv", index=False)
+        loads.append(
+            f"\\copy challenge.{table} ({', '.join(_q(c) for c in df.columns)}) "
+            f"FROM '{table}.csv' WITH (FORMAT csv, HEADER true)"
+        )
+    constraints = [
+        "ALTER TABLE challenge.plots ADD FOREIGN KEY (site_id) REFERENCES challenge.sites;",
+        "ALTER TABLE challenge.images ADD FOREIGN KEY (plot_id) REFERENCES challenge.plots;",
+        "ALTER TABLE challenge.observations ADD FOREIGN KEY (plot_id) REFERENCES challenge.plots;",
+        "CREATE INDEX ON challenge.images (plot_id, date);",
+        "CREATE INDEX ON challenge.observations (plot_id, date);",
+    ]
+    script = "\n".join(
+        [
+            "-- Generated by `python -m soilsignal_ml challenge-sql`. Run from this folder:",
+            '--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f load.sql',
+            "BEGIN;",
+            "CREATE SCHEMA IF NOT EXISTS challenge;",
+            *drops,
+            *creates,
+            *loads,
+            *constraints,
+            "COMMIT;",
+            POSTGIS,
+            "SELECT pg_size_pretty(sum(pg_total_relation_size(c.oid))) AS challenge_schema_size",
+            "  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace",
+            " WHERE n.nspname = 'challenge';",
+        ]
+    )
+    (dest / "load.sql").write_text(script + "\n")
+    return dest

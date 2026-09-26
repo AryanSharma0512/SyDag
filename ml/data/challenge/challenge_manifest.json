@@ -1,0 +1,1749 @@
+{
+  "dataset": "sydag26",
+  "generated_at": "2026-09-26T12:32:48+00:00",
+  "plot_key": "plot_id = '{year}-{site_id}-{experiment}-{range}-{row}' (experiment 'NA' when missing); practice_plot_id = '{site_id}-{experiment}-{range}-{row}'",
+  "image_filename_pattern": "<Location>-TP<n>-<experiment>_<range>_<row>.<TIF|PNG>",
+  "satellite_bands": [
+    "red",
+    "green",
+    "blue",
+    "nir",
+    "red_edge",
+    "deep_blue"
+  ],
+  "satellite_reflectance_scale": 0.0001,
+  "inputs": {
+    "GroundTruth/HYBRID_HIPS_V3.5_ALLPLOTS.csv": {
+      "bytes": 289497,
+      "sha256": "361dc49867a2e15aa55814b7d21bf12089bd30f966141a03ca93e1a8e00cfee3"
+    },
+    "GroundTruth/DateofCollection.xlsx": {
+      "bytes": 8444,
+      "sha256": "71a3231a349eea76531494934435ce1c242219eb411c47e8d15f84362c6eb33e"
+    }
+  },
+  "file_sources": {
+    "local_files": 2426,
+    "drive_listing_repeats_dropped": 4,
+    "listed_files": 2442,
+    "files_outside_sensor_folders": []
+  },
+  "sites_with_images": [
+    "Ames",
+    "Crawfordsville",
+    "Lincoln"
+  ],
+  "ground_truth": {
+    "rows": 2291,
+    "sites": {
+      "Ames": {
+        "plots": 536,
+        "hybrid_plots": 487,
+        "plots_with_final_yield": 487,
+        "hybrid_plots_without_yield": 0,
+        "unique_hybrids": 84,
+        "experiments": [
+          "4231",
+          "4232",
+          "4233"
+        ],
+        "nitrogen_lb_ac": [
+          75.0,
+          150.0,
+          250.0
+        ],
+        "planting_dates": [
+          "2022-05-22",
+          "2022-05-23"
+        ],
+        "irrigated": false,
+        "missing": {
+          "experiment": 0,
+          "genotype": 49,
+          "nitrogen_treatment": 49,
+          "nitrogen_lb_ac": 49,
+          "irrigated": 49,
+          "plot_length_ft": 49,
+          "planting_date": 49,
+          "total_stand_count": 49,
+          "days_to_anthesis": 536,
+          "gdd_to_anthesis": 536,
+          "final_yield": 49
+        },
+        "has_images": true,
+        "plots_with_coordinates": 256
+      },
+      "Crawfordsville": {
+        "plots": 522,
+        "hybrid_plots": 489,
+        "plots_with_final_yield": 488,
+        "hybrid_plots_without_yield": 1,
+        "unique_hybrids": 84,
+        "experiments": [
+          "4351",
+          "4352",
+          "4353"
+        ],
+        "nitrogen_lb_ac": [
+          75.0,
+          150.0,
+          225.0
+        ],
+        "planting_dates": [
+          "2022-05-11"
+        ],
+        "irrigated": false,
+        "missing": {
+          "experiment": 0,
+          "genotype": 33,
+          "nitrogen_treatment": 33,
+          "nitrogen_lb_ac": 33,
+          "irrigated": 33,
+          "plot_length_ft": 33,
+          "planting_date": 33,
+          "total_stand_count": 33,
+          "days_to_anthesis": 522,
+          "gdd_to_anthesis": 522,
+          "final_yield": 34
+        },
+        "has_images": true,
+        "plots_with_coordinates": 332
+      },
+      "Lincoln": {
+        "plots": 532,
+        "hybrid_plots": 504,
+        "plots_with_final_yield": 504,
+        "hybrid_plots_without_yield": 0,
+        "unique_hybrids": 84,
+        "experiments": [
+          "hybrids"
+        ],
+        "nitrogen_lb_ac": [
+          75.0,
+          150.0,
+          225.0
+        ],
+        "planting_dates": [
+          "2022-05-22"
+        ],
+        "irrigated": false,
+        "missing": {
+          "experiment": 0,
+          "genotype": 28,
+          "nitrogen_treatment": 28,
+          "nitrogen_lb_ac": 28,
+          "irrigated": 28,
+          "plot_length_ft": 28,
+          "planting_date": 28,
+          "total_stand_count": 532,
+          "days_to_anthesis": 31,
+          "gdd_to_anthesis": 32,
+          "final_yield": 28
+        },
+        "has_images": true,
+        "plots_with_coordinates": 438
+      },
+      "MOValley": {
+        "plots": 176,
+        "hybrid_plots": 168,
+        "plots_with_final_yield": 163,
+        "hybrid_plots_without_yield": 5,
+        "unique_hybrids": 84,
+        "experiments": [
+          "Hyrbrids"
+        ],
+        "nitrogen_lb_ac": [
+          175.0
+        ],
+        "planting_dates": [
+          "2022-04-29"
+        ],
+        "irrigated": false,
+        "missing": {
+          "experiment": 0,
+          "genotype": 8,
+          "nitrogen_treatment": 8,
+          "nitrogen_lb_ac": 8,
+          "irrigated": 8,
+          "plot_length_ft": 8,
+          "planting_date": 8,
+          "total_stand_count": 13,
+          "days_to_anthesis": 176,
+          "gdd_to_anthesis": 176,
+          "final_yield": 13
+        },
+        "has_images": false,
+        "plots_with_coordinates": 0
+      },
+      "Scottsbluff": {
+        "plots": 525,
+        "hybrid_plots": 509,
+        "plots_with_final_yield": 489,
+        "hybrid_plots_without_yield": 20,
+        "unique_hybrids": 84,
+        "experiments": [
+          "n150",
+          "n225",
+          "n75"
+        ],
+        "nitrogen_lb_ac": [
+          75.0,
+          150.0,
+          225.0
+        ],
+        "planting_dates": [
+          "2022-05-19"
+        ],
+        "irrigated": true,
+        "missing": {
+          "experiment": 16,
+          "genotype": 16,
+          "nitrogen_treatment": 0,
+          "nitrogen_lb_ac": 16,
+          "irrigated": 16,
+          "plot_length_ft": 16,
+          "planting_date": 16,
+          "total_stand_count": 525,
+          "days_to_anthesis": 17,
+          "gdd_to_anthesis": 17,
+          "final_yield": 36
+        },
+        "has_images": false,
+        "plots_with_coordinates": 0
+      }
+    },
+    "in_scope_sites": {
+      "plots": 1590,
+      "hybrid_plots": 1480,
+      "plots_with_final_yield": 1479,
+      "unique_hybrids": 84
+    },
+    "all_sites_unique_hybrids": 84,
+    "duplicate_plot_ids": 0
+  },
+  "acquisition_dates": [
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-15"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-23"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-10"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-08-31"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-09-11"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-09-24"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-12"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-26"
+    },
+    {
+      "site_id": "Ames",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-10"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-10"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-20"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-02"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-09-13"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-10-01"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-10-09"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-12"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-26"
+    },
+    {
+      "site_id": "Crawfordsville",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-11"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-18"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-08-06"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-09-03"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-09-11"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-09-19"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-09-27"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-13"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-28"
+    },
+    {
+      "site_id": "Lincoln",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-04"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-13"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-21"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-08"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-09-03"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-09-11"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-09-19"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-13"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-27"
+    },
+    {
+      "site_id": "MOValley",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-10"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-09"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-17"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-04"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-08-22"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-09-02"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-09-25"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-13"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-19"
+    },
+    {
+      "site_id": "NorthPlatte",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-03"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-04"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-17"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-07"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 4,
+      "tp_label": "TP4",
+      "date": "2022-08-18"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 5,
+      "tp_label": "TP5",
+      "date": "2022-09-09"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "satellite",
+      "time_point": 6,
+      "tp_label": "TP6",
+      "date": "2022-09-24"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "uav",
+      "time_point": 1,
+      "tp_label": "TP1",
+      "date": "2022-07-08"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "uav",
+      "time_point": 2,
+      "tp_label": "TP2",
+      "date": "2022-07-22"
+    },
+    {
+      "site_id": "Scottsbluff",
+      "modality": "uav",
+      "time_point": 3,
+      "tp_label": "TP3",
+      "date": "2022-08-12"
+    }
+  ],
+  "images": {
+    "satellite": {
+      "files": 2012,
+      "bytes": 48693328,
+      "usable": 1960,
+      "by_status": {
+        "ok": 1976,
+        "not_in_ground_truth": 36
+      },
+      "duplicate_files": 16,
+      "distinct_plots": 1026,
+      "by_site_time_point": [
+        {
+          "site_id": "Ames",
+          "time_point": 1,
+          "date": "2022-07-15",
+          "days_after_planting_median": 54.0,
+          "files": 114,
+          "usable": 108,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 102,
+          "bytes": 2743867
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 2,
+          "date": "2022-07-23",
+          "days_after_planting_median": 62.0,
+          "files": 108,
+          "usable": 102,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 96,
+          "bytes": 2611690
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 3,
+          "date": "2022-08-10",
+          "days_after_planting_median": 80.0,
+          "files": 124,
+          "usable": 118,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 112,
+          "bytes": 2994006
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 4,
+          "date": "2022-08-31",
+          "days_after_planting_median": 101.0,
+          "files": 108,
+          "usable": 102,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 96,
+          "bytes": 2619226
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 5,
+          "date": "2022-09-11",
+          "days_after_planting_median": 112.0,
+          "files": 100,
+          "usable": 94,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 88,
+          "bytes": 2415805
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 6,
+          "date": "2022-09-24",
+          "days_after_planting_median": 125.0,
+          "files": 144,
+          "usable": 138,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 121,
+          "bytes": 3481884
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 1,
+          "date": "2022-07-10",
+          "days_after_planting_median": 60.0,
+          "files": 77,
+          "usable": 77,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 71,
+          "bytes": 1854097
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 2,
+          "date": "2022-07-20",
+          "days_after_planting_median": 70.0,
+          "files": 93,
+          "usable": 93,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 85,
+          "bytes": 2247595
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 3,
+          "date": "2022-08-02",
+          "days_after_planting_median": 83.0,
+          "files": 81,
+          "usable": 81,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 76,
+          "bytes": 1947457
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 4,
+          "date": "2022-09-13",
+          "days_after_planting_median": 125.0,
+          "files": 80,
+          "usable": 80,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 72,
+          "bytes": 1936630
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 5,
+          "date": "2022-10-01",
+          "days_after_planting_median": 143.0,
+          "files": 78,
+          "usable": 78,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 70,
+          "bytes": 1887687
+        },
+        {
+          "site_id": "Crawfordsville",
+          "time_point": 6,
+          "date": "2022-10-09",
+          "days_after_planting_median": 151.0,
+          "files": 91,
+          "usable": 91,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 88,
+          "bytes": 2227680
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 1,
+          "date": "2022-07-18",
+          "days_after_planting_median": 57.0,
+          "files": 133,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 127,
+          "bytes": 3208108
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 2,
+          "date": "2022-08-06",
+          "days_after_planting_median": 76.0,
+          "files": 133,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 124,
+          "bytes": 3207441
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 3,
+          "date": "2022-09-03",
+          "days_after_planting_median": 104.0,
+          "files": 149,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 16,
+          "hybrid_plots_with_yield": 128,
+          "bytes": 3632424
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 4,
+          "date": "2022-09-11",
+          "days_after_planting_median": 112.0,
+          "files": 133,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 127,
+          "bytes": 3239811
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 5,
+          "date": "2022-09-19",
+          "days_after_planting_median": 120.0,
+          "files": 133,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 124,
+          "bytes": 3218938
+        },
+        {
+          "site_id": "Lincoln",
+          "time_point": 6,
+          "date": "2022-09-27",
+          "days_after_planting_median": 128.0,
+          "files": 133,
+          "usable": 133,
+          "not_in_ground_truth": 0,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 127,
+          "bytes": 3218982
+        }
+      ],
+      "time_points_per_plot": {
+        "1": 547,
+        "2": 253,
+        "3": 95,
+        "4": 33,
+        "5": 98
+      },
+      "time_points_per_plot_by_site": {
+        "Ames": {
+          "1": 148,
+          "2": 6,
+          "4": 8,
+          "5": 94
+        },
+        "Crawfordsville": {
+          "1": 199,
+          "2": 105,
+          "3": 22,
+          "4": 5,
+          "5": 1
+        },
+        "Lincoln": {
+          "1": 200,
+          "2": 142,
+          "3": 73,
+          "4": 20,
+          "5": 3
+        }
+      }
+    },
+    "uav": {
+      "files": 430,
+      "bytes": 183583434,
+      "usable": 412,
+      "by_status": {
+        "ok": 412,
+        "not_in_ground_truth": 18
+      },
+      "duplicate_files": 0,
+      "distinct_plots": 166,
+      "by_site_time_point": [
+        {
+          "site_id": "Ames",
+          "time_point": 1,
+          "date": "2022-07-12",
+          "days_after_planting_median": 51.0,
+          "files": 126,
+          "usable": 120,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 114,
+          "bytes": 45683462
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 2,
+          "date": "2022-07-26",
+          "days_after_planting_median": 65.0,
+          "files": 132,
+          "usable": 126,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 118,
+          "bytes": 60007845
+        },
+        {
+          "site_id": "Ames",
+          "time_point": 3,
+          "date": "2022-08-10",
+          "days_after_planting_median": 80.0,
+          "files": 172,
+          "usable": 166,
+          "not_in_ground_truth": 6,
+          "duplicates": 0,
+          "hybrid_plots_with_yield": 156,
+          "bytes": 77892127
+        }
+      ],
+      "time_points_per_plot": {
+        "1": 40,
+        "2": 6,
+        "3": 120
+      },
+      "time_points_per_plot_by_site": {
+        "Ames": {
+          "1": 40,
+          "2": 6,
+          "3": 120
+        }
+      }
+    }
+  },
+  "raster_metadata": {
+    "satellite": {
+      "metadata_status": {
+        "read": 1996,
+        "not_local": 16
+      },
+      "width_px": {
+        "min": 11,
+        "median": 12.0,
+        "max": 22
+      },
+      "height_px": {
+        "min": 11,
+        "median": 21.0,
+        "max": 22
+      },
+      "bands": {
+        "6.0": 1996
+      },
+      "dtype": {
+        "uint16": 1996
+      },
+      "valid_fraction": {
+        "min": 0.7576,
+        "median": 0.8388
+      },
+      "files_without_valid_pixels": [],
+      "crs_epsg_by_site": {
+        "Ames": [
+          32615
+        ],
+        "Crawfordsville": [
+          32615
+        ],
+        "Lincoln": [
+          32614
+        ]
+      },
+      "pixel_size_m": [
+        0.3
+      ],
+      "band_order_ok": 1996,
+      "band_order_not_ok": [],
+      "partial_zero_pixel_files": []
+    },
+    "uav": {
+      "metadata_status": {
+        "read": 430
+      },
+      "width_px": {
+        "min": 355,
+        "median": 380.0,
+        "max": 385
+      },
+      "height_px": {
+        "min": 701,
+        "median": 751.0,
+        "max": 760
+      },
+      "bands": {
+        "4": 430
+      },
+      "dtype": {
+        "uint8": 430
+      },
+      "valid_fraction": {
+        "min": 0.9688,
+        "median": 0.9717
+      },
+      "files_without_valid_pixels": [],
+      "alpha_rgb_disagree_files": []
+    }
+  },
+  "plot_coordinates": {
+    "plots_with_coordinates": 1026,
+    "max_spread_m": 0.0
+  },
+  "unmatched_files": [
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_2.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_3.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_4.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP1/Ames-TP1-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_2.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_3.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_4.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP2/Ames-TP2-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_2.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_3.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_4.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP3/Ames-TP3-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_2.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_3.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_4.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP4/Ames-TP4-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_2.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_3.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_4.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_5.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_6.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP5/Ames-TP5-4231_1_7.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_17.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_18.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_19.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_20.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_21.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "Satellite/Ames/TP6/Ames-TP6-4232_1_22.TIF",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_2.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_3.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_4.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_5.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_6.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP1/Ames-TP1-4231_1_7.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_2.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_3.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_4.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_5.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_6.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP2/Ames-TP2-4231_1_7.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_2.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_3.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_4.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_5.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_6.PNG",
+      "match_status": "not_in_ground_truth"
+    },
+    {
+      "image_path": "UAV/Ames/TP3/Ames-TP3-4231_1_7.PNG",
+      "match_status": "not_in_ground_truth"
+    }
+  ],
+  "duplicate_files": [
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_18.TIF",
+      "copy_index": 0,
+      "size_bytes": 24339,
+      "drive_created_time": "2026-09-26T06:53:23.636Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_18.TIF",
+      "copy_index": 1,
+      "size_bytes": 24339,
+      "drive_created_time": "2026-09-26T06:53:26.389Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_20.TIF",
+      "copy_index": 0,
+      "size_bytes": 24503,
+      "drive_created_time": "2026-09-26T06:53:23.810Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_20.TIF",
+      "copy_index": 1,
+      "size_bytes": 24503,
+      "drive_created_time": "2026-09-26T06:53:26.262Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_21.TIF",
+      "copy_index": 0,
+      "size_bytes": 24433,
+      "drive_created_time": "2026-09-26T06:53:23.823Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_21.TIF",
+      "copy_index": 1,
+      "size_bytes": 24433,
+      "drive_created_time": "2026-09-26T06:53:26.265Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_22.TIF",
+      "copy_index": 0,
+      "size_bytes": 24334,
+      "drive_created_time": "2026-09-26T06:53:23.768Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_22.TIF",
+      "copy_index": 1,
+      "size_bytes": 24334,
+      "drive_created_time": "2026-09-26T06:53:26.237Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_33.TIF",
+      "copy_index": 0,
+      "size_bytes": 24404,
+      "drive_created_time": "2026-09-26T06:53:23.902Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_33.TIF",
+      "copy_index": 1,
+      "size_bytes": 24404,
+      "drive_created_time": "2026-09-26T06:53:26.231Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_38.TIF",
+      "copy_index": 0,
+      "size_bytes": 24303,
+      "drive_created_time": "2026-09-26T06:53:23.748Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_38.TIF",
+      "copy_index": 1,
+      "size_bytes": 24303,
+      "drive_created_time": "2026-09-26T06:53:26.253Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_4.TIF",
+      "copy_index": 0,
+      "size_bytes": 24306,
+      "drive_created_time": "2026-09-26T06:53:23.780Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_12_4.TIF",
+      "copy_index": 1,
+      "size_bytes": 24306,
+      "drive_created_time": "2026-09-26T06:53:26.278Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_11.TIF",
+      "copy_index": 0,
+      "size_bytes": 24357,
+      "drive_created_time": "2026-09-26T06:53:23.787Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_11.TIF",
+      "copy_index": 1,
+      "size_bytes": 24357,
+      "drive_created_time": "2026-09-26T06:53:26.236Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_12.TIF",
+      "copy_index": 0,
+      "size_bytes": 24307,
+      "drive_created_time": "2026-09-26T06:53:23.756Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_12.TIF",
+      "copy_index": 1,
+      "size_bytes": 24307,
+      "drive_created_time": "2026-09-26T06:53:26.361Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_13.TIF",
+      "copy_index": 0,
+      "size_bytes": 24450,
+      "drive_created_time": "2026-09-26T06:53:23.743Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_13.TIF",
+      "copy_index": 1,
+      "size_bytes": 24450,
+      "drive_created_time": "2026-09-26T06:53:26.249Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_14.TIF",
+      "copy_index": 0,
+      "size_bytes": 24371,
+      "drive_created_time": "2026-09-26T06:53:23.807Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_14.TIF",
+      "copy_index": 1,
+      "size_bytes": 24371,
+      "drive_created_time": "2026-09-26T06:53:26.318Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_15.TIF",
+      "copy_index": 0,
+      "size_bytes": 24459,
+      "drive_created_time": "2026-09-26T06:53:23.867Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_15.TIF",
+      "copy_index": 1,
+      "size_bytes": 24459,
+      "drive_created_time": "2026-09-26T06:53:26.260Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_17.TIF",
+      "copy_index": 0,
+      "size_bytes": 24423,
+      "drive_created_time": "2026-09-26T06:53:23.808Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_17.TIF",
+      "copy_index": 1,
+      "size_bytes": 24423,
+      "drive_created_time": "2026-09-26T06:53:26.266Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_18.TIF",
+      "copy_index": 0,
+      "size_bytes": 24278,
+      "drive_created_time": "2026-09-26T06:53:23.865Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_18.TIF",
+      "copy_index": 1,
+      "size_bytes": 24278,
+      "drive_created_time": "2026-09-26T06:53:26.277Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_23.TIF",
+      "copy_index": 0,
+      "size_bytes": 24359,
+      "drive_created_time": "2026-09-26T06:53:23.916Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_23.TIF",
+      "copy_index": 1,
+      "size_bytes": 24359,
+      "drive_created_time": "2026-09-26T06:53:26.207Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_3.TIF",
+      "copy_index": 0,
+      "size_bytes": 24427,
+      "drive_created_time": "2026-09-26T06:53:23.946Z"
+    },
+    {
+      "image_path": "Satellite/Lincoln/TP3/Lincoln-TP3-hybrids_13_3.TIF",
+      "copy_index": 1,
+      "size_bytes": 24427,
+      "drive_created_time": "2026-09-26T06:53:26.256Z"
+    }
+  ],
+  "anomalies": [
+    "Drive listing returned 4 files twice (same Drive file id); counted once.",
+    "Drive has a second, empty folder at Satellite/Ames/TP6.",
+    "satellite: 36 files with status not_in_ground_truth.",
+    "satellite: 16 duplicate uploads (same plot, time point, name and size), by site/TP: Lincoln TP3: 16; first copy kept (use=True).",
+    "uav: 18 files with status not_in_ground_truth.",
+    "UAV imagery missing for sites ['Crawfordsville', 'Lincoln'].",
+    "README lists satellite bands as 'near infrared, red edge, red, green, blue, deep blue'; the GeoTIFF band descriptions and the organizers' notebook use Red, Green, Blue, NIR, Red Edge, Deep Blue (verified on a file whose pixel means reproduce the producer's embedded statistics). Band order is checked per file (band_order_ok).",
+    "Ground truth: poundsOfNitrogenPerAcre is 0 on every plot without a genotype (fill/border plots). Treated as missing, not as a 0 N treatment.",
+    "Ground truth: the CSV's own 'index' column is not unique (kept as gt_index); gt_row is the row position the organizers' notebook uses as the record id.",
+    "Ground truth: experiment codes are verbatim, including 'Hyrbrids' (MOValley) and 'hybrids' (Lincoln); 16 Scottsbluff fill plots have no experiment code.",
+    "Ground truth has no range 1 at Ames; the images named Ames-TPn-<exp>_1_<row> are border plots and stay unmatched (not_in_ground_truth).",
+    "DateofCollection.xlsx names Missouri Valley ('MOValley' elsewhere); its second sheet (satellite vs UAV date gaps) spells Crawfordsville 'Crawfordville'. Aliased to site_id.",
+    "TP numbers are per site and sensor: satellite TP4 is Aug 31 at Ames, Sep 11 at Lincoln, Sep 13 at Crawfordsville. Always join on acquisition date, never on TP.",
+    "UAV PNGs are not georeferenced and not radiometrically calibrated (mean RGB differs several-fold between flights of the same plot).",
+    "Ames plots were planted on two dates (experiments 4231/4232 on 2022-05-22, 4233 on 2022-05-23): days_after_planting is per plot."
+  ],
+  "outputs": {
+    "plots.parquet": {
+      "rows": 2291,
+      "columns": {
+        "plot_id": "str",
+        "year": "int64",
+        "site_id": "string",
+        "field_id": "str",
+        "experiment": "string",
+        "range": "int64",
+        "row": "int64",
+        "gt_row": "int64",
+        "gt_index": "Int64",
+        "qr_code": "string",
+        "block": "Int64",
+        "plot_number": "Int64",
+        "genotype": "string",
+        "nitrogen_treatment": "string",
+        "nitrogen_lb_ac_raw": "float64",
+        "irrigation_provided": "float64",
+        "plot_length_ft": "float64",
+        "planting_date": "datetime64[s]",
+        "total_stand_count": "float64",
+        "days_to_anthesis": "float64",
+        "gdd_to_anthesis": "float64",
+        "final_yield": "float64",
+        "nitrogen_placeholder_zero": "bool",
+        "nitrogen_lb_ac": "float64",
+        "irrigated": "boolean",
+        "is_hybrid_plot": "bool",
+        "planting_date_filled": "datetime64[s]",
+        "planting_date_source": "str",
+        "practice_plot_id": "str",
+        "latitude": "float64",
+        "longitude": "float64",
+        "utm_epsg": "Int64",
+        "utm_x": "float64",
+        "utm_y": "float64",
+        "coord_images": "Int64",
+        "coord_spread_m": "float64",
+        "coord_source": "str",
+        "satellite_images": "int64",
+        "satellite_time_points": "str",
+        "uav_images": "int64",
+        "uav_time_points": "str"
+      }
+    },
+    "benchmark_plots.parquet": {
+      "rows": 1026,
+      "columns": {
+        "plot_id": "str",
+        "year": "int64",
+        "site_id": "string",
+        "field_id": "str",
+        "experiment": "string",
+        "range": "int64",
+        "row": "int64",
+        "gt_row": "int64",
+        "gt_index": "Int64",
+        "qr_code": "string",
+        "block": "Int64",
+        "plot_number": "Int64",
+        "genotype": "string",
+        "nitrogen_treatment": "string",
+        "nitrogen_lb_ac_raw": "float64",
+        "irrigation_provided": "float64",
+        "plot_length_ft": "float64",
+        "planting_date": "datetime64[s]",
+        "total_stand_count": "float64",
+        "days_to_anthesis": "float64",
+        "gdd_to_anthesis": "float64",
+        "final_yield": "float64",
+        "nitrogen_placeholder_zero": "bool",
+        "nitrogen_lb_ac": "float64",
+        "irrigated": "boolean",
+        "is_hybrid_plot": "bool",
+        "planting_date_filled": "datetime64[s]",
+        "planting_date_source": "str",
+        "practice_plot_id": "str",
+        "latitude": "float64",
+        "longitude": "float64",
+        "utm_epsg": "Int64",
+        "utm_x": "float64",
+        "utm_y": "float64",
+        "coord_images": "Int64",
+        "coord_spread_m": "float64",
+        "coord_source": "str",
+        "satellite_images": "int64",
+        "satellite_time_points": "str",
+        "uav_images": "int64",
+        "uav_time_points": "str"
+      }
+    },
+    "acquisition_dates.parquet": {
+      "rows": 54,
+      "columns": {
+        "site_id": "str",
+        "year": "int64",
+        "modality": "str",
+        "time_point": "int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
+        "day_of_year": "int64",
+        "location_label": "str"
+      }
+    },
+    "satellite_acquisitions.parquet": {
+      "rows": 36,
+      "columns": {
+        "site_id": "str",
+        "year": "int64",
+        "tp": "int64",
+        "date": "datetime64[s]"
+      }
+    },
+    "images.parquet": {
+      "rows": 2372,
+      "columns": {
+        "path": "str",
+        "modality": "str",
+        "site_id": "object",
+        "time_point": "int64",
+        "plot_id": "str",
+        "date": "datetime64[s]",
+        "experiment": "string",
+        "range": "Int64",
+        "row": "Int64",
+        "tp_label": "str",
+        "image_id": "string"
+      }
+    },
+    "sites.parquet": {
+      "rows": 5,
+      "columns": {
+        "site_id": "str",
+        "name": "str",
+        "state": "str",
+        "latitude": "float64",
+        "longitude": "float64",
+        "coord_source": "str",
+        "year": "int64",
+        "irrigated": "bool",
+        "planting_dates": "str",
+        "plots": "int64",
+        "hybrid_plots": "int64",
+        "yield_plots": "int64",
+        "hybrids": "int64",
+        "satellite_dates": "str",
+        "uav_dates": "str"
+      }
+    },
+    "satellite_manifest.parquet": {
+      "rows": 2012,
+      "columns": {
+        "image_id": "string",
+        "modality": "str",
+        "plot_id": "str",
+        "site_id": "object",
+        "year": "float64",
+        "time_point": "Int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
+        "days_after_planting": "Int64",
+        "experiment": "string",
+        "range": "Int64",
+        "row": "Int64",
+        "match_status": "string",
+        "is_duplicate": "bool",
+        "use": "bool[pyarrow]",
+        "image_path": "str",
+        "size_bytes": "int64",
+        "rel_path": "str",
+        "sensor_folder": "str",
+        "location_folder": "str",
+        "tp_folder": "str",
+        "filename": "str",
+        "file_source": "str",
+        "drive_created_time": "str",
+        "drive_modified_time": "str",
+        "drive_size_bytes": "float64",
+        "name_location": "str",
+        "extension": "str",
+        "name_parsed": "bool",
+        "field_id": "str",
+        "genotype": "string",
+        "final_yield": "float64",
+        "planting_date": "datetime64[s]",
+        "is_hybrid_plot": "object",
+        "image_key": "string",
+        "copy_index": "int64",
+        "copies": "Int64",
+        "read_ok": "object",
+        "height": "float64",
+        "width": "float64",
+        "bands": "float64",
+        "dtype": "str",
+        "compression": "str",
+        "nodata": "str",
+        "is_geotiff": "object",
+        "band_names": "str",
+        "band_order_ok": "object",
+        "pixels": "float64",
+        "valid_pixels": "float64",
+        "padding_pixels": "float64",
+        "partial_zero_pixels": "float64",
+        "valid_fraction": "float64",
+        "mean_red": "float64",
+        "mean_green": "float64",
+        "mean_blue": "float64",
+        "mean_nir": "float64",
+        "mean_red_edge": "float64",
+        "mean_deep_blue": "float64",
+        "crs_epsg": "float64",
+        "pixel_size_x_m": "float64",
+        "pixel_size_y_m": "float64",
+        "bbox_minx": "float64",
+        "bbox_maxx": "float64",
+        "bbox_maxy": "float64",
+        "bbox_miny": "float64",
+        "plot_area_m2": "float64",
+        "centroid_x": "float64",
+        "centroid_y": "float64",
+        "centroid_lat": "float64",
+        "centroid_lon": "float64",
+        "sha256": "str",
+        "bbox_center_lat": "float64",
+        "bbox_center_lon": "float64",
+        "metadata_status": "str",
+        "content_copies": "Int64"
+      }
+    },
+    "uav_manifest.parquet": {
+      "rows": 430,
+      "columns": {
+        "image_id": "string",
+        "modality": "str",
+        "plot_id": "str",
+        "site_id": "object",
+        "year": "float64",
+        "time_point": "Int64",
+        "tp_label": "str",
+        "date": "datetime64[s]",
+        "days_after_planting": "Int64",
+        "experiment": "string",
+        "range": "Int64",
+        "row": "Int64",
+        "match_status": "string",
+        "is_duplicate": "bool",
+        "use": "bool[pyarrow]",
+        "image_path": "str",
+        "size_bytes": "int64",
+        "rel_path": "str",
+        "sensor_folder": "str",
+        "location_folder": "str",
+        "tp_folder": "str",
+        "filename": "str",
+        "file_source": "str",
+        "drive_created_time": "str",
+        "drive_modified_time": "str",
+        "drive_size_bytes": "float64",
+        "name_location": "str",
+        "extension": "str",
+        "name_parsed": "bool",
+        "field_id": "str",
+        "genotype": "string",
+        "final_yield": "float64",
+        "planting_date": "datetime64[s]",
+        "is_hybrid_plot": "object",
+        "image_key": "string",
+        "copy_index": "int64",
+        "copies": "Int64",
+        "read_ok": "bool",
+        "height": "int64",
+        "width": "int64",
+        "bands": "int64",
+        "dtype": "str",
+        "pixels": "int64",
+        "valid_pixels": "int64",
+        "padding_pixels": "int64",
+        "valid_fraction": "float64",
+        "mean_red": "float64",
+        "mean_green": "float64",
+        "mean_blue": "float64",
+        "sha256": "str",
+        "mode": "str",
+        "has_alpha": "object",
+        "alpha_rgb_disagree_pixels": "float64",
+        "metadata_status": "str",
+        "content_copies": "Int64"
+      }
+    },
+    "observations.parquet": {
+      "rows": 2372,
+      "columns": {
+        "plot_id": "str",
+        "date": "datetime64[s]",
+        "source": "str",
+        "time_point": "Int64",
+        "tp_label": "str",
+        "image_path": "str",
+        "image_id": "string",
+        "days_after_planting": "Int64"
+      }
+    },
+    "drive_inventory.parquet": {
+      "rows": 2442,
+      "columns": {
+        "rel_path": "str",
+        "sensor_folder": "str",
+        "location_folder": "str",
+        "tp_folder": "str",
+        "filename": "str",
+        "size_bytes": "int64",
+        "drive_created_time": "str",
+        "drive_modified_time": "str"
+      }
+    }
+  }
+}

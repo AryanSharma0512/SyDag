@@ -12,6 +12,10 @@ SoilSignal ML command line. Run from ml/:
     showcase  write the held-out plots' raw inputs to backend/data/practice for the API
     progressive  records only vs + imagery through TP1..TP6: early signal and scouting
                  (all options: python -m soilsignal_ml progressive --help)
+    challenge    inventory + join the challenge dataset -> ml/data/challenge/ (see
+                 soilsignal_ml/ingest/challenge.py); `--dataset sydag26 ingest` then
+                 builds the canonical tables from it (HackathonDatasetAdapter)
+    challenge-sql  CSV + psql load script for ml/data/challenge/ (optional database)
 """
 
 import argparse
@@ -38,6 +42,19 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("export")
     sub.add_parser("showcase")
     sub.add_parser("progressive", help="early-signal experiments (see progressive --help)")
+    challenge = sub.add_parser("challenge", help="inventory and join the challenge dataset")
+    challenge.add_argument("--raw", default=None, help="local copy of the shared folder")
+    challenge.add_argument("--out", default=None, help="output folder (ml/data/challenge)")
+    source = challenge.add_mutually_exclusive_group()
+    source.add_argument("--drive-listing", default=None, help="saved Drive listings folder")
+    source.add_argument(
+        "--inventory", default=None, help="drive_inventory.parquet to list files not on disk"
+    )
+    challenge.add_argument("--no-rasters", action="store_true", help="skip reading images")
+    challenge.add_argument("--workers", type=int, default=4)
+    challenge.add_argument("--limit", type=int, default=None, help="read at most N new images")
+    sql = sub.add_parser("challenge-sql", help="CSV + psql load script for the challenge tables")
+    sql.add_argument("--out", default=None, help="challenge output folder (ml/data/challenge)")
     args = parser.parse_args(argv)
 
     if args.command == "ingest":
@@ -81,6 +98,34 @@ def main(argv: list[str] | None = None) -> int:
         from soilsignal_ml.export.showcase import write_bundle
 
         print(f"wrote {write_bundle(args.dataset)}")
+    elif args.command == "challenge":
+        from pathlib import Path
+
+        from soilsignal_ml.ingest import challenge as ch
+        from soilsignal_ml.ingest.challenge_report import write_outputs
+
+        raw = Path(args.raw) if args.raw else ch.RAW_ROOT
+        out = Path(args.out) if args.out else ch.OUT_ROOT
+        tables = ch.build(
+            raw_root=raw,
+            drive_listing=Path(args.drive_listing) if args.drive_listing else None,
+            inventory=Path(args.inventory) if args.inventory else None,
+            out_root=out,
+            read_rasters=not args.no_rasters,
+            workers=args.workers,
+            limit=args.limit,
+        )
+        manifest = write_outputs(tables, out, raw)
+        for name, schema in manifest["outputs"].items():
+            print(f"  {name}: {schema['rows']} rows")
+        print(f"  anomalies: {len(manifest['anomalies'])} (see {out / 'challenge_manifest.json'})")
+    elif args.command == "challenge-sql":
+        from pathlib import Path
+
+        from soilsignal_ml.ingest.challenge import OUT_ROOT
+        from soilsignal_ml.ingest.challenge_postgres import export_postgres
+
+        print(f"wrote {export_postgres(Path(args.out) if args.out else OUT_ROOT)}")
     return 0
 
 
