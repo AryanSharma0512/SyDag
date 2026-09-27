@@ -119,7 +119,7 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
 
         <div ref={wrapRef} className="relative mt-5" style={{ height }}>
           {geo && s && (
-            <svg width={width} height={height} className="overflow-visible" role="img" aria-label={`On ${s.displayDate}, the 90% range is ${formatYield(s.lowerBound)} to ${formatYield(s.upperBound)} bushels per acre.`}>
+            <svg width={width} height={height} className="overflow-visible" role="img" aria-label={`On ${s.displayDate}, the prediction range is ${formatYield(s.lowerBound, 0)} to ${formatYield(s.upperBound, 0)} bushels per acre.`}>
               {geo.ticks.map((v) => (
                 <g key={v}>
                   <line x1={margin.left} x2={width - margin.right + 40} y1={geo.sy(v)} y2={geo.sy(v)} stroke={C.line} />
@@ -198,8 +198,8 @@ export function UncertaintyDemo({ forecast }: { forecast: FieldForecast }) {
               <span className="data text-[13px] text-muted">bu/ac</span>
             </div>
             <p className="mt-3 text-[14px] text-ink-soft">
-              90% of outcomes expected between <span className="data">{formatYield(s.lowerBound)}</span> and{' '}
-              <span className="data">{formatYield(s.upperBound)}</span> bu/ac.
+              Prediction range <span className="data">{formatYield(s.lowerBound, 0)}</span> to{' '}
+              <span className="data">{formatYield(s.upperBound, 0)}</span> bu/ac.
             </p>
             <p className="mt-3 text-[14px] leading-relaxed text-muted">{note}</p>
             <p className="mt-5 text-[12px] text-faint">

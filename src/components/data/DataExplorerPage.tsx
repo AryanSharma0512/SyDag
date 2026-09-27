@@ -12,13 +12,15 @@ import { ExportMenu } from './ExportMenu';
 import { WeatherPanel } from './WeatherPanel';
 import { SoilPanel } from './SoilPanel';
 import { YieldPanel } from './YieldPanel';
+import { TrialDataSection } from './TrialDataSection';
 
 type Mode = 'visual' | 'data';
 
+// Soil last: it is context for the location, not one of the forecast's headline inputs.
 const SOURCE_ORDER: Array<{ key: SourceKey; anchor: string }> = [
   { key: 'weather', anchor: 'weather' },
-  { key: 'soil', anchor: 'soil' },
   { key: 'yieldHistory', anchor: 'yield-history' },
+  { key: 'soil', anchor: 'soil' },
 ];
 
 const coordinate = (value: number) => value.toFixed(4);
@@ -84,15 +86,28 @@ export function DataExplorerPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8 pb-24 sm:px-6 sm:pt-10">
       <header>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink sm:text-[32px]">Data Explorer</h1>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink sm:text-[32px]">Data</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
-          Inspect the NOAA and USDA data retrieved for this plot.
+          What the forecasts are built from: the trial data at each location, and the public weather, yield and soil records
+          looked up for a plot.
         </p>
       </header>
 
+      <div className="mt-12">
+        <TrialDataSection />
+      </div>
+
+      <section className="mt-20 border-t border-line pt-12" aria-labelledby="public-context-heading">
+        <h2 id="public-context-heading" className="text-[22px] font-semibold tracking-[-0.02em] text-ink">
+          Public context for one plot
+        </h2>
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
+          Observed weather (NOAA), county yield history (USDA NASS) and soil (USDA SSURGO) for the plot's coordinates, as the
+          backend retrieved them. Shown as context; soil is included for reference.
+        </p>
       {field ? (
         <>
-          <div className="mt-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+          <div className="mt-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
             <div className="min-w-0">
               <FieldSelector fields={fields.length ? fields : [field]} field={field} onSelectField={setFieldId} />
               <p className="mt-1.5 text-[14px] text-muted">
@@ -155,8 +170,8 @@ export function DataExplorerPage() {
 
           <div className="mt-12 space-y-16">
             <WeatherPanel part={partOf('weather')} state={states.weather} showData={mode === 'data'} />
-            <SoilPanel part={partOf('soil')} state={states.soil} showData={mode === 'data'} />
             <YieldPanel part={partOf('yieldHistory')} state={states.yieldHistory} showData={mode === 'data'} />
+            <SoilPanel part={partOf('soil')} state={states.soil} showData={mode === 'data'} />
           </div>
         </>
       ) : loadError ? (
@@ -177,6 +192,7 @@ export function DataExplorerPage() {
           <div className="ss-skeleton mt-8 h-24 w-full rounded-lg" />
         </div>
       )}
+      </section>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { AnimatedLogo } from '../brand/AnimatedLogo';
 import { DataBadge } from './DataBadge';
 import { Link, ROUTE_ORDER, ROUTES, useRouter } from '../../utils/router';
 import { EASE_OUT, GLIDE } from '../../utils/motion';
-import { getDatasetLabel } from '../../services/dataset';
+import { getSiteDatasetLabel } from '../../services/dataset';
 
 interface NavigationProps {
   isPresentationMode: boolean;
@@ -21,7 +21,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
 
   useEffect(() => {
     let active = true;
-    getDatasetLabel()
+    getSiteDatasetLabel()
       .then((label) => active && setDatasetLabel(label))
       .catch(() => active && setDatasetLabel('Data unavailable'));
     return () => {

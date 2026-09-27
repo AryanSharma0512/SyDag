@@ -1,17 +1,17 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
-import type { ForecastSnapshot } from '../../types/agricultural';
+import type { ForecastPoint } from '../../services/plotForecasts';
 import { bandPath, monotonePath, nearestIndex, niceTicks, scaleLinear, toTime } from '../../utils/chart';
 import { DATA_TRANSITION, EASE_OUT } from '../../utils/motion';
 import { useElementWidth, useIsMobile } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
-import { formatYield, ratingLabel } from '../../utils/formatters';
+import { formatYield } from '../../utils/formatters';
 import { formatFullDay, imageryLabel, passDescription } from '../../utils/imagery';
 
 interface ForecastTimelineProps {
   fieldKey: string;
-  snapshots: ForecastSnapshot[];
+  snapshots: ForecastPoint[];
   activeIndex: number;
   onSelectIndex: (index: number) => void;
   isPresentationMode?: boolean;
@@ -60,6 +60,13 @@ export function ForecastTimeline({
     lanePasses.length > 0 &&
     lanePasses.every((p, i) => snapshots.some((s) => s.date >= p && (i === lanePasses.length - 1 || s.date < lanePasses[i + 1])));
   const title = lanePasses.length === 0 ? 'Forecast through the season' : everyPass ? 'Forecast after each satellite pass' : 'Forecast through the satellite passes';
+  // Final results may give a point estimate without a range; the band is drawn only when every date has one.
+  const hasRange = snapshots.every((s) => s.lowerBound !== null && s.upperBound !== null);
+  const low = (s: ForecastPoint) => s.lowerBound ?? s.yield;
+  const high = (s: ForecastPoint) => s.upperBound ?? s.yield;
+  const hasStage = snapshots.some((s) => s.stage);
+  const hasDap = snapshots.some((s) => s.dap !== null);
+  const dapText = (s: ForecastPoint) => (s.dap === null ? '' : `${s.dap} days after planting`);
 
   const geo = useMemo(() => {
     if (width <= 0 || snapshots.length === 0) return null;
@@ -69,15 +76,15 @@ export function ForecastTimeline({
     // The axis starts at planting (or the first pass) when that comes before the first forecast.
     const start = Math.min(times[0], ...[lanePlanting, ...lanePasses].filter(Boolean).map((d) => toTime(d!)));
     const sx = scaleLinear(start, times[times.length - 1], x0, x1);
-    const lo = Math.min(...snapshots.map((s) => s.lowerBound));
-    const hi = Math.max(...snapshots.map((s) => s.upperBound));
+    const lo = Math.min(...snapshots.map(low));
+    const hi = Math.max(...snapshots.map(high));
     const yMin = Math.floor((lo - 6) / 10) * 10;
     const yMax = Math.ceil((hi + 4) / 10) * 10;
     const bottom = margin.top + plotHeight;
     const sy = scaleLinear(yMin, yMax, bottom, margin.top);
     const mid = snapshots.map((s, i) => ({ x: sx(times[i]), y: sy(s.yield) }));
-    const upper = snapshots.map((s, i) => ({ x: sx(times[i]), y: sy(s.upperBound) }));
-    const lower = snapshots.map((s, i) => ({ x: sx(times[i]), y: sy(s.lowerBound) }));
+    const upper = snapshots.map((s, i) => ({ x: sx(times[i]), y: sy(high(s)) }));
+    const lower = snapshots.map((s, i) => ({ x: sx(times[i]), y: sy(low(s)) }));
 
     // Hide scrubber labels that would collide; the active label is always shown.
     const minGap = isMobile ? 46 : 52;
@@ -104,9 +111,9 @@ export function ForecastTimeline({
       ticks: niceTicks(yMin, yMax, isMobile ? 3 : 4)
         .filter((t) => t > yMin && t < yMax)
         .map((t) => ({ value: t, y: sy(t) })),
-      stops: snapshots.map((s, i) => ({
+      stops: snapshots.map((_, i) => ({
         offset: x1 === x0 ? 0 : (mid[i].x - x0) / (x1 - x0),
-        opacity: 0.05 + Math.max(0, Math.min(1, (s.confidence - 40) / 60)) * 0.15,
+        opacity: 0.16,
       })),
       labelVisible,
       trackY: bottom + 26,
@@ -173,19 +180,23 @@ export function ForecastTimeline({
             <span className="h-[2.5px] w-4 rounded-full bg-leaf-700" aria-hidden="true" />
             Predicted yield, <span className="data">bu/ac</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-4 rounded-[3px] bg-leaf-400/25" aria-hidden="true" />
-            90% range
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowTable((v) => !v)}
-            aria-expanded={showTable}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-ink-soft hover:bg-mist hover:text-ink"
-          >
-            Data table
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showTable ? 'rotate-180' : ''}`} />
-          </button>
+          {hasRange && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-4 rounded-[3px] bg-leaf-400/25" aria-hidden="true" />
+              Prediction range
+            </span>
+          )}
+          {!isPresentationMode && (
+            <button
+              type="button"
+              onClick={() => setShowTable((v) => !v)}
+              aria-expanded={showTable}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-ink-soft hover:bg-mist hover:text-ink"
+            >
+              Data table
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showTable ? 'rotate-180' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,7 +208,7 @@ export function ForecastTimeline({
         aria-valuemin={0}
         aria-valuemax={snapshots.length - 1}
         aria-valuenow={index}
-        aria-valuetext={`${active.displayDate}, ${imageryLabel(passes, active.date).toLowerCase()}: ${formatYield(active.yield)} bushels per acre, 90% range ${formatYield(active.lowerBound)} to ${formatYield(active.upperBound)}, ${active.confidence}% confidence`}
+        aria-valuetext={`${active.displayDate}${active.dap !== null ? `, ${dapText(active)}` : ''}, ${imageryLabel(passes, active.date).toLowerCase()}: ${formatYield(active.yield, 0)} bushels per acre${hasRange ? `, prediction range ${formatYield(low(active), 0)} to ${formatYield(high(active), 0)}` : ''}`}
         onKeyDown={onKeyDown}
         className="relative mt-4 -mx-1 rounded-xl px-1 select-none"
         style={{ height }}
@@ -231,7 +242,8 @@ export function ForecastTimeline({
               <line x1={margin.left} x2={width - margin.right} y1={geo.bottom} y2={geo.bottom} stroke={C.lineStrong} strokeWidth={1} />
             </g>
 
-            {/* Uncertainty band: dim for the future, full strength for what has been observed. */}
+            {/* Prediction range: dim for the future, full strength for what has been observed. */}
+            {hasRange && (
             <g key={`band-${fieldKey}`}>
               <motion.path
                 fill={`url(#band-${uid})`}
@@ -248,6 +260,7 @@ export function ForecastTimeline({
                 />
               </g>
             </g>
+            )}
 
             {/* Prediction line: the future portion dims, the observed portion is bold. */}
             <g key={`line-${fieldKey}`}>
@@ -452,25 +465,27 @@ export function ForecastTimeline({
             >
               <div className="flex items-baseline justify-between gap-2 text-[12px]">
                 <span className="data font-medium text-ink">{snapshots[hovered].displayDate}</span>
-                <span className="text-muted">{snapshots[hovered].stage}</span>
+                {snapshots[hovered].stage && <span className="text-muted">{snapshots[hovered].stage}</span>}
               </div>
               <div className="mt-1.5 flex items-baseline gap-1.5">
-                <span className="data-tight text-[22px] font-medium text-ink">{formatYield(snapshots[hovered].yield)}</span>
+                <span className="data-tight text-[22px] font-medium text-ink">{formatYield(snapshots[hovered].yield, 0)}</span>
                 <span className="data text-[12px] text-muted">bu/ac</span>
               </div>
               <div className="mt-2 space-y-1 border-t border-line pt-2 text-[12px]">
-                <div className="flex justify-between gap-3">
-                  <span className="text-muted">90% range</span>
-                  <span className="data text-ink-soft">
-                    {formatYield(snapshots[hovered].lowerBound)}–{formatYield(snapshots[hovered].upperBound)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-muted">Confidence</span>
-                  <span className="data text-ink-soft">
-                    {snapshots[hovered].confidence}% · {ratingLabel(snapshots[hovered].confidenceRating)}
-                  </span>
-                </div>
+                {hasRange && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">Prediction range</span>
+                    <span className="data text-ink-soft">
+                      {formatYield(low(snapshots[hovered]), 0)}–{formatYield(high(snapshots[hovered]), 0)}
+                    </span>
+                  </div>
+                )}
+                {snapshots[hovered].dap !== null && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted">Days after planting</span>
+                    <span className="data text-ink-soft">{snapshots[hovered].dap}</span>
+                  </div>
+                )}
                 {passes.length > 0 && (
                   <div className="flex justify-between gap-3">
                     <span className="text-muted">Imagery</span>
@@ -557,7 +572,7 @@ export function ForecastTimeline({
       )}
 
       <AnimatePresence initial={false}>
-        {showTable && (
+        {showTable && !isPresentationMode && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -571,24 +586,26 @@ export function ForecastTimeline({
                 <thead className="bg-mist/60 text-[12px] text-muted">
                   <tr>
                     <th scope="col" className="px-4 py-2 font-medium">Date</th>
-                    <th scope="col" className="px-4 py-2 font-medium">Stage</th>
+                    {hasDap && <th scope="col" className="px-4 py-2 text-right font-medium">Days after planting</th>}
+                    {hasStage && <th scope="col" className="px-4 py-2 font-medium">Stage</th>}
                     {passes.length > 0 && <th scope="col" className="px-4 py-2 font-medium">Imagery</th>}
                     <th scope="col" className="px-4 py-2 text-right font-medium">Forecast (bu/ac)</th>
-                    <th scope="col" className="px-4 py-2 text-right font-medium">90% range</th>
-                    <th scope="col" className="px-4 py-2 text-right font-medium">Confidence</th>
+                    {hasRange && <th scope="col" className="px-4 py-2 text-right font-medium">Prediction range</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {snapshots.map((s, i) => (
                     <tr key={s.id} className={`border-t border-line ${i === index ? 'bg-leaf-50/70' : ''}`}>
                       <td className="data px-4 py-2 text-ink">{s.displayDate}</td>
-                      <td className="px-4 py-2 text-ink-soft">{s.stage}</td>
+                      {hasDap && <td className="data px-4 py-2 text-right text-ink-soft tabular-nums">{s.dap ?? '—'}</td>}
+                      {hasStage && <td className="px-4 py-2 text-ink-soft">{s.stage}</td>}
                       {passes.length > 0 && <td className="px-4 py-2 text-ink-soft">{imageryLabel(passes, s.date)}</td>}
-                      <td className="data px-4 py-2 text-right text-ink tabular-nums">{formatYield(s.yield)}</td>
-                      <td className="data px-4 py-2 text-right text-ink-soft tabular-nums">
-                        {formatYield(s.lowerBound)}–{formatYield(s.upperBound)}
-                      </td>
-                      <td className="data px-4 py-2 text-right text-ink-soft tabular-nums">{s.confidence}%</td>
+                      <td className="data px-4 py-2 text-right text-ink tabular-nums">{formatYield(s.yield, 0)}</td>
+                      {hasRange && (
+                        <td className="data px-4 py-2 text-right text-ink-soft tabular-nums">
+                          {formatYield(low(s), 0)}–{formatYield(high(s), 0)}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

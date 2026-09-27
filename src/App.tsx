@@ -8,7 +8,7 @@ import { DashboardView } from './components/dashboard/DashboardView';
 import { DataExplorerPage } from './components/data/DataExplorerPage';
 import { MethodologyPage } from './components/methodology/MethodologyPage';
 import { AboutPage } from './components/about/AboutPage';
-import { ROUTES, RouterProvider, routeFromPath, type Route } from './utils/router';
+import { ROUTES, RouterProvider, routeFromPath, searchWith, type Route, type RouteQuery } from './utils/router';
 import { isTypingTarget } from './utils/hooks';
 
 interface Flags {
@@ -27,6 +27,7 @@ function readFlags(): Flags {
 export default function App() {
   const [route, setRoute] = useState<Route>(() => routeFromPath(window.location.pathname) ?? 'overview');
   const [flags, setFlags] = useState<Flags>(readFlags);
+  const [visit, setVisit] = useState(0);
 
   // Unknown paths resolve to the overview.
   useEffect(() => {
@@ -36,13 +37,15 @@ export default function App() {
   }, []);
 
   const navigate = useCallback(
-    (next: Route) => {
-      if (next === route) {
+    (next: Route, query?: RouteQuery) => {
+      if (next === route && !query) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
-      window.history.pushState(null, '', `${ROUTES[next].path}${window.location.search}`);
+      window.history.pushState(null, '', `${ROUTES[next].path}${searchWith(query)}`);
       setRoute(next);
+      // Same page, new query (e.g. another site): remount so the page reads it afresh.
+      if (next === route) setVisit((n) => n + 1);
     },
     [route],
   );
@@ -51,6 +54,7 @@ export default function App() {
     const onPopState = () => {
       setRoute(routeFromPath(window.location.pathname) ?? 'overview');
       setFlags(readFlags());
+      setVisit((n) => n + 1);
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -121,7 +125,7 @@ export default function App() {
           </a>
           <Navigation isPresentationMode={flags.presentation} onExitPresentation={togglePresentation} />
           <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
-            <PageTransition key={route}>
+            <PageTransition key={`${route}-${visit}`}>
               <main id="main">{page}</main>
             </PageTransition>
           </AnimatePresence>
