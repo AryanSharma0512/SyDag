@@ -199,6 +199,66 @@ thresholds:
     url: https://www.fao.org/4/x0490e/x0490e0b.htm
     year: 2011
     confidence: low
+  - id: depletion_fraction_p
+    code_constant: DEPLETION_FRACTION_P
+    value: 0.55
+    units: share of root-zone available water
+    variable: depletion allowed before water stress (p)
+    stage: season
+    relationship: "transpiration falls linearly once depletion exceeds p x available water (FAO-56 eq. 84)"
+    applicability: field maize, ET ~5 mm/day; weather outlook scorer only, not a model feature
+    source: Allen et al. 1998, FAO Irrigation and Drainage Paper 56, Table 22
+    url: https://www.fao.org/4/x0490e/x0490e0e.htm
+    year: 1998
+    confidence: medium
+  - id: ky_vegetative
+    code_constant: KY_VEGETATIVE
+    value: 0.4
+    units: relative yield loss per relative ET deficit
+    variable: yield response factor Ky, vegetative period
+    stage: planting to the silking window
+    relationship: "1 - Ya/Ym = Ky (1 - ETa/ETm)"
+    applicability: maize; weather outlook scorer only
+    source: "Doorenbos & Kassam 1979, FAO Irrigation and Drainage Paper 33; FAO crop information: maize"
+    url: https://www.fao.org/land-water/databases-and-software/crop-information/maize/en/
+    year: 1979
+    confidence: medium
+  - id: ky_flowering
+    code_constant: KY_FLOWERING
+    value: 1.5
+    units: relative yield loss per relative ET deficit
+    variable: yield response factor Ky, flowering period
+    stage: silking window (silking +/- 14 days)
+    relationship: "most sensitive period"
+    applicability: maize; weather outlook scorer only
+    source: "Doorenbos & Kassam 1979 (FAO-33); FAO crop information: maize"
+    url: https://www.fao.org/land-water/databases-and-software/crop-information/maize/en/
+    year: 1979
+    confidence: medium
+  - id: ky_yield_formation
+    code_constant: KY_YIELD_FORMATION
+    value: 0.5
+    units: relative yield loss per relative ET deficit
+    variable: yield response factor Ky, yield formation
+    stage: end of silking window to mid grain fill (Kc mid-season end)
+    relationship: "grain fill"
+    applicability: maize; weather outlook scorer only
+    source: "Doorenbos & Kassam 1979 (FAO-33); FAO crop information: maize"
+    url: https://www.fao.org/land-water/databases-and-software/crop-information/maize/en/
+    year: 1979
+    confidence: medium
+  - id: ky_ripening
+    code_constant: KY_RIPENING
+    value: 0.2
+    units: relative yield loss per relative ET deficit
+    variable: yield response factor Ky, ripening
+    stage: mid grain fill to black layer
+    relationship: "least sensitive"
+    applicability: maize; weather outlook scorer only
+    source: "Doorenbos & Kassam 1979 (FAO-33); FAO crop information: maize"
+    url: https://www.fao.org/land-water/databases-and-software/crop-information/maize/en/
+    year: 1979
+    confidence: medium
 
 soil_context:
   # Used as model features and interaction context only: no yield penalties.

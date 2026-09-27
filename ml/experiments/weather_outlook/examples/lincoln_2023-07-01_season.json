@@ -1,0 +1,545 @@
+{
+  "contractVersion": 1,
+  "site": "Lincoln",
+  "asOfDate": "2023-07-01",
+  "horizonDays": "season",
+  "horizonEnd": "2023-10-15",
+  "plantingDate": "2023-05-22",
+  "method": "climatology",
+  "methodNote": "Historical analog outlook: the weather that followed this date in past seasons at this station, weighted by how closely each season so far resembled this one. It is not a meteorological forecast.",
+  "weighting": "Every season weighs the same: in the backtest, weighting by similarity to the season so far did not beat equal weights at this site.",
+  "library": "long",
+  "libraryLabel": "Long-record library, NOAA GHCN-Daily",
+  "station": {
+    "id": "USW00014939",
+    "name": "Lincoln Airport (LNK)",
+    "source": "NOAA NCEI GHCN-Daily (daily-summaries)"
+  },
+  "historicalSeasons": 30,
+  "seasonsUsed": [
+    1994,
+    1995,
+    1996,
+    1997,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2024,
+    2025
+  ],
+  "effectiveSampleSize": 30.0,
+  "exploratory": false,
+  "reliability": "Based on 30 historical seasons",
+  "conditionsThrough": "2023-07-01",
+  "seasonToDate": {
+    "currentDrySpellDays": 0.0,
+    "gddToDate": 1574.3,
+    "heatDaysToDate": 4.0,
+    "killingDegreeDaysToDate": 26.9,
+    "longestDrySpellDays": 19.0,
+    "rain14dMm": 75.9,
+    "rain30dMm": 107.0,
+    "rain60dMm": 154.4,
+    "rainToDateMm": 169.4,
+    "rootZoneDepletionMm": 20.3,
+    "meanTemperature30dC": 24.0,
+    "warmNightsToDate": 0.0
+  },
+  "seasonToDatePercentile": {
+    "gddToDate": 100,
+    "rainToDateMm": 3,
+    "rain30dMm": 47,
+    "meanTemperature30dC": 67
+  },
+  "categoryBasis": {
+    "scorer": "fao_water_stress",
+    "description": "Relative maize yield from water supply over the horizon (FAO-33 yield response by growth period, FAO-56 root-zone water balance on SoilSignal's crop water demand). Rain beyond what the root zone holds is not rewarded; heat is counted only through crop water demand.",
+    "provisional": true,
+    "available": true,
+    "reason": null
+  },
+  "probabilities": {
+    "adverse": 0.34,
+    "typical": 0.33,
+    "favorable": 0.33
+  },
+  "probabilityIntervals": {
+    "adverse": [
+      0.3,
+      0.33
+    ],
+    "typical": [
+      0.3,
+      0.4
+    ],
+    "favorable": [
+      0.3,
+      0.34
+    ]
+  },
+  "intervalLevel": 0.8,
+  "climatology": {
+    "adverse": 0.34,
+    "typical": 0.33,
+    "favorable": 0.33
+  },
+  "weatherSummary": {
+    "precipitationMm": {
+      "mean": 250.0,
+      "p20": 170.0,
+      "median": 247.0,
+      "p80": 347.0,
+      "climatologyMedian": 247.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "gdd": {
+      "mean": 2203.0,
+      "p20": 2106.0,
+      "median": 2221.0,
+      "p80": 2297.0,
+      "climatologyMedian": 2221.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "heatDays": {
+      "mean": 13.0,
+      "p20": 6.0,
+      "median": 12.0,
+      "p80": 19.0,
+      "climatologyMedian": 12.0,
+      "terciles": {
+        "below": 0.3,
+        "near": 0.4,
+        "above": 0.3
+      }
+    },
+    "killingDegreeDays29c": {
+      "mean": 58.0,
+      "p20": 43.1,
+      "median": 56.8,
+      "p80": 74.8,
+      "climatologyMedian": 56.8,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "warmNights": {
+      "mean": 13.7,
+      "p20": 9.0,
+      "median": 14.0,
+      "p80": 16.5,
+      "climatologyMedian": 14.0,
+      "terciles": {
+        "below": 0.27,
+        "near": 0.43,
+        "above": 0.3
+      }
+    },
+    "longestDrySpellDays": {
+      "mean": 17.2,
+      "p20": 13.5,
+      "median": 17.0,
+      "p80": 21.0,
+      "climatologyMedian": 17.0,
+      "terciles": {
+        "below": 0.3,
+        "near": 0.43,
+        "above": 0.27
+      }
+    },
+    "veryHeavyRainDays": {
+      "mean": 3.7,
+      "p20": 2.0,
+      "median": 3.0,
+      "p80": 5.0,
+      "climatologyMedian": 3.0,
+      "terciles": {
+        "below": 0.3,
+        "near": 0.37,
+        "above": 0.33
+      }
+    },
+    "waterDeficitMm": {
+      "mean": 215.0,
+      "p20": 100.0,
+      "median": 218.0,
+      "p80": 307.0,
+      "climatologyMedian": 218.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "meanTemperatureC": {
+      "mean": 21.9,
+      "p20": 21.5,
+      "median": 22.1,
+      "p80": 22.5,
+      "climatologyMedian": 22.1,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    }
+  },
+  "events": {
+    "anyHeatDay": {
+      "probability": 1.0,
+      "climatology": 1.0
+    },
+    "anyVeryHeavyRainDay": {
+      "probability": 1.0,
+      "climatology": 1.0
+    }
+  },
+  "representativeScenarios": {
+    "adverse": {
+      "season": 1995,
+      "weight": 0.033,
+      "outcomes": {
+        "precipitationMm": 166.7,
+        "gdd": 2211.7,
+        "heatDays": 22.0,
+        "killingDegreeDays29c": 83.9,
+        "warmNights": 14.0,
+        "longestDrySpellDays": 17.0,
+        "veryHeavyRainDays": 2.0,
+        "waterDeficitMm": 318.7,
+        "meanTemperatureC": 22.1
+      },
+      "score": 0.3343
+    },
+    "typical": {
+      "season": 1999,
+      "weight": 0.033,
+      "outcomes": {
+        "precipitationMm": 172.0,
+        "gdd": 2175.1,
+        "heatDays": 11.0,
+        "killingDegreeDays29c": 58.8,
+        "warmNights": 19.0,
+        "longestDrySpellDays": 18.0,
+        "veryHeavyRainDays": 3.0,
+        "waterDeficitMm": 283.2,
+        "meanTemperatureC": 21.5
+      },
+      "score": 0.4794
+    },
+    "favorable": {
+      "season": 1994,
+      "weight": 0.033,
+      "outcomes": {
+        "precipitationMm": 246.8,
+        "gdd": 1994.3,
+        "heatDays": 1.0,
+        "killingDegreeDays29c": 20.2,
+        "warmNights": 2.0,
+        "longestDrySpellDays": 13.0,
+        "veryHeavyRainDays": 3.0,
+        "waterDeficitMm": 216.2,
+        "meanTemperatureC": 20.1
+      },
+      "score": 0.6828
+    }
+  },
+  "analogs": [
+    {
+      "season": 1994,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 1995,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 1996,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 1997,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 1998,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 1999,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2000,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2001,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2002,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2003,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2004,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2005,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2006,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2007,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2008,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2009,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2010,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2011,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2012,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2013,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2015,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2016,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2017,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2018,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2019,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2020,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2021,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2022,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2024,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "typical"
+    },
+    {
+      "season": 2025,
+      "weight": 0.033,
+      "distance": 0.0,
+      "category": "favorable"
+    }
+  ],
+  "stageSummary": {
+    "rainAroundSilkingMm": {
+      "mean": 79.0,
+      "p20": 39.0,
+      "median": 65.0,
+      "p80": 119.0,
+      "climatologyMedian": 65.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "heatDaysAroundSilking": {
+      "mean": 6.3,
+      "p20": 2.0,
+      "median": 5.0,
+      "p80": 10.5,
+      "climatologyMedian": 5.0,
+      "terciles": {
+        "below": 0.3,
+        "near": 0.37,
+        "above": 0.33
+      }
+    },
+    "waterDeficitAroundSilkingMm": {
+      "mean": 108.0,
+      "p20": 57.0,
+      "median": 119.0,
+      "p80": 154.0,
+      "climatologyMedian": 119.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "rainGrainFillMm": {
+      "mean": 184.0,
+      "p20": 117.0,
+      "median": 171.0,
+      "p80": 255.0,
+      "climatologyMedian": 171.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    },
+    "heatDaysGrainFill": {
+      "mean": 6.8,
+      "p20": 3.0,
+      "median": 5.0,
+      "p80": 12.0,
+      "climatologyMedian": 5.0,
+      "terciles": {
+        "below": 0.33,
+        "near": 0.37,
+        "above": 0.3
+      }
+    },
+    "warmNightsGrainFill": {
+      "mean": 5.6,
+      "p20": 2.0,
+      "median": 5.5,
+      "p80": 8.5,
+      "climatologyMedian": 5.5,
+      "terciles": {
+        "below": 0.3,
+        "near": 0.4,
+        "above": 0.3
+      }
+    },
+    "waterDeficitGrainFillMm": {
+      "mean": 94.0,
+      "p20": 7.0,
+      "median": 114.0,
+      "p80": 163.0,
+      "climatologyMedian": 114.0,
+      "terciles": {
+        "below": 0.34,
+        "near": 0.33,
+        "above": 0.33
+      }
+    }
+  }
+}

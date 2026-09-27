@@ -1,0 +1,386 @@
+{
+  "library": "long",
+  "label": "Long-record library, NOAA GHCN-Daily",
+  "created": "2026-09-26T16:42:42+00:00",
+  "variables": {
+    "tmax_c": "daily maximum air temperature, C",
+    "tmin_c": "daily minimum air temperature, C",
+    "precip_mm": "daily precipitation, mm"
+  },
+  "qc": {
+    "window": [
+      "04-01",
+      "11-30"
+    ],
+    "min_completeness": 0.97,
+    "precip_ratio_tolerance": 1.5,
+    "temperature_tolerance_c": 1.0,
+    "max_temperature_gap_days": 2,
+    "rule": "one station per site; neighbours flag seasons, never fill them; temperature gaps of at most max_temperature_gap_days are interpolated within the station (temp_filled = 1); precipitation is never filled"
+  },
+  "outlook": {
+    "season_start": "04-01",
+    "season_end": "10-15",
+    "analog_features": [
+      "gdd_to_date",
+      "rain_to_date_mm",
+      "rain_30d_mm",
+      "tmean_30d_c"
+    ],
+    "bandwidth": 1.0,
+    "min_ess_fraction": 0.4,
+    "min_days_observed": 21,
+    "bootstrap_samples": 500,
+    "interval_level": 0.8,
+    "robust_min_seasons": 20
+  },
+  "sites": {
+    "Ames": {
+      "analog_weighting": false,
+      "latitude": 42.014713,
+      "longitude": -93.732245,
+      "irrigated": false,
+      "reference_planting": "05-22",
+      "root_zone_water_mm": 191,
+      "station": {
+        "id": "USW00094989",
+        "name": "Ames Municipal Airport (AMW)",
+        "network": "GHCN-Daily",
+        "source": "NOAA NCEI GHCN-Daily (daily-summaries)",
+        "same_as_supplied": true,
+        "tobs_shift_days": 0,
+        "observation_time": [
+          "2400"
+        ],
+        "qc_neighbors": [
+          "USC00130203",
+          "USC00130200"
+        ]
+      },
+      "seasons": [
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "excluded_seasons": {
+        "1994": "incomplete: tmax_c 0%, tmin_c 0%, precip_mm 0%",
+        "1995": "incomplete: tmax_c 0%, tmin_c 0%, precip_mm 0%",
+        "1996": "incomplete: tmax_c 25%, tmin_c 25%, precip_mm 0%",
+        "1997": "incomplete: precip_mm 0%",
+        "2008": "incomplete: precip_mm 96%"
+      },
+      "observed_through": "2026-09-22"
+    },
+    "Crawfordsville": {
+      "analog_weighting": false,
+      "latitude": 41.198935,
+      "longitude": -91.486866,
+      "irrigated": false,
+      "reference_planting": "05-11",
+      "root_zone_water_mm": 195,
+      "station": {
+        "id": "USC00138688",
+        "name": "Washington, IA (NWS COOP)",
+        "network": "GHCN-Daily",
+        "source": "NOAA NCEI GHCN-Daily (daily-summaries)",
+        "same_as_supplied": false,
+        "tobs_shift_days": -1,
+        "observation_time": [
+          "0700"
+        ],
+        "qc_neighbors": [
+          "USC00135796",
+          "USC00134101",
+          "isusm:CRFI4"
+        ],
+        "overlap": {
+          "days": 4581,
+          "first": "2013-12-17",
+          "last": "2026-09-22",
+          "daily_correlation": {
+            "tmax_c": 0.983,
+            "tmin_c": 0.952,
+            "precip_mm": 0.658
+          },
+          "mean_difference_c": {
+            "tmax_c": -0.7,
+            "tmin_c": -0.95
+          },
+          "season_precip_ratio": 1.082,
+          "season_precip_correlation": 0.871,
+          "monthly_temperature_adjustment_c": {
+            "tmax_c": {
+              "1": 0.35,
+              "2": 0.29,
+              "3": 0.54,
+              "4": 0.87,
+              "5": 1.09,
+              "6": 0.7,
+              "7": 0.26,
+              "8": 0.2,
+              "9": 1.01,
+              "10": 0.84,
+              "11": 0.74,
+              "12": 0.6
+            },
+            "tmin_c": {
+              "1": 1.18,
+              "2": 1.66,
+              "3": 1.54,
+              "4": 1.36,
+              "5": 1.1,
+              "6": 0.75,
+              "7": 0.49,
+              "8": 0.53,
+              "9": 0.98,
+              "10": 1.54,
+              "11": 1.4,
+              "12": 1.15
+            }
+          },
+          "reference_station": "CRFI4"
+        }
+      },
+      "seasons": [
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "excluded_seasons": {
+        "2011": "incomplete: precip_mm 75%"
+      },
+      "observed_through": "2026-09-22"
+    },
+    "Lincoln": {
+      "analog_weighting": false,
+      "latitude": 40.8522,
+      "longitude": -96.615341,
+      "irrigated": false,
+      "reference_planting": "05-22",
+      "root_zone_water_mm": 153,
+      "station": {
+        "id": "USW00014939",
+        "name": "Lincoln Airport (LNK)",
+        "network": "GHCN-Daily",
+        "source": "NOAA NCEI GHCN-Daily (daily-summaries)",
+        "same_as_supplied": true,
+        "tobs_shift_days": 0,
+        "observation_time": [
+          "2400"
+        ],
+        "qc_neighbors": [
+          "USW00014971",
+          "USC00252020",
+          "USC00257715"
+        ]
+      },
+      "seasons": [
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "excluded_seasons": {
+        "2014": "disagrees with every neighbour: mean tmin +1.1 C vs USC00252020 (usual +0.1 C) | mean tmax +2.2 C vs USC00257715 (usual +0.9 C); mean tmin +1.9 C vs USC00257715 (usual +0.5 C)"
+      },
+      "observed_through": "2026-09-22"
+    },
+    "MOValley": {
+      "analog_weighting": false,
+      "latitude": 41.671,
+      "longitude": -95.942,
+      "irrigated": false,
+      "reference_planting": "04-29",
+      "root_zone_water_mm": 214,
+      "station": {
+        "id": "USW00094978",
+        "name": "Tekamah Municipal Airport (TQE)",
+        "network": "GHCN-Daily",
+        "source": "NOAA NCEI GHCN-Daily (daily-summaries)",
+        "same_as_supplied": true,
+        "tobs_shift_days": 0,
+        "observation_time": [],
+        "qc_neighbors": [
+          "USC00134894",
+          "USC00258480"
+        ]
+      },
+      "seasons": [
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "excluded_seasons": {
+        "1994": "incomplete: tmax_c 0%, tmin_c 0%, precip_mm 0%",
+        "1995": "incomplete: tmax_c 0%, tmin_c 0%, precip_mm 0%",
+        "1996": "incomplete: tmax_c 60%, tmin_c 60%, precip_mm 0%",
+        "1997": "incomplete: tmax_c 96%, tmin_c 96%, precip_mm 0%"
+      },
+      "observed_through": "2026-09-22"
+    },
+    "Scottsbluff": {
+      "analog_weighting": true,
+      "latitude": 41.95,
+      "longitude": -103.703,
+      "irrigated": true,
+      "reference_planting": "05-19",
+      "root_zone_water_mm": 180,
+      "station": {
+        "id": "USW00024028",
+        "name": "Scottsbluff Heilig Field (BFF)",
+        "network": "GHCN-Daily",
+        "source": "NOAA NCEI GHCN-Daily (daily-summaries)",
+        "same_as_supplied": true,
+        "tobs_shift_days": 0,
+        "observation_time": [
+          "2400"
+        ],
+        "qc_neighbors": [
+          "USC00255555",
+          "USC00257667"
+        ]
+      },
+      "seasons": [
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "excluded_seasons": {
+        "2004": "disagrees with every neighbour: mean tmin -1.0 C vs USC00257667 (usual -0.0 C)"
+      },
+      "observed_through": "2026-09-21"
+    }
+  }
+}

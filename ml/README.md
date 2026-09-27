@@ -58,6 +58,7 @@ CatBoost covers ordered boosting.
 | `notebooks/explore_dataset.ipynb` | Exploration of the canonical dataset |
 | `data/` | Git-ignored. `processed/<dataset>/` holds the canonical tables, `interim/` the feature tables |
 | `soilsignal_ml/imagery/` | Plot imagery -> progressive (records_only, TP1..TP6) satellite and UAV features, quality flags, visual QA. See below |
+| `soilsignal_ml/weather_outlook/`, `weather_outlook.py` | Historical weather outlook: weather history (NOAA/IEM, QC), leave-one-season-out backtest, yield coupling demo. Engine in `backend/app/weather_outlook/`. See `research/weather_outlook.md` |
 | `experiments/reports/imagery/` | Feature dictionary, quality report and benchmark for the imagery features |
 | `AGENT2_HANDOFF.md` | Band order, masking, point-in-time design, commands and recommended features for the imagery features |
 

@@ -1,0 +1,284 @@
+{
+  "contractVersion": 1,
+  "site": "Ames",
+  "asOfDate": "2023-06-01",
+  "horizonDays": 60,
+  "horizonEnd": "2023-07-31",
+  "plantingDate": "2023-05-22",
+  "method": "climatology",
+  "methodNote": "Historical analog outlook: the weather that followed this date in past seasons at this station, weighted by how closely each season so far resembled this one. It is not a meteorological forecast.",
+  "weighting": "Every season weighs the same: in the backtest, weighting by similarity to the season so far did not beat equal weights at this site.",
+  "library": "supplied",
+  "libraryLabel": "Challenge weather file, 2018-2023 (exploratory)",
+  "station": {
+    "id": "AMW",
+    "name": "Ames",
+    "source": "IEM computed daily summary (challenge weather file)"
+  },
+  "historicalSeasons": 5,
+  "seasonsUsed": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "effectiveSampleSize": 5.0,
+  "exploratory": true,
+  "reliability": "Exploratory, based on 5 historical seasons",
+  "conditionsThrough": "2023-06-01",
+  "seasonToDate": {
+    "currentDrySpellDays": 0.0,
+    "gddToDate": 701.6,
+    "heatDaysToDate": 0.0,
+    "killingDegreeDaysToDate": 0.3,
+    "longestDrySpellDays": 11.0,
+    "rain14dMm": 26.9,
+    "rain30dMm": 114.0,
+    "rain60dMm": 186.9,
+    "rainToDateMm": 187.4,
+    "rootZoneDepletionMm": 0.6,
+    "meanTemperature30dC": 18.5,
+    "warmNightsToDate": 0.0
+  },
+  "seasonToDatePercentile": {
+    "gddToDate": 100,
+    "rainToDateMm": 40,
+    "rain30dMm": 40,
+    "meanTemperature30dC": 80
+  },
+  "categoryBasis": {
+    "scorer": "fao_water_stress",
+    "description": "Relative maize yield from water supply over the horizon (FAO-33 yield response by growth period, FAO-56 root-zone water balance on SoilSignal's crop water demand). Rain beyond what the root zone holds is not rewarded; heat is counted only through crop water demand.",
+    "provisional": true,
+    "available": true,
+    "reason": null
+  },
+  "probabilities": {
+    "adverse": 0.4,
+    "typical": 0.2,
+    "favorable": 0.4
+  },
+  "probabilityIntervals": {
+    "adverse": [
+      0.2,
+      0.4
+    ],
+    "typical": [
+      0.0,
+      0.6
+    ],
+    "favorable": [
+      0.2,
+      0.4
+    ]
+  },
+  "intervalLevel": 0.8,
+  "climatology": {
+    "adverse": 0.4,
+    "typical": 0.2,
+    "favorable": 0.4
+  },
+  "weatherSummary": {
+    "precipitationMm": {
+      "mean": 234.0,
+      "p20": 131.0,
+      "median": 194.0,
+      "p80": 356.0,
+      "climatologyMedian": 194.0,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "gdd": {
+      "mean": 1396.0,
+      "p20": 1361.0,
+      "median": 1403.0,
+      "p80": 1428.0,
+      "climatologyMedian": 1403.0,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "heatDays": {
+      "mean": 0.8,
+      "p20": 0.0,
+      "median": 0.0,
+      "p80": 2.0,
+      "climatologyMedian": 0.0,
+      "terciles": {
+        "below": 0.6,
+        "near": 0.0,
+        "above": 0.4
+      }
+    },
+    "killingDegreeDays29c": {
+      "mean": 19.2,
+      "p20": 16.2,
+      "median": 17.8,
+      "p80": 22.9,
+      "climatologyMedian": 17.8,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "warmNights": {
+      "mean": 5.4,
+      "p20": 3.0,
+      "median": 5.0,
+      "p80": 8.0,
+      "climatologyMedian": 5.0,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "longestDrySpellDays": {
+      "mean": 12.8,
+      "p20": 10.0,
+      "median": 11.0,
+      "p80": 16.5,
+      "climatologyMedian": 11.0,
+      "terciles": {
+        "below": 0.2,
+        "near": 0.4,
+        "above": 0.4
+      }
+    },
+    "veryHeavyRainDays": {
+      "mean": 4.0,
+      "p20": 1.5,
+      "median": 4.0,
+      "p80": 6.5,
+      "climatologyMedian": 4.0,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "waterDeficitMm": {
+      "mean": 22.0,
+      "p20": -101.0,
+      "median": 45.0,
+      "p80": 132.0,
+      "climatologyMedian": 45.0,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    },
+    "meanTemperatureC": {
+      "mean": 23.4,
+      "p20": 23.0,
+      "median": 23.5,
+      "p80": 23.7,
+      "climatologyMedian": 23.5,
+      "terciles": {
+        "below": 0.4,
+        "near": 0.2,
+        "above": 0.4
+      }
+    }
+  },
+  "events": {
+    "anyHeatDay": {
+      "probability": 0.4,
+      "climatology": 0.4
+    },
+    "anyVeryHeavyRainDay": {
+      "probability": 1.0,
+      "climatology": 1.0
+    }
+  },
+  "representativeScenarios": {
+    "adverse": {
+      "season": 2020,
+      "weight": 0.2,
+      "outcomes": {
+        "precipitationMm": 120.1,
+        "gdd": 1445.0,
+        "heatDays": 0.0,
+        "killingDegreeDays29c": 17.8,
+        "warmNights": 6.0,
+        "longestDrySpellDays": 18.0,
+        "veryHeavyRainDays": 2.0,
+        "waterDeficitMm": 140.5,
+        "meanTemperatureC": 23.8
+      },
+      "score": 0.9434
+    },
+    "typical": {
+      "season": 2022,
+      "weight": 0.2,
+      "outcomes": {
+        "precipitationMm": 289.3,
+        "gdd": 1411.5,
+        "heatDays": 2.0,
+        "killingDegreeDays29c": 20.4,
+        "warmNights": 10.0,
+        "longestDrySpellDays": 9.0,
+        "veryHeavyRainDays": 5.0,
+        "waterDeficitMm": -36.2,
+        "meanTemperatureC": 23.5
+      },
+      "score": 0.9892
+    },
+    "favorable": {
+      "season": 2018,
+      "weight": 0.2,
+      "outcomes": {
+        "precipitationMm": 422.6,
+        "gdd": 1396.5,
+        "heatDays": 0.0,
+        "killingDegreeDays29c": 17.3,
+        "warmNights": 5.0,
+        "longestDrySpellDays": 11.0,
+        "veryHeavyRainDays": 8.0,
+        "waterDeficitMm": -165.2,
+        "meanTemperatureC": 23.3
+      },
+      "score": 0.9959
+    }
+  },
+  "analogs": [
+    {
+      "season": 2018,
+      "weight": 0.2,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2019,
+      "weight": 0.2,
+      "distance": 0.0,
+      "category": "favorable"
+    },
+    {
+      "season": 2020,
+      "weight": 0.2,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2021,
+      "weight": 0.2,
+      "distance": 0.0,
+      "category": "adverse"
+    },
+    {
+      "season": 2022,
+      "weight": 0.2,
+      "distance": 0.0,
+      "category": "typical"
+    }
+  ]
+}

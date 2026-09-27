@@ -1,0 +1,346 @@
+{
+  "plot": "Crawfordsville-4351-11-16",
+  "site": "Crawfordsville",
+  "asOfDate": "2022-05-31",
+  "library": "long",
+  "models": {
+    "soilsignal-maize-0531": {
+      "featureDate": "2022-05-31",
+      "weatherFeaturesUsed": [
+        "gdd_since_planting",
+        "rain_7d_mm",
+        "rain_14d_mm",
+        "rain_30d_mm",
+        "rain_60d_mm",
+        "rain_since_planting_mm",
+        "days_since_meaningful_rain",
+        "longest_dry_spell_days",
+        "current_dry_spell_days",
+        "max_consecutive_wet_days",
+        "very_heavy_rain_days",
+        "tmean_7d_f",
+        "tmean_30d_f",
+        "tmax_mean_7d_f",
+        "tmax_max_7d_f",
+        "tmax_max_30d_f",
+        "heat_days_since_planting",
+        "heat_days_30d",
+        "max_consecutive_heat_days",
+        "killing_degree_days_29c",
+        "warm_nights_since_planting",
+        "warm_nights_30d",
+        "crop_water_use_since_planting_mm",
+        "water_deficit_30d_mm",
+        "water_deficit_since_planting_mm"
+      ],
+      "categoryBasis": {
+        "scorer": "yield_model",
+        "description": "SoilSignal yield model prediction with management and crop status held fixed and only the future weather changed.",
+        "provisional": false,
+        "available": false,
+        "reason": "the yield model returns the same yield under every trajectory: it does not respond to future weather"
+      },
+      "probabilities": null,
+      "yield": {
+        "unit": "bu/ac",
+        "distribution": {
+          "p10": 103.3,
+          "p50": 103.3,
+          "p90": 103.3,
+          "mean": 103.3
+        },
+        "byCategory": {
+          "typical": 103.3
+        },
+        "perSeason": {
+          "1994": 103.3,
+          "1995": 103.3,
+          "1996": 103.3,
+          "1997": 103.3,
+          "1998": 103.3,
+          "1999": 103.3,
+          "2000": 103.3,
+          "2001": 103.3,
+          "2002": 103.3,
+          "2003": 103.3,
+          "2004": 103.3,
+          "2005": 103.3,
+          "2006": 103.3,
+          "2007": 103.3,
+          "2008": 103.3,
+          "2009": 103.3,
+          "2010": 103.3,
+          "2012": 103.3,
+          "2013": 103.3,
+          "2014": 103.3,
+          "2015": 103.3,
+          "2016": 103.3,
+          "2017": 103.3,
+          "2018": 103.3,
+          "2019": 103.3,
+          "2020": 103.3,
+          "2021": 103.3,
+          "2023": 103.3,
+          "2024": 103.3,
+          "2025": 103.3
+        }
+      }
+    },
+    "soilsignal-maize-0630": {
+      "featureDate": "2022-06-30",
+      "weatherFeaturesUsed": [
+        "gdd_since_planting",
+        "rain_7d_mm",
+        "rain_14d_mm",
+        "rain_30d_mm",
+        "rain_60d_mm",
+        "rain_since_planting_mm",
+        "days_since_meaningful_rain",
+        "longest_dry_spell_days",
+        "current_dry_spell_days",
+        "max_consecutive_wet_days",
+        "very_heavy_rain_days",
+        "tmean_7d_f",
+        "tmean_30d_f",
+        "tmax_mean_7d_f",
+        "tmax_max_7d_f",
+        "tmax_max_30d_f",
+        "heat_days_since_planting",
+        "heat_days_30d",
+        "max_consecutive_heat_days",
+        "killing_degree_days_29c",
+        "warm_nights_since_planting",
+        "warm_nights_30d",
+        "crop_water_use_since_planting_mm",
+        "water_deficit_30d_mm",
+        "water_deficit_since_planting_mm"
+      ],
+      "categoryBasis": {
+        "scorer": "yield_model",
+        "description": "SoilSignal yield model prediction with management and crop status held fixed and only the future weather changed.",
+        "provisional": false,
+        "available": true,
+        "reason": null
+      },
+      "probabilities": {
+        "adverse": 0.33,
+        "typical": 0.28,
+        "favorable": 0.39
+      },
+      "yield": {
+        "unit": "bu/ac",
+        "distribution": {
+          "p10": 110.0,
+          "p50": 124.4,
+          "p90": 138.2,
+          "mean": 123.6
+        },
+        "byCategory": {
+          "adverse": 112.1,
+          "typical": 124.2,
+          "favorable": 132.8
+        },
+        "perSeason": {
+          "1994": 123.7,
+          "1995": 110.6,
+          "1996": 123.3,
+          "1997": 122.8,
+          "1998": 119.0,
+          "1999": 139.2,
+          "2000": 129.0,
+          "2001": 122.6,
+          "2002": 123.3,
+          "2003": 117.2,
+          "2004": 126.2,
+          "2005": 126.5,
+          "2006": 130.6,
+          "2007": 110.1,
+          "2008": 109.8,
+          "2009": 132.7,
+          "2010": 124.9,
+          "2012": 137.8,
+          "2013": 122.2,
+          "2014": 94.1,
+          "2015": 124.8,
+          "2016": 131.4,
+          "2017": 121.6,
+          "2018": 115.9,
+          "2019": 132.7,
+          "2020": 120.4,
+          "2021": 127.6,
+          "2023": 138.4,
+          "2024": 124.4,
+          "2025": 124.0
+        }
+      }
+    },
+    "soilsignal-maize-0731": {
+      "featureDate": "2022-07-31",
+      "weatherFeaturesUsed": [],
+      "categoryBasis": {
+        "scorer": "yield_model",
+        "description": "SoilSignal yield model prediction with management and crop status held fixed and only the future weather changed.",
+        "provisional": false,
+        "available": false,
+        "reason": "the yield model returns the same yield under every trajectory: it does not respond to future weather"
+      },
+      "probabilities": null,
+      "yield": {
+        "unit": "bu/ac",
+        "distribution": {
+          "p10": 148.2,
+          "p50": 148.2,
+          "p90": 148.2,
+          "mean": 148.2
+        },
+        "byCategory": {
+          "typical": 148.2
+        },
+        "perSeason": {
+          "1994": 148.2,
+          "1995": 148.2,
+          "1996": 148.2,
+          "1997": 148.2,
+          "1998": 148.2,
+          "1999": 148.2,
+          "2000": 148.2,
+          "2001": 148.2,
+          "2002": 148.2,
+          "2003": 148.2,
+          "2004": 148.2,
+          "2005": 148.2,
+          "2006": 148.2,
+          "2007": 148.2,
+          "2008": 148.2,
+          "2009": 148.2,
+          "2010": 148.2,
+          "2012": 148.2,
+          "2013": 148.2,
+          "2014": 148.2,
+          "2015": 148.2,
+          "2016": 148.2,
+          "2017": 148.2,
+          "2018": 148.2,
+          "2019": 148.2,
+          "2020": 148.2,
+          "2021": 148.2,
+          "2023": 148.2,
+          "2024": 148.2,
+          "2025": 148.2
+        }
+      }
+    },
+    "soilsignal-maize-0831": {
+      "featureDate": "2022-08-31",
+      "weatherFeaturesUsed": [],
+      "categoryBasis": {
+        "scorer": "yield_model",
+        "description": "SoilSignal yield model prediction with management and crop status held fixed and only the future weather changed.",
+        "provisional": false,
+        "available": false,
+        "reason": "the yield model returns the same yield under every trajectory: it does not respond to future weather"
+      },
+      "probabilities": null,
+      "yield": {
+        "unit": "bu/ac",
+        "distribution": {
+          "p10": 130.7,
+          "p50": 130.7,
+          "p90": 130.7,
+          "mean": 130.7
+        },
+        "byCategory": {
+          "typical": 130.7
+        },
+        "perSeason": {
+          "1994": 130.7,
+          "1995": 130.7,
+          "1996": 130.7,
+          "1997": 130.7,
+          "1998": 130.7,
+          "1999": 130.7,
+          "2000": 130.7,
+          "2001": 130.7,
+          "2002": 130.7,
+          "2003": 130.7,
+          "2004": 130.7,
+          "2005": 130.7,
+          "2006": 130.7,
+          "2007": 130.7,
+          "2008": 130.7,
+          "2009": 130.7,
+          "2010": 130.7,
+          "2012": 130.7,
+          "2013": 130.7,
+          "2014": 130.7,
+          "2015": 130.7,
+          "2016": 130.7,
+          "2017": 130.7,
+          "2018": 130.7,
+          "2019": 130.7,
+          "2020": 130.7,
+          "2021": 130.7,
+          "2023": 130.7,
+          "2024": 130.7,
+          "2025": 130.7
+        }
+      }
+    },
+    "soilsignal-maize-1015": {
+      "featureDate": "2022-10-15",
+      "weatherFeaturesUsed": [],
+      "categoryBasis": {
+        "scorer": "yield_model",
+        "description": "SoilSignal yield model prediction with management and crop status held fixed and only the future weather changed.",
+        "provisional": false,
+        "available": false,
+        "reason": "the yield model returns the same yield under every trajectory: it does not respond to future weather"
+      },
+      "probabilities": null,
+      "yield": {
+        "unit": "bu/ac",
+        "distribution": {
+          "p10": 101.9,
+          "p50": 101.9,
+          "p90": 101.9,
+          "mean": 101.9
+        },
+        "byCategory": {
+          "typical": 101.9
+        },
+        "perSeason": {
+          "1994": 101.9,
+          "1995": 101.9,
+          "1996": 101.9,
+          "1997": 101.9,
+          "1998": 101.9,
+          "1999": 101.9,
+          "2000": 101.9,
+          "2001": 101.9,
+          "2002": 101.9,
+          "2003": 101.9,
+          "2004": 101.9,
+          "2005": 101.9,
+          "2006": 101.9,
+          "2007": 101.9,
+          "2008": 101.9,
+          "2009": 101.9,
+          "2010": 101.9,
+          "2012": 101.9,
+          "2013": 101.9,
+          "2014": 101.9,
+          "2015": 101.9,
+          "2016": 101.9,
+          "2017": 101.9,
+          "2018": 101.9,
+          "2019": 101.9,
+          "2020": 101.9,
+          "2021": 101.9,
+          "2023": 101.9,
+          "2024": 101.9,
+          "2025": 101.9
+        }
+      }
+    }
+  }
+}

@@ -34,6 +34,8 @@ qualitative expectations at the end of this file.
 | Crop coefficient, mid | 1.20 | × ET₀ | Silking–dough | Peak demand; ISU puts it at ~0.3 in/day at tasseling | Field maize | FAO-56 [10]; ISU [11] | High |
 | Crop coefficient, end | 0.60 (0.60–0.35) | × ET₀ | R6 | Demand falls through senescence | Field maize | FAO-56 [10] | High |
 | Kc rise starts | 350 | GDD °F | ~V4–V5 | Schedule point for the Kc curve | Approximation | ISU PMR 1009 leaf interval [3]; FAO-56 [10] | Low |
+| Allowed depletion p | 0.55 | share of root-zone available water | Season | Transpiration falls once depletion exceeds p × available water | Field maize; **weather outlook scorer only** | FAO-56 Table 22 [10] (1998) | Medium |
+| Yield response Ky | 0.4 / 1.5 / 0.5 / 0.2 | relative yield loss ÷ relative ET deficit | Vegetative / flowering (silking ±14 d) / yield formation / ripening | 1 − Ya/Ym = Ky (1 − ETa/ETm) | Maize; **weather outlook scorer only** | Doorenbos & Kassam 1979, FAO-33; FAO maize crop information (1979) | Medium |
 
 Reference ET uses the **Hargreaves equation (FAO-56 eq. 52)**, because it needs only daily
 maximum and minimum temperature, which is exactly what NOAA GHCN-Daily provides. It is less

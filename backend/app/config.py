@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     nass_api_key: SecretStr | None = None
     # Season totals (growing degree days, heat days, dry spells) count from this date each year.
     season_start: str = "05-01"
+    # Historical weather outlook (/api/weather-outlook): one directory per library, written
+    # by `python -m soilsignal_ml.weather_outlook history`; `long` is the default.
+    weather_history_dir: Path = BACKEND_ROOT / "data" / "weather_history"
+    weather_outlook_library: str = "long"
 
     @field_validator("nass_api_key", mode="before")
     @classmethod

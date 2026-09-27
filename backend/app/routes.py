@@ -22,6 +22,7 @@ from app.schemas import (
     SoilContext,
     WeatherContext,
 )
+from app.weather_outlook.service import OutlookRequestError, weather_outlook
 
 router = APIRouter(prefix="/api")
 
@@ -148,6 +149,24 @@ def get_imagery_ablation() -> ImageryAblation:
         raise HTTPException(
             status_code=503, detail=f"The imagery comparison could not be read: {err}"
         ) from err
+
+
+@router.get("/weather-outlook")
+def get_weather_outlook(
+    site: str,
+    as_of_date: Annotated[date, Query(alias="asOfDate")],
+    horizon_days: Annotated[str, Query(alias="horizonDays")] = "60",
+    planting_date: Annotated[date | None, Query(alias="plantingDate")] = None,
+    library: str | None = None,
+) -> dict:
+    """Historical analog outlook for a site, date and horizon (30, 60, 90 or `season`):
+    probabilities of favorable / typical / adverse maize weather, the weather those
+    historical trajectories brought, and how many seasons it rests on. Contract:
+    backend/app/weather_outlook/contract.py (versioned by `contractVersion`)."""
+    try:
+        return weather_outlook(site, as_of_date, horizon_days, planting_date, library)
+    except OutlookRequestError as err:
+        raise HTTPException(status_code=err.status, detail=str(err)) from err
 
 
 @router.get("/models")
