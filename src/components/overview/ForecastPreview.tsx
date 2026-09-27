@@ -10,13 +10,13 @@ import { bandPath, monotonePath, scaleLinear, toTime } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { useElementWidth } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
-import { ratingLabel, shortCropName } from '../../utils/formatters';
+import { shortCropName } from '../../utils/formatters';
 import { Link } from '../../utils/router';
 
 const INPUTS = [
   { label: 'Satellite imagery', color: C.leaf500 },
   { label: 'Field record', color: C.inkSoft },
-  { label: 'Weather & soil', color: C.rain500 },
+  { label: 'Weather', color: C.rain500 },
 ];
 
 /**
@@ -92,7 +92,7 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.1 }}
         >
-          The line is the predicted final yield and the band is its 90% range. Each point uses only the imagery and
+          The line is the predicted final yield and the band is its prediction range. Each point uses only the imagery and
           records available by that date.
         </motion.p>
       </div>
@@ -186,9 +186,9 @@ export function ForecastPreview() {
                 <PreviewMetric
                   value={`${Math.round(snapshot.lowerBound)}–${Math.round(snapshot.upperBound)}`}
                   unit="bu/ac"
-                  label="90% range"
+                  label="Prediction range"
                 />
-                <PreviewMetric value={`${snapshot.confidence}%`} unit="confidence" label={ratingLabel(snapshot.confidenceRating)} />
+                <PreviewMetric value={snapshot.displayDate} unit={snapshot.stage} label="Forecast date" />
               </div>
               <PreviewChart forecast={forecast} activeIndex={APP_CONFIG.defaultDateIndex} play={shown} />
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">

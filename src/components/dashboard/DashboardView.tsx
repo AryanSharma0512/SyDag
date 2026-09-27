@@ -322,7 +322,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
             )}
           </motion.div>
 
-          <div className="mt-14">
+          <div className="hidden">
             <ScoutingQueue
               decisions={decisions}
               updating={decisionsLoading && decisions !== null}
@@ -355,7 +355,17 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 </div>
               </section>
 
-              <Reveal className="mt-6">
+              {!isPresentationMode && (
+                <div className="mt-5 flex flex-col gap-2 border-b border-line pb-5 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between">
+                  <span>Farmer view keeps the forecast focused. Technical detail is available separately.</span>
+                  <span className="flex gap-4 font-medium">
+                    <a href="/methodology" className="text-leaf-700 hover:text-leaf-800">Methodology</a>
+                    <a href="/data" className="text-leaf-700 hover:text-leaf-800">Data</a>
+                  </span>
+                </div>
+              )}
+
+              <Reveal className="hidden">
                 {missingSatellite ? (
                   <EmptyState
                     title="No satellite observations for this period"
@@ -371,7 +381,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 )}
               </Reveal>
 
-              <Reveal className="mt-6">
+              <Reveal className="hidden">
                 {(forecast.spatial ?? snapshot.spatial) ? (
                   <SpatialFieldView spatial={(forecast.spatial ?? snapshot.spatial)!} fieldName={field.name} />
                 ) : (
@@ -382,17 +392,17 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 )}
               </Reveal>
 
-              <Reveal className="mt-16">
+              <Reveal className="hidden">
                 <ModelExplanation drivers={snapshot.explanations} featureImportance={snapshot.featureImportance} />
               </Reveal>
 
               {decisions && (
-                <Reveal className="mt-16 empty:hidden">
+                <Reveal className="hidden">
                   <HybridPerformance plots={decisions.plots} asOfLabel={formatDay(decisions.asOfDate)} />
                 </Reveal>
               )}
 
-              <Reveal className="mt-16 border-t border-line pt-10">
+              <Reveal className="hidden">
                 <SectionLabel>Model reliability</SectionLabel>
                 <div className="grid grid-cols-1 items-stretch gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-14">
                   <ModelReliability
@@ -407,7 +417,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 </div>
               </Reveal>
 
-              <Reveal className="mt-16 border-t border-line pt-10">
+              <Reveal className="hidden">
                 <SectionLabel>Environmental context · NOAA and USDA</SectionLabel>
                 <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
                   {weatherError ? (
@@ -440,7 +450,7 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
               </Reveal>
 
               {!isPresentationMode && (
-                <Reveal className="mt-16 border-t border-line pt-10">
+                <Reveal className="hidden">
                   <DataSources sources={sources} />
                 </Reveal>
               )}

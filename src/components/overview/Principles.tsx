@@ -4,16 +4,16 @@ import { EASE_OUT } from '../../utils/motion';
 /** The three questions the challenge asks, and what SoilSignal shows for each. */
 const QUESTIONS = [
   {
-    title: 'Scout where uncertainty is highest',
-    body: 'A wide prediction range tells the crew where another field observation may be worth the time.',
+    title: 'How early can we predict yield?',
+    body: 'Track how prediction error changes as the crop develops and new satellite observations arrive.',
   },
   {
-    title: 'Measure what imagery adds',
-    body: 'Compare field records alone with models that also use the latest satellite pass.',
+    title: 'When is the crop likely to mature?',
+    body: 'Use accumulated growing degree days to estimate physiological maturity and the likely harvest window.',
   },
   {
-    title: 'Trade time for accuracy',
-    body: 'Earlier forecasts are more useful operationally. Later forecasts usually have more crop signal.',
+    title: 'Does UAV imagery add enough value?',
+    body: 'Compare satellite-only performance with satellite plus UAV before paying for another flight.',
   },
 ];
 
@@ -22,7 +22,7 @@ export function Principles() {
   return (
     <section className="mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20 sm:pb-24" aria-labelledby="questions-heading">
       <h2 id="questions-heading" className="text-[13px] font-medium text-leaf-700">
-        What the challenge asks
+        What SoilSignal answers
       </h2>
       <ol className="mt-6 grid gap-10 md:grid-cols-3 md:gap-10">
         {QUESTIONS.map(({ title, body }, i) => (
