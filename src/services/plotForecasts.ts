@@ -113,7 +113,7 @@ function fromResultPoints(key: string, points: ResultForecastPoint[]): ForecastP
 }
 
 /** Says why the plot a site opens on was chosen; the rule is the ML team's, fixed in advance. */
-export const FEATURED_PLOT_NOTE = 'Representative plot: harvested yield closest to the site median';
+export const FEATURED_PLOT_NOTE = 'Harvested yield closest to the site median';
 
 function liveOption(f: FieldMeta, featured: boolean): PlotOption {
   const plotId = f.plotId ?? f.name;

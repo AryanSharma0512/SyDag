@@ -159,7 +159,7 @@ export function PlotPicker({ plots, selectedKey, onSelect }: PlotPickerProps) {
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={`Filter ${plots.length} plots by id or hybrid`}
+                  placeholder={`Filter ${plots.length} plots by id${plots.some((p) => p.source === 'live' || p.resultPlot?.hybrid) ? ' or hybrid' : ''}`}
                   aria-label="Filter plots"
                   className="w-full bg-transparent py-1 text-[14px] text-ink outline-none placeholder:text-faint"
                   onKeyDown={(e) => {
