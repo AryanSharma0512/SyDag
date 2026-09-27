@@ -46,5 +46,5 @@ export const TEAM: TeamMember[] = [
   { name: 'Sri Madur', initials: 'SM', role: 'ML wizard', degree: 'B.S. Mathematics', photo: '/team/sri-madur.webp' },
   { name: 'Sahil Jain', initials: 'SJ', role: 'Frontend nerd', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
   { name: 'Shashwat Goel', initials: 'SG', role: 'Pipeline tester', degree: 'B.S. Computer Science', photo: '/team/shashwat-goel.webp' },
-  { name: 'Sidney Millen', initials: 'SM', role: 'Resident white-hat hacker', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
+  { name: 'Sidney Millen', initials: 'SM', role: 'Security specialist & firewall whisperer', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
 ];
