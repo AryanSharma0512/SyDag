@@ -33,12 +33,16 @@ export interface TeamMember {
   initials: string;
   /** Leave unset until confirmed; the card keeps the line's space so every card stays the same size. */
   degree?: string;
+  /** Profile photo under /public; the initials show until one is set. */
+  photo?: string;
+  /** CSS object-position for the photo crop. */
+  photoPosition?: string;
 }
 
 export const TEAM: TeamMember[] = [
-  { name: 'Aryan Sharma', initials: 'AS', degree: 'B.S. Agriculture' },
-  { name: 'Sahil Jain', initials: 'SJ', degree: 'B.S. Computer Science' },
-  { name: 'Shashwat Goel', initials: 'SG', degree: 'B.S. Computer Science' },
-  { name: 'Sri Madur', initials: 'SM' },
-  { name: 'Sidney Millen', initials: 'SM' },
+  { name: 'Aryan Sharma', initials: 'AS', degree: 'B.S. Agriculture', photo: '/team/aryan-sharma.jpg', photoPosition: '50% 20%' },
+  { name: 'Sahil Jain', initials: 'SJ', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
+  { name: 'Shashwat Goel', initials: 'SG', degree: 'B.S. Computer Science', photo: '/team/shashwat-goel.webp' },
+  { name: 'Sri Madur', initials: 'SM', degree: 'B.S. Mathematics' },
+  { name: 'Sidney Millen', initials: 'SM', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
 ];

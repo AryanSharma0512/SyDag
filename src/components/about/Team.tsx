@@ -50,13 +50,24 @@ function Member({ member, index }: { member: TeamMember; index: number }) {
             variants={circle}
           />
         </svg>
-        <motion.span
-          className="absolute inset-0 flex items-center justify-center text-[24px] font-semibold tracking-[-0.02em] text-leaf-800"
-          variants={initials}
-          aria-hidden="true"
-        >
-          {member.initials}
-        </motion.span>
+        {member.photo ? (
+          <motion.img
+            src={member.photo}
+            alt={member.name}
+            loading="lazy"
+            className="absolute inset-[4px] h-[88px] w-[88px] rounded-full object-cover"
+            style={{ objectPosition: member.photoPosition ?? '50% 30%' }}
+            variants={initials}
+          />
+        ) : (
+          <motion.span
+            className="absolute inset-0 flex items-center justify-center text-[24px] font-semibold tracking-[-0.02em] text-leaf-800"
+            variants={initials}
+            aria-hidden="true"
+          >
+            {member.initials}
+          </motion.span>
+        )}
       </div>
       <motion.h3 className="mt-5 text-[18px] font-semibold tracking-[-0.015em] text-ink" variants={name}>
         {member.name}
