@@ -82,7 +82,7 @@ export function MethodologyPage() {
           transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.12 }}
         >
           For each plot, we combine the field record with the satellite observations available by that date. Each
-          forecast is an estimate of final yield with a 90% range.
+          forecast is an estimate of final yield with a prediction range.
         </motion.p>
       </header>
 
@@ -122,7 +122,7 @@ export function MethodologyPage() {
                 <tr className="border-b border-line-strong text-[13px] text-muted">
                   <th scope="col" className="py-3 pr-6 font-medium">Forecast date</th>
                   <th scope="col" className="py-3 pr-6 font-medium">Imagery available</th>
-                  <th scope="col" className="py-3 pr-6 text-right font-medium">90% range</th>
+                  <th scope="col" className="py-3 pr-6 text-right font-medium">Prediction range</th>
                   {hasMae && <th scope="col" className="py-3 text-right font-medium">Validation MAE</th>}
                 </tr>
               </thead>
@@ -166,8 +166,8 @@ export function MethodologyPage() {
             How much error should we expect?
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">
-            Every forecast carries a 90% range, set from the model's validation errors: the final yield should fall
-            inside it about nine times in ten. Pick an imagery stage to compare ranges.
+            Forecast ranges summarize the model's validation error. Coverage can shift across locations, so treat the band as
+            an uncertainty range rather than a guarantee. Pick an imagery stage to compare ranges.
           </p>
         </Reveal>
         <Reveal className="mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-8">
