@@ -75,7 +75,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
 
   return (
     <header className={shell}>
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-10 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-10 px-4 sm:h-16 sm:px-6">
         <Link to="overview" aria-label="SoilSignal overview" className="-mx-1 shrink-0 rounded-md px-1">
           <AnimatedLogo />
         </Link>
@@ -106,7 +106,13 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {datasetLabel && <DataBadge variant="demo" label={datasetLabel} className="hidden sm:inline-flex" />}
+          {/* Kept off the landing page's first screen; the forecast views and the menu still show it.
+              A wrapper hides it on phones, since the badge's own inline-flex outranks `hidden`. */}
+          {datasetLabel && route !== 'overview' && (
+            <span className="hidden sm:contents">
+              <DataBadge variant="demo" label={datasetLabel} />
+            </span>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
