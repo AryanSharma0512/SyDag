@@ -4,7 +4,7 @@ import { useMediaQuery } from '../../utils/hooks';
 import { bandPath, monotonePath, scaleLinear, type Pt } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { PALETTE as C } from '../../utils/palette';
-import { MARK_PATHS } from '../brand/SignalMark';
+import { MarkShapes } from '../brand/SignalMark';
 
 /**
  * The SoilSignal story in one scene, played once (~5s desktop, ~3.6s mobile):
@@ -679,11 +679,7 @@ export function HeroSystemAnimation() {
         >
           <circle cx={hub.x} cy={hub.y} r={hub.r} fill={C.surface} stroke={C.lineStrong} strokeWidth={1} />
           <g transform={`translate(${hub.x - hub.r * 0.62} ${hub.y - hub.r * 0.62}) scale(${(hub.r * 1.24) / 32})`}>
-            <path d={MARK_PATHS.horizonTop} stroke={C.soil500} strokeWidth={2.6} strokeLinecap="round" />
-            <path d={MARK_PATHS.horizonLow} stroke={C.soil500} strokeWidth={2.6} strokeLinecap="round" opacity={0.5} />
-            <path d={MARK_PATHS.leaf} fill={C.leaf700} />
-            <path d={MARK_PATHS.arc} stroke={C.leaf700} strokeWidth={2.7} strokeLinecap="round" fill="none" />
-            <path d={MARK_PATHS.echo} stroke={C.leaf700} strokeWidth={2.3} strokeLinecap="round" fill="none" opacity={0.45} />
+            <MarkShapes />
           </g>
         </motion.g>
 

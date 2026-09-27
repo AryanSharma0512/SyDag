@@ -72,7 +72,10 @@ function Member({ member, index }: { member: TeamMember; index: number }) {
       <motion.h3 className="mt-5 text-[18px] font-semibold tracking-[-0.015em] text-ink" variants={name}>
         {member.name}
       </motion.h3>
-      <motion.p className="mt-1 text-[15px] text-muted" variants={degree} aria-hidden={member.degree ? undefined : true}>
+      <motion.p className="mt-1 text-[14px] font-medium text-leaf-700" variants={name}>
+        {member.role}
+      </motion.p>
+      <motion.p className="mt-0.5 text-[15px] text-muted" variants={degree} aria-hidden={member.degree ? undefined : true}>
         {member.degree ?? ' '}
       </motion.p>
     </motion.li>
