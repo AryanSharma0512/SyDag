@@ -1,17 +1,19 @@
 # SoilSignal
 
-**See the season before harvest.**
+**Know the season before harvest.**
 
-SoilSignal estimates end-of-season maize yield for each trial plot from satellite imagery and field records, early enough for an agronomy team to decide where to send limited scouting crews. It is being built for the SyDAg26 IoT4Ag Hackathon at Purdue University.
+SoilSignal uses satellite imagery, field records and weather history to estimate final maize yield during the growing season. It is being built for the SyDAg26 IoT4Ag Hackathon at Purdue University.
 
 ## What it answers
 
-- **Which plots deserve a scouting visit?** The dashboard's "Plots to review" table sorts every plot by forecast range, predicted yield or change since the previous forecast. There is no composite risk score.
-- **Which hybrids are on track?** Mean forecast, plot spread and range per hybrid, shown once enough hybrids have enough plots to compare.
-- **How much did satellite imagery improve the prediction?** Validation error with and without imagery, once the ML team publishes the comparison.
-- **How early does the model become useful?** Validation error of the model behind each forecast date, from `GET /api/models`.
+The product is one number: **the final yield forecast** for a maize plot, in bu/ac, with a prediction range, updated through the season. Four questions support it:
 
-Every forecast carries a 90% range, and each one uses only the imagery and records available by its date. NOAA weather and USDA soil and county yields are shown as context.
+- **How early can we know?** Validation error (MAE in bu/ac, with R² alongside) by days after planting, and the earliest point where the forecast is useful.
+- **When will the crop likely mature?** Growing degree days since planting and an estimated physiological-maturity window.
+- **What weather outcomes are plausible?** A historical weather outlook: what the next 30, 60 or 90 days (or the rest of the season) brought in past seasons at the same station. It is not a weather forecast, and it is kept separate from the yield forecast until the yield model uses future-weather features.
+- **Is an extra UAV pass worth it?** Satellite-only vs satellite + UAV validation error from a matched experiment. Satellite is the base layer; UAV is optional.
+
+Each forecast uses only the data that would have been available on its date. There is no "confidence %": error is reported as validation MAE in bu/ac, and R² is never presented as accuracy.
 
 ## Current prototype
 
@@ -19,17 +21,18 @@ This repository holds the front end and the backend API (`backend/`). By default
 
 | Route | What it shows |
 | --- | --- |
-| `/` | Overview: what SoilSignal answers, the challenge scope, and a preview of one plot's season |
-| `/dashboard` | In order: the plot's trial record (hybrid, N rate, site); its forecast, 90% range, confidence and change since the previous forecast; **Plots to review** (every plot at the selected date); the forecast through the satellite passes with the acquisition strip; crop development and the neighbouring-plot map; the drivers of this forecast; hybrid performance; model reliability (validation error by forecast date, and what imagery adds); NOAA and USDA context; data provenance |
-| `/data` | Data Explorer: the NOAA and USDA data behind each plot (NCEI weather, SSURGO soil, NASS county yields) with live source status, observed vs. derived values, retrieval times, tables and CSV downloads |
-| `/methodology` | How the forecasts are built: pipeline, accuracy by imagery stage, an interactive range example, and data sources |
+| `/` | Overview: the headline, the U.S. trial-site map (each site's data, from `/api/sites`), what SoilSignal answers, and a preview of one plot's season |
+| `/dashboard` | Location → season → plot, then in order: **final yield forecast** (bu/ac, prediction range, days after planting, typical validation error); how the forecast developed; how early can we know; historical weather outlook (`/api/weather-outlook`, 30d / 60d / 90d / season); crop development (GDD, maturity window); satellite vs UAV. Everything else (model drivers, crop observations, every plot at this date, hybrid table, deployed-model validation, NOAA and USDA context, provenance) is under **More detail** |
+| `/methodology` | The pipeline (TIFFs → plot mask → features → + records and weather → model → yield), satellite processing, validation by days after planting, what R² and MAE mean, prediction ranges, the weather outlook method, GDD and maturity, satellite vs UAV, leakage safeguards, data sources |
+| `/data` | The trial data by location (satellite, weather, field records, UAV) and the public context for one plot (NOAA weather, NASS county yields, SSURGO soil) with live source status, tables and CSV downloads |
 | `/about` | The team |
 
 Useful flags and shortcuts:
 
-- `?presentation=true` (or press `F`) enlarges the key metrics and chart and reduces navigation for demos.
-- `?debug=true` adds a small diagnostics button with a scenario switcher and loading, missing-satellite and weather-error states.
-- On the dashboard, `←` / `→` move through forecast dates; the scouting queue follows. In presentation or debug mode, `1`–`5` switch between the featured plots and `R` resets.
+- `?presentation=true` (or press `F`) is for a TV during the pitch: large type, no debug controls, tables or "More detail"; the forecast, timeline, weather outlook, maturity and UAV comparison stay.
+- `?debug=true` adds a small diagnostics button with a location switcher and loading, missing-satellite and weather-error states.
+- `?site=Ames&plot=...` opens the dashboard on a location and plot (the dashboard keeps the URL in step).
+- On the dashboard, `←` / `→` move through forecast dates. In presentation or debug mode, `1`–`9` switch location and `R` resets.
 
 Motion respects `prefers-reduced-motion`: entrance sequences render their final state immediately and route transitions drop their movement.
 
@@ -38,7 +41,7 @@ Motion respects `prefers-reduced-motion`: entrance sequences render their final 
 ```
 Frontend (React + Vite)
    ↓  normalized responses
-Backend API (backend/, FastAPI): forecasts, the scouting queue, model evaluation, public context
+Backend API (backend/, FastAPI): trial sites, final results, live forecasts, weather outlook, model evaluation, public context
    ↓
 Model artifacts (backend/artifacts/, exported by ml/) and NOAA / USDA services
 ```
@@ -88,38 +91,44 @@ src/
 ├── components/
 │   ├── brand/          SoilSignal mark, static lockup, animated logo
 │   ├── common/         Navigation, footer, page transitions, badges, shared controls
-│   ├── overview/       Overview page, hero animation, forecast preview, the challenge questions
-│   ├── dashboard/      Dashboard sections (summary, scouting queue, timeline and pass strip, crop, spatial, drivers, hybrids, reliability, imagery comparison, context, provenance)
-│   ├── data/           Data Explorer: source status, weather / soil / yield panels, tables, CSV downloads
-│   ├── methodology/    Methodology page, pipeline animation, uncertainty demo
+│   ├── overview/       Overview page, hero animation, trial-site map (usMap.ts: generated state outlines), forecast preview, what it answers
+│   ├── dashboard/      Farmer view (location bar, yield forecast, timeline, how early, weather outlook, crop development, satellite vs UAV) and the "More detail" sections (drivers, crop observations, scouting queue, hybrids, reliability, imagery comparison, context, provenance)
+│   ├── results/        Validation-by-DAP chart and table, shared by the dashboard and Methodology
+│   ├── data/           Data page: trial data by location; public context panels, tables, CSV downloads
+│   ├── methodology/    Methodology page, pipeline diagram, uncertainty demo
 │   ├── about/          About page and team
 │   └── debug/          Diagnostics panel (only with ?debug=true)
 ├── config/             App configuration and team
 ├── mock/               Demo data for five fields
-├── services/           Data access boundary (fields, forecasts, decisions, evaluation, weather, soil, sources)
+├── services/           Data access boundary (sites, final results, plot forecasts, weather outlook, fields, forecasts, decisions, evaluation, context, sources)
 ├── types/              Front-end data contract
 ├── utils/              Chart geometry, motion constants, formatting, hooks, routing
 └── App.tsx             Routes, presentation and debug flags
 public/                 Favicon, touch icon and social preview image
 backend/                FastAPI service: forecasts, model predictions, tests
-scripts/                export-mock-data.ts (npm run export:mock)
+scripts/                export-mock-data.ts (npm run export:mock), build-us-map.mjs (regenerates the map outlines)
 ```
 
 ## Data strategy
 
-The trial data is the primary input: six-band satellite imagery per plot plus the field record (planting date, nitrogen rate, irrigation, hybrid, site and season). Around it, the backend looks up public data for each plot's coordinates, and the dashboard shows it with its source and retrieval date.
+The trial data is the primary input: six-band satellite imagery per plot plus the field record (planting date, nitrogen rate, irrigation, hybrid, site and season). Satellite plot images exist at Ames, Crawfordsville and Lincoln; UAV images at Ames only; Missouri Valley and Scottsbluff have field records but no plot imagery (`backend/data/trial_sites.json`, from the challenge inventory). Weather history for the outlook is 27–31 quality-checked seasons per site from NOAA GHCN-Daily.
 
 | Source | Purpose | Status |
 | --- | --- | --- |
-| Shrestha et al. (2024) multistate maize trials | Satellite imagery, field records and yields for training and the deployed forecasts | Deployed ("Practice data") |
-| IoT4Ag challenge data | Satellite imagery and field records for the challenge models | Adapter and models in progress (`ml/`) |
-| NOAA NCEI (daily station observations) | Weather | Connected |
-| USDA NRCS SSURGO | Soil | Connected |
+| Shrestha et al. (2024) multistate maize trials | Satellite imagery, field records and yields for the deployed practice models | Deployed ("Practice data") |
+| IoT4Ag challenge data | Satellite and UAV imagery and field records for the final models | Final results arrive as `backend/artifacts/final_results.json` |
+| NOAA GHCN-Daily (long record per site) | Historical weather outlook | Deployed (`backend/data/weather_history/`) |
+| NOAA NCEI (daily station observations) | Weather context | Connected |
+| USDA NRCS SSURGO | Soil context | Connected |
 | USDA NASS Quick Stats | County yield history | Connected |
 
-The navigation badge shows the backend's own label for the data behind the forecasts (`datasetLabel` from `/api/health`): "Practice data" today. It changes when the ML team deploys models and bundles for the challenge data; the frontend never hardcodes it.
+The navigation badge shows the backend's own label for the data behind the forecasts: the published final results' `dataset_label` once they exist, otherwise `datasetLabel` from `/api/health` ("Practice data" today). The frontend never hardcodes it.
 
-For the ML team, three things update the dashboard with no frontend change: new model artifacts (the reliability chart and every forecast), a new showcase bundle (the plots in the scouting queue and hybrid table), and `backend/artifacts/imagery_ablation.json` (the imagery comparison; format in `backend/app/forecast/evaluation.py`). To draw an agreed error threshold on the reliability chart, set `acceptableMaeBuAc` in `src/config/appConfig.ts`.
+### Handing results to the website (ML team)
+
+The website reads a **frozen, versioned results file** instead of re-running training: `backend/artifacts/final_results.json` (contract and example in `backend/app/results.py`, walkthrough in `docs/FINAL_RESULTS_CONTRACT.md`). It carries the model and validation strategy, R² / MAE / RMSE by days after planting, the earliest useful DAP, per-site and per-plot forecasts, GDD / maturity estimates, and the matched satellite-only vs satellite + UAV comparison. Check it with `cd backend && uv run python -m app.results path/to/final_results.json`, copy it into `backend/artifacts/` and it is served on the next request. Until it exists, every section it feeds says it is waiting; nothing is estimated in its place.
+
+Also picked up with no frontend change: new model artifacts (the live forecasts and the deployed-model validation), a new showcase bundle, and `backend/artifacts/imagery_ablation.json`. To draw an agreed error threshold on the deployed-model chart, set `acceptableMaeBuAc` in `src/config/appConfig.ts`.
 
 ## Team
 
