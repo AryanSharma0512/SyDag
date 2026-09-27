@@ -18,6 +18,8 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
   const [scrolled, setScrolled] = useState(false);
   // What the forecasts run on, from the backend in API mode; hidden until known.
   const [datasetLabel, setDatasetLabel] = useState<string | null>(null);
+  // "SyDAg 2022 maize trials · 2,131 plots · 5 sites" → its first part, where space is short.
+  const shortLabel = datasetLabel?.split(' · ')[0];
 
   useEffect(() => {
     let active = true;
@@ -107,11 +109,17 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
 
         <div className="ml-auto flex items-center gap-2">
           {/* Kept off the landing page's first screen; the forecast views and the menu still show it.
-              A wrapper hides it on phones, since the badge's own inline-flex outranks `hidden`. */}
+              Wrappers hide it on phones, since the badge's own inline-flex outranks `hidden`, and the
+              full label only shows where it fits. */}
           {datasetLabel && route !== 'overview' && (
-            <span className="hidden sm:contents">
-              <DataBadge variant="demo" label={datasetLabel} />
-            </span>
+            <>
+              <span className="hidden sm:contents lg:hidden">
+                <DataBadge variant="demo" label={shortLabel ?? datasetLabel} />
+              </span>
+              <span className="hidden lg:contents">
+                <DataBadge variant="demo" label={datasetLabel} />
+              </span>
+            </>
           )}
           <button
             type="button"
@@ -161,7 +169,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
                 );
               })}
               <li className="mt-2 border-t border-line px-2 pt-4 pb-1">
-                {datasetLabel && <DataBadge variant="demo" label={datasetLabel} />}
+                {datasetLabel && <DataBadge variant="demo" label={shortLabel ?? datasetLabel} />}
               </li>
             </ul>
           </motion.nav>

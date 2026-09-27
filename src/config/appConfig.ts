@@ -7,17 +7,21 @@ export const APP_CONFIG = {
   name: 'SoilSignal',
   tagline: 'Know the season before harvest.',
   subtitle:
-    'SoilSignal uses satellite imagery, field records and weather history to estimate final maize yield during the growing season.',
+    'SoilSignal turns satellite imagery and field records into an estimate of final maize yield during the growing season, with a range and its validated error.',
   version: '1.0.0-hackathon',
-  datasetLabel: 'Demo Data',
+  // What the site's numbers come from when the published results do not name it.
+  datasetLabel: 'SyDAg 2022 maize trials',
+  // The demo build (bundled sample data, no API) says so instead, so it is never mistaken for the results.
+  demoBuildLabel: 'Demo build · sample data',
   // Build with VITE_DEMO_MODE=false to fetch from the SoilSignal API instead of src/mock.
   demoMode: import.meta.env.VITE_DEMO_MODE !== 'false',
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  // Field the demo build and the live-model views open on, when their dataset has it.
   defaultFieldId: 'purdue-104',
   // Forecast date the live models open on (index into a plot's forecast dates): mid-season,
   // before harvest. The final results open on their own earliest useful stage instead.
   defaultDateIndex: 2,
-  seasonYear: 2026,
+  seasonYear: 2022,
   // Validation MAE (bu/ac) the team treats as good enough to act on. Unset until the team
   // agrees one; when set, the model reliability chart draws it as a reference line.
   acceptableMaeBuAc: null as number | null,

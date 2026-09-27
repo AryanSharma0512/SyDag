@@ -1,27 +1,43 @@
 import { useMemo, useState, type PointerEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { StagePerformance } from '../../types/results';
+import type { SitePerformance, StagePerformance, ValidationMetrics } from '../../types/results';
 import { monotonePath, nearestIndex, niceTicks, scaleLinear } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { useElementWidth, useIsMobile } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
 
+/** One stage on the chart: the contract's row, plus a site's range width and coverage when known. */
+export type ChartRow = StagePerformance & { coverage?: number | null; medianIntervalWidth?: number | null };
+
 interface PerformanceByDapProps {
-  performance: StagePerformance[];
+  performance: ChartRow[];
   earliestUsefulDap?: number | null;
   /** Days after planting of the forecast being viewed, marked on the chart. */
   activeDap?: number | null;
+  /** The stage of the forecast being viewed; preferred over `activeDap` when the rows carry stages. */
+  activeStage?: string | null;
+  /** The error before any imagery (field records only), drawn as a dashed reference line. */
+  baseline?: { mae?: number | null; r2?: number | null; label: string } | null;
   large?: boolean;
 }
 
 const fmt = (v: number | null | undefined, digits = 1) => (v == null ? '—' : v.toFixed(digits));
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 /**
  * Validation error by days after planting: one line (MAE in bu/ac, or R² when the
  * results carry no MAE), never two measures on two axes. R² sits in an aligned row
- * under the axis so each stage's pair can be read together.
+ * under the axis so each stage's pair can be read together. When the rows name their
+ * stages (TP1…), the axis leads with the stage, since its day can differ between sites.
  */
-export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, large = false }: PerformanceByDapProps) {
+export function PerformanceByDap({
+  performance,
+  earliestUsefulDap,
+  activeDap,
+  activeStage,
+  baseline,
+  large = false,
+}: PerformanceByDapProps) {
   const reduce = useReducedMotion();
   const isMobile = useIsMobile();
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
@@ -30,20 +46,26 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
   const metric: 'mae' | 'r2' = performance.some((p) => p.mae != null) ? 'mae' : 'r2';
   const points = useMemo(() => performance.filter((p) => p[metric] != null), [performance, metric]);
   const showR2Row = metric === 'mae' && performance.some((p) => p.r2 != null);
+  const hasStage = points.some((p) => p.stage);
+  const base = baseline?.[metric] ?? null;
+  const activeIndex = activeStage ? points.findIndex((p) => p.stage === activeStage) : -1;
 
+  const rowGap = large ? 20 : 18;
+  const axisRows = [hasStage && 'Stage', 'Day', showR2Row && 'R²'].filter(Boolean) as string[];
   const plotHeight = large ? 280 : isMobile ? 180 : 220;
-  const margin = { top: 30, right: 20, bottom: 40, left: 44 };
-  const r2Row = showR2Row ? 30 : 0;
-  const height = margin.top + plotHeight + margin.bottom + r2Row;
+  const hasMarker = activeIndex >= 0 || activeDap != null;
+  const margin = { top: hasMarker ? 42 : 30, right: 20, bottom: 14 + rowGap * axisRows.length, left: 44 };
+  const height = margin.top + plotHeight + margin.bottom;
 
   const geo = useMemo(() => {
     if (width <= 0 || points.length === 0) return null;
     const daps = points.map((p) => p.dap);
-    const lo = Math.min(...daps, earliestUsefulDap ?? Infinity, activeDap ?? Infinity);
-    const hi = Math.max(...daps, earliestUsefulDap ?? -Infinity, activeDap ?? -Infinity);
+    const markerDap = activeIndex >= 0 ? null : activeDap;
+    const lo = Math.min(...daps, earliestUsefulDap ?? Infinity, markerDap ?? Infinity);
+    const hi = Math.max(...daps, earliestUsefulDap ?? -Infinity, markerDap ?? -Infinity);
     const pad = Math.max(4, (hi - lo) * 0.06);
     const sx = scaleLinear(lo - pad, hi + pad, margin.left, width - margin.right);
-    const values = points.map((p) => p[metric] as number);
+    const values = [...points.map((p) => p[metric] as number), ...(base != null ? [base] : [])];
     let y0: number;
     let y1: number;
     if (metric === 'mae') {
@@ -58,20 +80,35 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
     const bottom = margin.top + plotHeight;
     const sy = scaleLinear(y0, y1, bottom, margin.top);
     const pts = points.map((p) => ({ x: sx(p.dap), y: sy(p[metric] as number) }));
+    // Axis labels a stage keeps only when there is room; the viewed stage always keeps its own.
+    const minGap = large ? 40 : 32;
+    const axisVisible = pts.map(() => false);
+    const order = activeIndex >= 0 ? [activeIndex, ...pts.map((_, i) => i).filter((i) => i !== activeIndex)] : pts.map((_, i) => i);
+    const shown: number[] = [];
+    for (const i of order) {
+      if (shown.every((j) => Math.abs(pts[i].x - pts[j].x) >= minGap)) {
+        axisVisible[i] = true;
+        shown.push(i);
+      }
+    }
     return {
       sx,
       bottom,
       pts,
+      axisVisible,
       line: monotonePath(pts),
       ticks: niceTicks(y0, y1, 4).map((t) => ({ value: t, y: sy(t) })),
       useful: earliestUsefulDap != null ? sx(earliestUsefulDap) : null,
-      active: activeDap != null ? sx(activeDap) : null,
+      active: activeIndex >= 0 ? pts[activeIndex].x : markerDap != null ? sx(markerDap) : null,
+      base: base != null ? sy(base) : null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, width, plotHeight, metric, earliestUsefulDap, activeDap]);
+  }, [points, width, plotHeight, metric, earliestUsefulDap, activeDap, activeIndex, base, margin.top, margin.bottom, large]);
 
   const usefulIndex = earliestUsefulDap != null ? points.findIndex((p) => p.dap >= earliestUsefulDap) : -1;
-  const labelled = new Set([0, usefulIndex].filter((i) => i >= 0));
+  // Direct labels on the first point (unless a baseline already anchors the scale), the useful stage
+  // and the viewed stage; never on every point.
+  const labelled = new Set([base == null ? 0 : -1, usefulIndex, activeIndex].filter((i) => i >= 0));
 
   const onPointerMove = (event: PointerEvent<SVGRectElement>) => {
     if (!geo) return;
@@ -88,6 +125,7 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
   const tip = hover !== null && geo ? { p: points[hover], at: geo.pts[hover] } : null;
   const unit = metric === 'mae' ? 'bu/ac' : '';
   const tick = large ? 'text-[13px]' : 'text-[11px]';
+  const rowY = (row: string) => (geo ? geo.bottom + rowGap * (axisRows.indexOf(row) + 1) : 0);
 
   return (
     <div>
@@ -98,8 +136,13 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
             height={height}
             className="overflow-visible"
             role="img"
-            aria-label={`${metric === 'mae' ? 'Typical error (MAE)' : 'R²'} by days after planting: ${points
-              .map((p) => `day ${p.dap}, ${fmt(p[metric], metric === 'mae' ? 1 : 2)}${unit ? ` ${unit}` : ''}`)
+            aria-label={`${metric === 'mae' ? 'Typical error (MAE)' : 'R²'} by days after planting: ${
+              baseline && base != null ? `${baseline.label}, ${fmt(base, metric === 'mae' ? 1 : 2)}; ` : ''
+            }${points
+              .map(
+                (p) =>
+                  `${p.stage ? `${p.stage}, ` : ''}day ${p.dap}, ${fmt(p[metric], metric === 'mae' ? 1 : 2)}${unit ? ` ${unit}` : ''}`,
+              )
               .join('; ')}`}
           >
             {geo.useful !== null && (
@@ -132,9 +175,40 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
 
             {geo.active !== null && (
               <g>
-                <line x1={geo.active} x2={geo.active} y1={margin.top} y2={geo.bottom} stroke={C.faint} strokeWidth={1} />
-                <text x={geo.active} y={geo.bottom + 34} textAnchor="middle" className={`fill-ink-soft font-medium ${tick}`}>
+                <line x1={geo.active} x2={geo.active} y1={margin.top - 8} y2={geo.bottom} stroke={C.faint} strokeWidth={1} />
+                <text
+                  x={geo.active}
+                  y={margin.top - 14}
+                  textAnchor={geo.active > width - 60 ? 'end' : geo.active < margin.left + 40 ? 'start' : 'middle'}
+                  className={`fill-ink-soft font-medium ${tick}`}
+                >
                   This forecast
+                </text>
+              </g>
+            )}
+
+            {baseline && geo.base !== null && (
+              <g>
+                <line
+                  x1={margin.left}
+                  x2={width - margin.right}
+                  y1={geo.base}
+                  y2={geo.base}
+                  stroke={C.soil500}
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                />
+                <text
+                  // Opposite the viewed stage, so the two labels never collide.
+                  x={geo.active !== null && geo.active > width / 2 ? margin.left + 4 : width - margin.right}
+                  y={geo.base - 6}
+                  textAnchor={geo.active !== null && geo.active > width / 2 ? 'start' : 'end'}
+                  stroke={C.surface}
+                  strokeWidth={4}
+                  paintOrder="stroke"
+                  className={`fill-ink-soft ${tick}`}
+                >
+                  {baseline.label} <tspan className="data font-medium">{fmt(base, metric === 'mae' ? 1 : 2)}</tspan>
                 </text>
               </g>
             )}
@@ -153,9 +227,9 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
 
             {geo.pts.map((pt, i) => {
               const p = points[i];
-              const emphasis = i === usefulIndex;
+              const emphasis = i === usefulIndex || i === activeIndex;
               return (
-                <g key={p.dap}>
+                <g key={p.stage ?? p.dap}>
                   <circle
                     cx={pt.x}
                     cy={pt.y}
@@ -165,20 +239,35 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
                     strokeWidth={2}
                   />
                   {labelled.has(i) && (
-                    <text x={pt.x} y={pt.y - 12} textAnchor="middle" className={`data fill-ink font-medium ${tick}`}>
+                    <text
+                      x={pt.x}
+                      y={pt.y - 12}
+                      textAnchor="middle"
+                      stroke={C.surface}
+                      strokeWidth={4}
+                      paintOrder="stroke"
+                      className={`data fill-ink font-medium ${tick}`}
+                    >
                       {fmt(p[metric], metric === 'mae' ? 1 : 2)}
                     </text>
                   )}
-                  <text x={pt.x} y={geo.bottom + 18} textAnchor="middle" className={`data fill-muted tabular-nums ${tick}`}>
-                    {p.dap}
-                  </text>
-                  {showR2Row && (
+                  {hasStage && geo.axisVisible[i] && (
                     <text
                       x={pt.x}
-                      y={geo.bottom + 40 + r2Row - 12}
+                      y={rowY('Stage')}
                       textAnchor="middle"
-                      className={`data fill-ink-soft tabular-nums ${tick}`}
+                      className={`${i === activeIndex ? 'fill-ink font-semibold' : 'fill-ink-soft font-medium'} ${tick}`}
                     >
+                      {p.stage ?? ''}
+                    </text>
+                  )}
+                  {geo.axisVisible[i] && (
+                    <text x={pt.x} y={rowY('Day')} textAnchor="middle" className={`data fill-muted tabular-nums ${tick}`}>
+                      {p.dap}
+                    </text>
+                  )}
+                  {showR2Row && geo.axisVisible[i] && (
+                    <text x={pt.x} y={rowY('R²')} textAnchor="middle" className={`data fill-ink-soft tabular-nums ${tick}`}>
                       {fmt(p.r2, 2)}
                     </text>
                   )}
@@ -193,14 +282,11 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
               stroke={C.lineStrong}
               strokeWidth={1}
             />
-            {showR2Row && (
-              <text x={4} y={geo.bottom + 40 + r2Row - 12} className={`fill-muted font-medium ${tick}`}>
-                R²
+            {axisRows.map((row) => (
+              <text key={row} x={4} y={rowY(row)} className={`fill-muted font-medium ${tick}`}>
+                {row}
               </text>
-            )}
-            <text x={4} y={geo.bottom + 18} className={`fill-muted font-medium ${tick}`}>
-              Day
-            </text>
+            ))}
 
             <rect
               x={margin.left}
@@ -221,31 +307,35 @@ export function PerformanceByDap({ performance, earliestUsefulDap, activeDap, la
           {tip && (
             <motion.div
               role="tooltip"
-              className="pointer-events-none absolute top-0 left-0 z-10 w-[200px] rounded-xl border border-line bg-surface/95 px-3.5 py-3 text-[12px] shadow-lift backdrop-blur-sm"
+              className="pointer-events-none absolute top-0 left-0 z-10 w-[220px] rounded-xl border border-line bg-surface/95 px-3.5 py-3 text-[12px] shadow-lift backdrop-blur-sm"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1, x: tip.at.x > width - 230 ? tip.at.x - 214 : tip.at.x + 14, y: Math.max(0, tip.at.y - 40) }}
+              animate={{ opacity: 1, x: tip.at.x > width - 250 ? tip.at.x - 234 : tip.at.x + 14, y: Math.max(0, tip.at.y - 40) }}
               exit={{ opacity: 0, transition: { duration: 0.1 } }}
               transition={{ duration: 0.15 }}
             >
               <div className="font-medium text-ink">
-                Day <span className="data">{tip.p.dap}</span>
-                {tip.p.label ? <span className="text-muted"> · {tip.p.label}</span> : null}
+                {tip.p.label ?? (
+                  <>
+                    Day <span className="data">{tip.p.dap}</span>
+                  </>
+                )}
               </div>
               <dl className="mt-2 space-y-1 border-t border-line pt-2">
-                {[
-                  ['Typical error (MAE)', tip.p.mae, 1, ' bu/ac'],
-                  ['RMSE', tip.p.rmse, 1, ' bu/ac'],
-                  ['R²', tip.p.r2, 2, ''],
-                  ['Plots', tip.p.n, 0, ''],
-                ]
+                {(
+                  [
+                    ['Typical error (MAE)', tip.p.mae, (v: number) => `${v.toFixed(1)} bu/ac`],
+                    ['RMSE', tip.p.rmse, (v: number) => `${v.toFixed(1)} bu/ac`],
+                    ['R² (variation explained)', tip.p.r2, (v: number) => v.toFixed(2)],
+                    ['Median range width', tip.p.medianIntervalWidth, (v: number) => `${v.toFixed(0)} bu/ac`],
+                    ['Yields inside range', tip.p.coverage, pct],
+                    ['Plots', tip.p.n, (v: number) => v.toLocaleString('en-US')],
+                  ] as Array<[string, number | null | undefined, (v: number) => string]>
+                )
                   .filter(([, v]) => v != null)
-                  .map(([k, v, d, u]) => (
-                    <div key={k as string} className="flex justify-between gap-3">
-                      <dt className="text-muted">{k as string}</dt>
-                      <dd className="data text-ink-soft">
-                        {(v as number).toFixed(d as number)}
-                        {u as string}
-                      </dd>
+                  .map(([k, v, show]) => (
+                    <div key={k} className="flex justify-between gap-3">
+                      <dt className="text-muted">{k}</dt>
+                      <dd className="data text-ink-soft">{show(v as number)}</dd>
                     </div>
                   ))}
               </dl>
@@ -265,6 +355,8 @@ export function PerformanceTable({
   performance: StagePerformance[];
   earliestUsefulDap?: number | null;
 }) {
+  const hasR2 = performance.some((p) => p.r2 != null);
+  const hasStage = performance.some((p) => p.stage);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[480px] text-left">
@@ -272,10 +364,10 @@ export function PerformanceTable({
         <thead>
           <tr className="border-b border-line-strong text-[13px] text-muted">
             <th scope="col" className="py-3 pr-6 font-medium">
-              Days after planting
+              {hasStage ? 'Stage' : 'Days after planting'}
             </th>
             <th scope="col" className="py-3 pr-6 font-medium">
-              Stage
+              {hasStage ? 'Days after planting (median · range across sites)' : 'Stage'}
             </th>
             <th scope="col" className="py-3 pr-6 text-right font-medium">
               MAE (bu/ac)
@@ -283,9 +375,11 @@ export function PerformanceTable({
             <th scope="col" className="py-3 pr-6 text-right font-medium">
               RMSE (bu/ac)
             </th>
-            <th scope="col" className="py-3 pr-6 text-right font-medium">
-              R²
-            </th>
+            {hasR2 && (
+              <th scope="col" className="py-3 pr-6 text-right font-medium">
+                R²
+              </th>
+            )}
             <th scope="col" className="py-3 text-right font-medium">
               Plots
             </th>
@@ -293,16 +387,102 @@ export function PerformanceTable({
         </thead>
         <tbody>
           {performance.map((p) => (
-            <tr key={p.dap} className={`border-b border-line ${p.dap === earliestUsefulDap ? 'bg-leaf-50/70' : ''}`}>
+            <tr key={p.stage ?? p.dap} className={`border-b border-line ${p.dap === earliestUsefulDap ? 'bg-leaf-50/70' : ''}`}>
               <td className="data py-3 pr-6 text-[15px] text-ink">
-                {p.dap}
+                {hasStage ? p.stage : p.dap}
                 {p.dap === earliestUsefulDap && <span className="ml-2 font-sans text-[12px] text-leaf-700">earliest useful</span>}
               </td>
-              <td className="py-3 pr-6 text-[15px] text-ink-soft">{p.label ?? '—'}</td>
-              <td className="data py-3 pr-6 text-right text-[15px] text-ink tabular-nums">{fmt(p.mae)}</td>
-              <td className="data py-3 pr-6 text-right text-[15px] text-ink-soft tabular-nums">{fmt(p.rmse)}</td>
-              <td className="data py-3 pr-6 text-right text-[15px] text-ink-soft tabular-nums">{fmt(p.r2, 2)}</td>
-              <td className="data py-3 text-right text-[15px] text-ink-soft tabular-nums">{p.n ?? '—'}</td>
+              <td className="py-3 pr-6 text-[15px] text-ink-soft">
+                {hasStage ? (
+                  <>
+                    <span className="data">{p.dap}</span>
+                    {p.label?.includes('DAP ') && (
+                      <span className="data ml-2 text-[13px] text-muted">{p.label.split('DAP ')[1]}</span>
+                    )}
+                  </>
+                ) : (
+                  (p.label ?? '—')
+                )}
+              </td>
+              <td className="data py-3 pr-6 text-right text-[15px] text-ink tabular-nums">{fmt(p.mae, 2)}</td>
+              <td className="data py-3 pr-6 text-right text-[15px] text-ink-soft tabular-nums">{fmt(p.rmse, 2)}</td>
+              {hasR2 && <td className="data py-3 pr-6 text-right text-[15px] text-ink-soft tabular-nums">{fmt(p.r2, 2)}</td>}
+              <td className="data py-3 text-right text-[15px] text-ink-soft tabular-nums">{p.n?.toLocaleString('en-US') ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** One site's validation, pre-season baseline first, then each satellite stage. */
+export function SiteValidationTable({
+  site,
+  levelLabel = '90%',
+  activeStage,
+}: {
+  site: SitePerformance;
+  /** The nominal level of the prediction range, e.g. "90%". */
+  levelLabel?: string;
+  activeStage?: string | null;
+}) {
+  const rows: Array<{ key: string; stage: string; day: string; m: ValidationMetrics }> = [
+    ...(site.preseason ? [{ key: 'pre', stage: 'Before imagery', day: 'field records only', m: site.preseason }] : []),
+    ...site.stages.map((s) => ({
+      key: s.stage,
+      stage: s.stage,
+      day: s.dapMin != null && s.dapMax != null && s.dapMin !== s.dapMax ? `${s.dapMin}–${s.dapMax}` : String(s.dap),
+      m: s,
+    })),
+  ];
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[620px] text-left">
+        <caption className="sr-only">Validation by satellite stage at {site.site}</caption>
+        <thead>
+          <tr className="border-b border-line-strong text-[13px] text-muted">
+            <th scope="col" className="py-3 pr-5 font-medium">
+              Stage
+            </th>
+            <th scope="col" className="py-3 pr-5 font-medium">
+              Days after planting
+            </th>
+            <th scope="col" className="py-3 pr-5 text-right font-medium">
+              MAE (bu/ac)
+            </th>
+            <th scope="col" className="py-3 pr-5 text-right font-medium">
+              RMSE
+            </th>
+            <th scope="col" className="py-3 pr-5 text-right font-medium">
+              R²
+            </th>
+            <th scope="col" className="py-3 pr-5 text-right font-medium">
+              Inside {levelLabel} range
+            </th>
+            <th scope="col" className="py-3 text-right font-medium">
+              Median range width
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ key, stage, day, m }) => (
+            <tr
+              key={key}
+              className={`border-b border-line text-[14px] ${key === 'pre' ? 'text-muted' : ''} ${key === activeStage ? 'bg-leaf-50/70' : ''}`}
+            >
+              <td className={`py-2.5 pr-5 ${key === 'pre' ? '' : 'data text-ink'}`}>
+                {stage}
+                {key === activeStage && <span className="ml-2 font-sans text-[12px] text-leaf-700">this forecast</span>}
+              </td>
+              <td className={`py-2.5 pr-5 ${key === 'pre' ? 'text-[13px]' : 'data text-ink-soft'}`}>{day}</td>
+              <td className="data py-2.5 pr-5 text-right text-ink tabular-nums">{fmt(m.mae, 2)}</td>
+              <td className="data py-2.5 pr-5 text-right text-ink-soft tabular-nums">{fmt(m.rmse, 2)}</td>
+              <td className="data py-2.5 pr-5 text-right text-ink-soft tabular-nums">{fmt(m.r2, 2)}</td>
+              <td className="data py-2.5 pr-5 text-right text-ink-soft tabular-nums">{m.coverage != null ? pct(m.coverage) : '—'}</td>
+              <td className="data py-2.5 text-right text-ink-soft tabular-nums">
+                {m.medianIntervalWidth != null ? `${m.medianIntervalWidth.toFixed(0)} bu/ac` : '—'}
+              </td>
             </tr>
           ))}
         </tbody>

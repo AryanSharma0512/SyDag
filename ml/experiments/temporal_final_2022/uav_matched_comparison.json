@@ -1,0 +1,11 @@
+{
+  "matched": true,
+  "sites": ["Ames", "Crawfordsville"],
+  "plots": 975,
+  "dap": 125,
+  "validation": "5-fold cross-validation on the matched 975-plot subset",
+  "framework": "Same matched plots; agronomic + satellite versus agronomic + satellite + UAV",
+  "satellite_only": {"mae": 16.21, "rmse": 20.32, "r2": 0.622},
+  "satellite_plus_uav": {"mae": 16.13, "rmse": 19.86, "r2": 0.639},
+  "note": "UAV provided a small incremental gain beyond satellite imagery in this matched subset."
+}

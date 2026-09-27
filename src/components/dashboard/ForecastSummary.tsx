@@ -12,6 +12,10 @@ interface ForecastSummaryProps {
   seasonDomain: [number, number];
   /** Validation error for this point in the season; null while it is not published. */
   typicalError: TypicalError | null;
+  /** e.g. "90% prediction range" when the results state the level; else "Prediction range". */
+  rangeLabel?: string;
+  /** Where in the season this forecast sits, e.g. "Satellite pass 3 of 6". */
+  stageNote?: string;
   isPresentationMode?: boolean;
 }
 
@@ -25,6 +29,8 @@ export function ForecastSummary({
   previous,
   seasonDomain,
   typicalError,
+  rangeLabel = 'Prediction range',
+  stageNote,
   isPresentationMode = false,
 }: ForecastSummaryProps) {
   const reduce = useReducedMotion();
@@ -71,7 +77,7 @@ export function ForecastSummary({
 
       <dl className="grid content-center gap-5 border-t border-line pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-12">
         <div>
-          <dt className={`text-muted ${label}`}>Prediction range</dt>
+          <dt className={`text-muted ${label}`}>{rangeLabel}</dt>
           <dd className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
             {hasRange ? (
               <>
@@ -118,15 +124,16 @@ export function ForecastSummary({
           <dd className={`mt-0.5 text-muted ${label}`}>
             {formatFullDay(point.date)}
             {point.stage ? ` · ${point.stage} stage` : ''}
+            {stageNote ? ` · ${stageNote}` : ''}
           </dd>
         </div>
 
         <div>
-          <dt className={`text-muted ${label}`}>Typical validation error</dt>
+          <dt className={`text-muted ${label}`}>Typical validation error (MAE)</dt>
           {typicalError ? (
             <>
               <dd className={`data mt-1 font-medium text-ink ${value}`}>
-                ±{Math.round(typicalError.mae)}
+                {typicalError.mae.toFixed(1)}
                 <span className="ml-1.5 text-[0.6em] font-normal text-muted">bu/ac</span>
               </dd>
               <dd className={`mt-0.5 text-muted ${label}`}>Average miss {typicalError.basis}</dd>

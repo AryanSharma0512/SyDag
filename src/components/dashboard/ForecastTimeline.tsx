@@ -19,6 +19,8 @@ interface ForecastTimelineProps {
   passes?: string[];
   plantingDate?: string;
   platform?: string;
+  /** e.g. "90% prediction range" when the level is known. */
+  rangeLabel?: string;
 }
 
 /** Only the very first draw of a visit is slow and deliberate; field switches redraw faster. */
@@ -33,6 +35,7 @@ export function ForecastTimeline({
   passes = [],
   plantingDate,
   platform,
+  rangeLabel = 'Prediction range',
 }: ForecastTimelineProps) {
   const reduce = useReducedMotion();
   const isMobile = useIsMobile();
@@ -78,7 +81,8 @@ export function ForecastTimeline({
     const sx = scaleLinear(start, times[times.length - 1], x0, x1);
     const lo = Math.min(...snapshots.map(low));
     const hi = Math.max(...snapshots.map(high));
-    const yMin = Math.floor((lo - 6) / 10) * 10;
+    // Yield cannot go below zero, so neither does the axis.
+    const yMin = Math.max(0, Math.floor((lo - 6) / 10) * 10);
     const yMax = Math.ceil((hi + 4) / 10) * 10;
     const bottom = margin.top + plotHeight;
     const sy = scaleLinear(yMin, yMax, bottom, margin.top);
@@ -116,6 +120,7 @@ export function ForecastTimeline({
         opacity: 0.16,
       })),
       labelVisible,
+      minGap,
       trackY: bottom + 26,
       passes: lanePasses.map((d) => ({ date: d, x: sx(toTime(d)) })),
       planting: lanePlanting ? sx(toTime(lanePlanting)) : null,
@@ -183,7 +188,7 @@ export function ForecastTimeline({
           {hasRange && (
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-4 rounded-[3px] bg-leaf-400/25" aria-hidden="true" />
-              Prediction range
+              {rangeLabel}
             </span>
           )}
           {!isPresentationMode && (
@@ -208,7 +213,7 @@ export function ForecastTimeline({
         aria-valuemin={0}
         aria-valuemax={snapshots.length - 1}
         aria-valuenow={index}
-        aria-valuetext={`${active.displayDate}${active.dap !== null ? `, ${dapText(active)}` : ''}, ${imageryLabel(passes, active.date).toLowerCase()}: ${formatYield(active.yield, 0)} bushels per acre${hasRange ? `, prediction range ${formatYield(low(active), 0)} to ${formatYield(high(active), 0)}` : ''}`}
+        aria-valuetext={`${active.displayDate}${active.dap !== null ? `, ${dapText(active)}` : ''}, ${imageryLabel(passes, active.date).toLowerCase()}: ${formatYield(active.yield, 0)} bushels per acre${hasRange ? `, ${rangeLabel.toLowerCase()} ${formatYield(low(active), 0)} to ${formatYield(high(active), 0)}` : ''}`}
         onKeyDown={onKeyDown}
         className="relative mt-4 -mx-1 rounded-xl px-1 select-none"
         style={{ height }}
@@ -421,7 +426,8 @@ export function ForecastTimeline({
                 transition={transition}
               />
               {snapshots.map((s, i) =>
-                geo.labelVisible[i] || i === index ? (
+                // The active date always shows; a neighbour too close to it steps aside.
+                i === index || (geo.labelVisible[i] && Math.abs(geo.mid[i].x - geo.mid[index].x) >= geo.minGap) ? (
                   <text
                     key={s.id}
                     x={geo.mid[i].x}
@@ -474,7 +480,7 @@ export function ForecastTimeline({
               <div className="mt-2 space-y-1 border-t border-line pt-2 text-[12px]">
                 {hasRange && (
                   <div className="flex justify-between gap-3">
-                    <span className="text-muted">Prediction range</span>
+                    <span className="text-muted">{rangeLabel}</span>
                     <span className="data text-ink-soft">
                       {formatYield(low(snapshots[hovered]), 0)}–{formatYield(high(snapshots[hovered]), 0)}
                     </span>
@@ -590,7 +596,7 @@ export function ForecastTimeline({
                     {hasStage && <th scope="col" className="px-4 py-2 font-medium">Stage</th>}
                     {passes.length > 0 && <th scope="col" className="px-4 py-2 font-medium">Imagery</th>}
                     <th scope="col" className="px-4 py-2 text-right font-medium">Forecast (bu/ac)</th>
-                    {hasRange && <th scope="col" className="px-4 py-2 text-right font-medium">Prediction range</th>}
+                    {hasRange && <th scope="col" className="px-4 py-2 text-right font-medium">{rangeLabel}</th>}
                   </tr>
                 </thead>
                 <tbody>

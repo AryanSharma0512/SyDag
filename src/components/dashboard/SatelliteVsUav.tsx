@@ -12,19 +12,27 @@ interface SatelliteVsUavProps {
 }
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Math.round(v).toString());
+const signed = (v: number, digits: number) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v).toFixed(digits)}`;
 
 /**
  * Is an extra UAV flight worth it? Satellite is the base layer; UAV is an optional
  * refinement. Numbers appear only for a matched experiment (same plots, dates,
- * validation split and model framework); nothing is estimated in the meantime.
+ * validation split and model framework); nothing is estimated in the meantime, and no
+ * per-plot UAV forecast or dollar value is shown unless the results supply one.
  */
 export function SatelliteVsUav({ results, plotUav, sites, isPresentationMode = false }: SatelliteVsUavProps) {
   const uav = results?.status === 'ready' ? results.uav : null;
   const matched = !!uav?.matched;
   const delta = matched ? uav!.satellitePlusUav.mae - uav!.satelliteOnly.mae : null;
+  const r2Delta =
+    matched && uav!.satellitePlusUav.r2 != null && uav!.satelliteOnly.r2 != null
+      ? uav!.satellitePlusUav.r2 - uav!.satelliteOnly.r2
+      : null;
   const uavSites = sites.filter((s) => s.seasons.some((season) => season.uav.plotImages > 0));
+  const siteName = (id: string) => sites.find((s) => s.id.toLowerCase() === id.toLowerCase())?.name ?? id;
   const text = isPresentationMode ? 'text-[16px]' : 'text-[14px]';
   const big = isPresentationMode ? 'text-[34px]' : 'text-[26px]';
+  const showPlot = matched && plotUav != null;
 
   const panels = [
     {
@@ -33,7 +41,7 @@ export function SatelliteVsUav({ results, plotUav, sites, isPresentationMode = f
       role: 'Routine, scalable monitoring for every field',
       icon: Satellite,
       predicted: plotUav?.satelliteOnly,
-      error: uav?.satelliteOnly.mae,
+      variant: uav?.satelliteOnly,
       tone: 'border-line',
     },
     {
@@ -42,7 +50,7 @@ export function SatelliteVsUav({ results, plotUav, sites, isPresentationMode = f
       role: 'Optional higher-resolution refinement',
       icon: Plane,
       predicted: plotUav?.satellitePlusUav,
-      error: uav?.satellitePlusUav.mae,
+      variant: uav?.satellitePlusUav,
       tone: 'border-dashed border-line-strong',
     },
   ];
@@ -61,30 +69,40 @@ export function SatelliteVsUav({ results, plotUav, sites, isPresentationMode = f
       <p className={`mt-1 max-w-2xl text-muted ${text}`}>
         SoilSignal runs on satellite imagery alone. UAV imagery is optional: it is worth paying for only if it lowers the forecast
         error enough to matter.
+        {matched && ' The numbers below come from a separate matched experiment, not from the forecast above.'}
       </p>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {panels.map(({ key, title, role, icon: Icon, predicted, error, tone }) => (
+        {panels.map(({ key, title, role, icon: Icon, predicted, variant, tone }) => (
           <div key={key} className={`rounded-xl border bg-surface p-5 ${tone}`}>
             <div className="flex items-center gap-2">
               <Icon className="h-4 w-4 text-muted" aria-hidden="true" />
               <h3 className="text-[13px] font-semibold tracking-[0.06em] text-ink uppercase">{title}</h3>
             </div>
             <p className="mt-1 text-[13px] text-muted">{role}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-4">
+            <dl className={`mt-4 grid gap-4 ${showPlot ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {showPlot && (
+                <div>
+                  <dt className="text-[13px] text-muted">Predicted yield</dt>
+                  <dd className={`data mt-1 font-medium text-ink ${big}`}>
+                    {fmt(predicted)}
+                    {predicted != null && <span className="ml-1 text-[0.5em] text-muted">bu/ac</span>}
+                  </dd>
+                </div>
+              )}
               <div>
-                <dt className="text-[13px] text-muted">Predicted yield</dt>
+                <dt className="text-[13px] text-muted">Typical validation error (MAE)</dt>
                 <dd className={`data mt-1 font-medium text-ink ${big}`}>
-                  {matched ? fmt(predicted) : '—'}
-                  {matched && predicted != null && <span className="ml-1 text-[0.5em] text-muted">bu/ac</span>}
+                  {matched && variant ? variant.mae.toFixed(2) : '—'}
+                  {matched && variant && <span className="ml-1 text-[0.5em] text-muted">bu/ac</span>}
                 </dd>
-              </div>
-              <div>
-                <dt className="text-[13px] text-muted">Validation error</dt>
-                <dd className={`data mt-1 font-medium text-ink ${big}`}>
-                  {matched ? (error != null ? `±${error.toFixed(1)}` : '—') : '—'}
-                  {matched && error != null && <span className="ml-1 text-[0.5em] text-muted">bu/ac</span>}
-                </dd>
+                {matched && variant && (variant.rmse != null || variant.r2 != null) && (
+                  <dd className="data mt-1 text-[13px] text-muted">
+                    {[variant.rmse != null && `RMSE ${variant.rmse.toFixed(2)}`, variant.r2 != null && `R² ${variant.r2.toFixed(3)}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </dd>
+                )}
               </div>
             </dl>
           </div>
@@ -94,23 +112,26 @@ export function SatelliteVsUav({ results, plotUav, sites, isPresentationMode = f
       {matched && delta !== null ? (
         <div className={`mt-4 text-ink-soft ${text}`}>
           <p>
-            Additional UAV imagery changed validation error by{' '}
-            <span className="data font-medium text-ink">
-              {delta > 0 ? '+' : delta < 0 ? '−' : '±'}
-              {Math.abs(delta).toFixed(1)}
-            </span>{' '}
-            bu/ac
-            {delta < 0 ? ' (lower is better).' : delta > 0 ? ' (it got worse).' : '.'}
-            {plotUav == null && ' This plot has no UAV forecast, so only the validation errors are shown.'}
+            Adding UAV imagery changed typical error by{' '}
+            <span className="data font-medium text-ink">{signed(delta, 2)}</span> bu/ac (
+            <span className="data">{uav!.satelliteOnly.mae.toFixed(2)}</span> →{' '}
+            <span className="data">{uav!.satellitePlusUav.mae.toFixed(2)}</span>)
+            {r2Delta !== null && (
+              <>
+                {' '}
+                and R² by <span className="data font-medium text-ink">{signed(r2Delta, 3)}</span>
+              </>
+            )}
+            .{uav!.note ? ` ${uav!.note}` : ''}
           </p>
           {!isPresentationMode && (
             <p className="mt-1 text-[12px] text-muted">
-              Matched comparison
-              {uav!.plots ? `: the same ${uav!.plots} plots` : ': the same plots'}
-              {uav!.sites.length ? ` at ${uav!.sites.join(', ')}` : ''}
-              {uav!.dap != null ? `, ${uav!.dap} days after planting` : ''}
+              Separate matched experiment
+              {uav!.plots ? `: the same ${uav!.plots.toLocaleString('en-US')} plots` : ': the same plots'}
+              {uav!.sites.length ? ` at ${uav!.sites.map(siteName).join(' and ')}` : ''}
+              {uav!.dap != null ? `, about ${uav!.dap} days after planting` : ''}
               {uav!.validation ? `, ${uav!.validation}` : ''}
-              {uav!.framework ? `, ${uav!.framework}` : ''}.
+              {uav!.framework ? `. ${uav!.framework}` : ''}.
             </p>
           )}
         </div>

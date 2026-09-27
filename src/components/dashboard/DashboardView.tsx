@@ -16,7 +16,7 @@ import {
   type PlotOption,
   type PlotSeries,
 } from '../../services/plotForecasts';
-import { passDates } from '../../utils/imagery';
+import { passDates, passesBy } from '../../utils/imagery';
 import { formatDay, formatNumber } from '../../utils/formatters';
 import { isTypingTarget } from '../../utils/hooks';
 import { nearestIndex, toTime } from '../../utils/chart';
@@ -264,16 +264,26 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     return [lo - 6, hi + 6];
   }, [current]);
 
-  // Live plots: the plot's own image dates. Final results: the site's pass calendar, which defines their stages.
+  // Live plots: the plot's own image dates. Final results: the site's pass calendar, which dates their stages
+  // (the inventory's plot-image count does not matter here: the results were modeled on those passes).
   const passes = useMemo(() => {
     if (current?.live) return passDates(current.live);
     const inventory = site?.seasons.find((s) => s.year === current?.season)?.satellite;
+    if (current?.source === 'final') return inventory?.acquisitionDates ?? [];
     return inventory && inventory.plotImages > 0 ? inventory.acquisitionDates : [];
   }, [current, site]);
-  const error = point && current ? typicalError(current, point, results, models) : null;
+  const error = point && current ? typicalError(current, point, results, models, site?.name) : null;
+  const level = current?.source === 'final' && results?.status === 'ready' ? results.interval?.level : null;
+  const rangeLabel = level ? `${Math.round(level * 100)}% prediction range` : 'Prediction range';
+  const passCount = point && passes.length ? passesBy(passes, point.date) : 0;
+  const stageNote =
+    current?.source === 'final' && passCount > 0 ? `satellite pass ${passCount} of ${passes.length}` : undefined;
   const liveSnapshot = current?.live?.snapshots[pointIndex];
   const seasonYear = activeSeason ?? current?.season ?? (site ? seasonFor(site, undefined)?.year : undefined);
   const maturity = site && seasonYear ? maturityFor(results, site.id, seasonYear, current?.plotId) : null;
+  // Crop development shows only real GDD (live model) or a published maturity window; otherwise it is left out.
+  const gdd = liveSnapshot ? { value: liveSnapshot.weather.gddAccumulated, asOf: liveSnapshot.date } : null;
+  const showMaturity = !!gdd || !!maturity || !!point?.stage;
   const loadingSeries = !!option && (!current || current.key !== option.key) && !seriesError;
 
   const heading = isPresentationMode ? 'text-[40px] sm:text-[52px]' : 'text-[32px] sm:text-[42px]';
@@ -359,6 +369,8 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                   previous={current.points[pointIndex - 1]}
                   seasonDomain={seasonDomain}
                   typicalError={error}
+                  rangeLabel={rangeLabel}
+                  stageNote={stageNote}
                   isPresentationMode={isPresentationMode}
                 />
               </div>
@@ -377,7 +389,8 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                   isPresentationMode={isPresentationMode}
                   passes={passes}
                   plantingDate={current.plantingDate}
-                  platform={current.live?.spatial?.satellitePlatform}
+                  platform={current.live?.spatial?.satellitePlatform ?? (current.source === 'final' ? 'Pléiades Neo' : undefined)}
+                  rangeLabel={rangeLabel}
                 />
               </Card>
 
@@ -385,12 +398,16 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                 <HowEarly
                   results={results}
                   error={resultsError}
+                  siteId={site.id}
+                  siteName={site.name}
+                  season={current.season}
                   activeDap={current.source === 'final' ? point.dap : null}
+                  activeStage={current.source === 'final' ? point.validationStage : null}
                   isPresentationMode={isPresentationMode}
                 />
               </Card>
 
-              <div className="mt-6 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+              <div className={`mt-6 grid grid-cols-1 items-stretch gap-6 ${showMaturity ? 'lg:grid-cols-2' : ''}`}>
                 <Card>
                   <WeatherOutlookCard
                     site={site}
@@ -399,15 +416,17 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                     isPresentationMode={isPresentationMode}
                   />
                 </Card>
-                <Card>
-                  <MaturityCard
-                    gdd={liveSnapshot ? { value: liveSnapshot.weather.gddAccumulated, asOf: liveSnapshot.date } : null}
-                    stage={point.stage}
-                    stageDetail={point.stageSubtext}
-                    maturity={maturity}
-                    isPresentationMode={isPresentationMode}
-                  />
-                </Card>
+                {showMaturity && (
+                  <Card>
+                    <MaturityCard
+                      gdd={gdd}
+                      stage={point.stage}
+                      stageDetail={point.stageSubtext}
+                      maturity={maturity}
+                      isPresentationMode={isPresentationMode}
+                    />
+                  </Card>
+                )}
               </div>
 
               <Card className="mt-6">
@@ -426,8 +445,9 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                     <span>
                       <span className="block text-[17px] font-semibold tracking-[-0.01em] text-ink">More detail</span>
                       <span className="mt-0.5 block text-[14px] text-muted">
-                        Model drivers, crop observations, every plot at this date, model validation, weather and soil, data
-                        sources.
+                        {current.live
+                          ? 'Model drivers, crop observations, every plot at this date, model validation, weather and soil, data sources.'
+                          : `Validation at ${site.name} by satellite stage, and across all ${results?.plotCounts.length ?? ''} sites.`}
                       </span>
                     </span>
                     <ChevronDown
@@ -445,6 +465,9 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
                         className="overflow-hidden"
                       >
                         <DashboardDetail
+                          site={site}
+                          season={current.season}
+                          activeStage={point.validationStage}
                           live={current.live}
                           snapshotIndex={pointIndex}
                           results={results}

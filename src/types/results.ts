@@ -19,7 +19,8 @@ export interface IntervalInfo {
 
 export interface StagePerformance {
   dap: number; // days after planting
-  label?: string | null; // e.g. "TP1-TP3"
+  stage?: string | null; // key matching ResultForecastPoint.stage, e.g. "TP3"
+  label?: string | null; // for people, e.g. "TP3 · site DAP 79–104"
   mae?: number | null; // bu/ac
   rmse?: number | null;
   r2?: number | null;
@@ -29,6 +30,7 @@ export interface StagePerformance {
 export interface ResultForecastPoint {
   date: string;
   dap: number;
+  stage?: string | null; // the validation stage, e.g. "TP3"
   yield: number;
   lower?: number | null;
   upper?: number | null;
@@ -57,6 +59,7 @@ export interface ResultPlot {
   irrigated?: boolean | null;
   forecasts: ResultForecastPoint[];
   uav?: PlotUav | null;
+  featured?: boolean; // the plot the dashboard opens on at its site
 }
 
 export interface MaturityEstimate {
@@ -69,6 +72,32 @@ export interface MaturityEstimate {
   windowStart?: string | null;
   windowEnd?: string | null;
   method?: string | null;
+}
+
+export interface ValidationMetrics {
+  r2?: number | null;
+  mae?: number | null; // bu/ac
+  rmse?: number | null;
+  coverage?: number | null; // share of validation yields inside the range
+  medianIntervalWidth?: number | null; // bu/ac, upper - lower
+  n?: number | null;
+}
+
+export interface SiteStage extends ValidationMetrics {
+  stage: string; // matches ResultForecastPoint.stage
+  dap: number; // the site's typical days after planting at this stage
+  dapMin?: number | null;
+  dapMax?: number | null;
+}
+
+/** One site's own validation: before any imagery, then each satellite stage. */
+export interface SitePerformance {
+  site: string;
+  season: number;
+  plots?: number | null;
+  folds?: number | null;
+  preseason?: ValidationMetrics | null; // field records only
+  stages: SiteStage[];
 }
 
 export interface UavVariant {
@@ -94,6 +123,7 @@ export interface PlotCount {
   site: string;
   season: number;
   plots: number;
+  observations: number; // dated forecasts across those plots
 }
 
 export interface FinalResults {
@@ -110,6 +140,7 @@ export interface FinalResults {
   earliestUsefulRule?: string | null;
   sites: SiteForecast[];
   plotCounts: PlotCount[];
+  sitePerformance: SitePerformance[];
   maturity: MaturityEstimate[];
   uav?: UavComparison | null;
 }

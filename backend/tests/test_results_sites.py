@@ -109,7 +109,8 @@ def test_results_serve_the_published_file_without_plots(isolated_model_dir):
     assert body["earliestUsefulDap"] == 70
     assert [p["dap"] for p in body["performance"]] == [40, 70]
     assert "plots" not in body
-    assert body["plotCounts"] == [{"site": "Ames", "season": 2022, "plots": 2}]
+    assert body["plotCounts"] == [{"site": "Ames", "season": 2022, "plots": 2, "observations": 3}]
+    assert body["sitePerformance"] == []
     assert body["uav"]["matched"] is True
     assert body["maturity"][0]["windowStart"] == "2022-09-18"
 
@@ -121,6 +122,7 @@ def test_result_plots_are_filtered_by_site_and_season(isolated_model_dir):
     assert plots[0]["forecasts"][1] == {
         "date": "2022-08-01",
         "dap": 71,
+        "stage": None,
         "yield": 180.0,
         "lower": 160.0,
         "upper": 195.0,
@@ -128,6 +130,49 @@ def test_result_plots_are_filtered_by_site_and_season(isolated_model_dir):
     assert plots[0]["uav"]["satellitePlusUav"] == 178.0
     assert client.get("/api/results/plots", params={"site": "Ames", "season": 2023}).json() == []
     assert client.get("/api/results/plots", params={"site": "Lincoln"}).json() == []
+
+
+def _site_performance(**overrides) -> dict:
+    doc = {
+        "site": "Ames",
+        "season": 2022,
+        "plots": 2,
+        "folds": 5,
+        "preseason": {"r2": 0.3, "mae": 21.1, "median_interval_width": 92.5},
+        "stages": [
+            {"stage": "TP1", "dap": 54, "dap_min": 53, "r2": 0.37, "mae": 20.0, "coverage": 0.91},
+            {"stage": "TP2", "dap": 62, "r2": 0.55, "mae": 17.3, "median_interval_width": 74.5},
+        ],
+    }
+    doc.update(overrides)
+    return doc
+
+
+def test_results_carry_stage_keys_featured_plots_and_site_validation(isolated_model_dir):
+    doc = _results(site_performance=[_site_performance()])
+    doc["performance"][0]["stage"] = "TP1"
+    doc["plots"][0]["featured"] = True
+    doc["plots"][0]["forecasts"][0]["stage"] = "TP1"
+    _publish(isolated_model_dir, doc)
+    body = client.get("/api/results").json()
+    assert body["performance"][0]["stage"] == "TP1"
+    ames = body["sitePerformance"][0]
+    assert ames["preseason"]["medianIntervalWidth"] == 92.5
+    assert [s["stage"] for s in ames["stages"]] == ["TP1", "TP2"]
+    assert ames["stages"][0]["dapMin"] == 53
+    plots = client.get("/api/results/plots", params={"site": "Ames"}).json()
+    assert plots[0]["featured"] is True and plots[1]["featured"] is False
+    assert plots[0]["forecasts"][0]["stage"] == "TP1"
+
+
+def test_site_validation_must_be_ordered_and_unique(isolated_model_dir):
+    unordered = _site_performance()
+    unordered["stages"].reverse()
+    _publish(isolated_model_dir, _results(site_performance=[unordered]))
+    assert "DAP order" in client.get("/api/results").json()["detail"]
+    twice = [_site_performance(), _site_performance()]
+    _publish(isolated_model_dir, _results(site_performance=twice))
+    assert "each (site, season)" in client.get("/api/results").json()["detail"]
 
 
 def test_results_accept_camel_case(isolated_model_dir):

@@ -4,7 +4,7 @@ type BadgeVariant = 'demo' | 'challenge' | 'practice' | 'public' | 'model' | 'ca
 
 const VARIANTS: Record<BadgeVariant, { label: string; dot: string; tone: string }> = {
   demo: {
-    label: APP_CONFIG.datasetLabel,
+    label: APP_CONFIG.demoMode ? APP_CONFIG.demoBuildLabel : APP_CONFIG.datasetLabel,
     dot: 'bg-soil-500',
     tone: 'border-line bg-surface/80 text-ink-soft',
   },

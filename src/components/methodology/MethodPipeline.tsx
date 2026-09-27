@@ -13,6 +13,12 @@ interface MethodPipelineProps {
   /** The model's name as the results or the deployed models report it. */
   modelLabel: string;
   modelDetail: string;
+  /** What the imagery features are, when the results list them. */
+  imageryDetail?: string;
+  /** The field-record inputs, when the results list them. */
+  recordsDetail?: string;
+  /** False when the yield model takes no weather features (the outlook still uses weather). */
+  usesWeather?: boolean;
 }
 
 /**
@@ -20,16 +26,24 @@ interface MethodPipelineProps {
  * and weather, and one model turns them into a final-yield forecast. A static diagram,
  * readable without animation or scrolling.
  */
-export function MethodPipeline({ modelLabel, modelDetail }: MethodPipelineProps) {
+export function MethodPipeline({
+  modelLabel,
+  modelDetail,
+  imageryDetail = 'Band reflectance, NDVI, NDRE, GNDVI, EVI, change between passes',
+  recordsDetail = 'Hybrid, nitrogen, irrigation, planting date',
+  usesWeather = true,
+}: MethodPipelineProps) {
   const reduce = useReducedMotion();
   const imagery: Step[] = [
     { title: 'Satellite TIFFs', detail: '6 spectral bands per plot image', tone: 'input' },
     { title: 'Mask plot pixels', detail: 'Drop the zero padding and invalid pixels' },
-    { title: 'Spectral and vegetation features', detail: 'Band reflectance, NDVI, NDRE, GNDVI, EVI, change between passes' },
+    { title: 'Spectral and vegetation features', detail: imageryDetail },
   ];
   const joins: Step[] = [
-    { title: 'Field records', detail: 'Hybrid, nitrogen, irrigation, planting date', tone: 'input' },
-    { title: 'Weather', detail: 'Rain, heat and growing degree days since planting', tone: 'input' },
+    { title: 'Field records', detail: recordsDetail, tone: 'input' },
+    ...(usesWeather
+      ? [{ title: 'Weather', detail: 'Rain, heat and growing degree days since planting', tone: 'input' as const }]
+      : []),
   ];
   const tail: Step[] = [
     { title: modelLabel, detail: modelDetail, tone: 'model' },
@@ -65,7 +79,9 @@ export function MethodPipeline({ modelLabel, modelDetail }: MethodPipelineProps)
   const down = <ArrowDown className="mx-auto h-4 w-4 text-faint" aria-hidden="true" />;
 
   return (
-    <figure aria-label="SoilSignal pipeline: satellite images are masked to the plot and turned into features, joined with field records and weather, and a model predicts final yield.">
+    <figure
+      aria-label={`SoilSignal pipeline: satellite images are masked to the plot and turned into features, joined with field records${usesWeather ? ' and weather' : ''}, and a model predicts final yield.`}
+    >
       <div className="grid grid-cols-1 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,0.9fr)_auto_minmax(0,1fr)]">
         <div className="space-y-2">
           {imagery.map((s, i) => (

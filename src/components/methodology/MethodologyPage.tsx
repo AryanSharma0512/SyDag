@@ -2,20 +2,22 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, Hourglass, ShieldCheck } from 'lucide-react';
 import type { DataSource, FieldForecast, ModelInfo } from '../../types/agricultural';
-import type { FinalResults } from '../../types/results';
+import type { FinalResults, SitePerformance } from '../../types/results';
 import type { TrialSite } from '../../types/sites';
 import { getForecast } from '../../services/forecasts';
 import { getFields, pickDefaultFieldId } from '../../services/fields';
 import { getDataSources } from '../../services/sources';
 import { getModels } from '../../services/evaluation';
-import { getFinalResults, stageForDap } from '../../services/results';
+import { getFinalResults, imageryGain, observationCount, plateauStage } from '../../services/results';
 import { getTrialSites, isMappable } from '../../services/sites';
 import { EASE_OUT } from '../../utils/motion';
 import { formatDay } from '../../utils/formatters';
 import { Link } from '../../utils/router';
 import { Reveal } from '../common/Reveal';
 import { DataBadge } from '../common/DataBadge';
-import { PerformanceByDap, PerformanceTable } from '../results/PerformanceByDap';
+import { PerformanceByDap, PerformanceTable, SiteValidationTable } from '../results/PerformanceByDap';
+import { SiteTrajectories } from '../results/SiteTrajectories';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { MethodPipeline } from './MethodPipeline';
 import { UncertaintyDemo } from './UncertaintyDemo';
 
@@ -49,8 +51,11 @@ const INDICES = [
   { name: 'NDVI', formula: '(NIR − Red) / (NIR + Red)' },
   { name: 'NDRE', formula: '(NIR − Red Edge) / (NIR + Red Edge)' },
   { name: 'GNDVI', formula: '(NIR − Green) / (NIR + Green)' },
+  { name: 'SAVI', formula: '1.5 (NIR − Red) / (NIR + Red + 0.5)' },
   { name: 'EVI', formula: '2.5 (NIR − Red) / (NIR + 6 Red − 7.5 Blue + 1)' },
 ];
+// Without published results, the indices the live feature pipeline computes.
+const LIVE_INDICES = ['NDVI', 'NDRE', 'GNDVI', 'EVI'];
 
 const REPORT_URL = 'https://github.com/AryanSharma0512/SyDag/blob/main/ml/research/weather_outlook.md';
 
@@ -94,6 +99,45 @@ function Pending({ children }: { children: ReactNode }) {
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
+/**
+ * With published results, the sources table describes them: the challenge trials and the
+ * final models replace the practice dataset and the live models the server still runs.
+ */
+function resultSources(results: FinalResults, sources: DataSource[], observations: number, plots: number): DataSource[] {
+  const kept = sources.filter((s) => s.role !== 'practice' && s.role !== 'model');
+  const level = results.interval?.level ? `${pct(results.interval.level)} ` : '';
+  const trials: DataSource = {
+    id: 'final-trials',
+    name: results.datasetLabel ?? 'Trial data',
+    shortName: results.datasetLabel?.split(' · ')[0] ?? 'Trial data',
+    purpose: `${plots.toLocaleString('en-US')} maize plots with harvested yields, and ${observations.toLocaleString('en-US')} plot-level satellite observations`,
+    role: 'challenge',
+    statusLabel: 'Challenge-provided',
+    detail: '',
+  };
+  const model: DataSource = {
+    id: 'final-model',
+    name: results.model?.name ?? 'Final models',
+    shortName: results.model?.name ?? 'Final models',
+    purpose: `Out-of-fold yield forecasts with ${level}prediction ranges${results.resultsVersion ? ` (results ${results.resultsVersion})` : ''}`,
+    role: 'model',
+    statusLabel: 'Model-derived',
+    detail: '',
+  };
+  return [trials, ...kept, model];
+}
+
+/** The site whose R² rose most from field records alone to where it levelled off: the clearest example. */
+function clearestGain(sites: SitePerformance[]) {
+  return sites
+    .map((site) => ({ site, plateau: plateauStage(site, 'r2') }))
+    .filter(
+      (x): x is { site: SitePerformance; plateau: NonNullable<typeof x.plateau> } =>
+        x.plateau?.r2 != null && x.site.preseason?.r2 != null,
+    )
+    .sort((a, b) => b.plateau.r2! - b.site.preseason!.r2! - (a.plateau.r2! - a.site.preseason!.r2!))[0];
+}
+
 export function MethodologyPage() {
   const reduce = useReducedMotion();
   const [forecast, setForecast] = useState<FieldForecast | null>(null);
@@ -101,6 +145,7 @@ export function MethodologyPage() {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [results, setResults] = useState<FinalResults | null>(null);
   const [sites, setSites] = useState<TrialSite[]>([]);
+  const [tableSite, setTableSite] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -135,8 +180,28 @@ export function MethodologyPage() {
   const modelLabel =
     ready && results.model ? results.model.name : algorithms.length ? algorithms.join(' / ') : 'Regression model';
   const modelDetail = ready && results.model ? results.model.validation : 'One model per forecast date';
-  const useful = ready && results.earliestUsefulDap != null ? stageForDap(results.performance, results.earliestUsefulDap) : null;
   const holdoutGroup = deployed.find((m) => m.holdout)?.holdout?.group.replace(/^site:\s*/i, '');
+  const siteName = (id: string) => sites.find((x) => x.id.toLowerCase() === id.toLowerCase())?.name ?? id;
+  const siteSeries = ready
+    ? results.sitePerformance.map((p) => ({ id: p.site, name: siteName(p.site), performance: p }))
+    : [];
+  const shownSite = siteSeries.find((x) => x.id === tableSite) ?? siteSeries[0];
+  const example = ready ? clearestGain(results.sitePerformance) : undefined;
+  const flattest = siteSeries.find(
+    (x) => imageryGain(x.performance.preseason, x.performance.stages[x.performance.stages.length - 1]) === 'little',
+  );
+  const features = ready ? (results.model?.features ?? []) : [];
+  const trajectoryFeatures = features.filter((f) => /trajectory/i.test(f));
+  const recordFeatures = features.filter((f) => !/trajectory/i.test(f));
+  const usesWeather = !ready || features.length === 0 || features.some((f) => /weather|rain|gdd|temperature/i.test(f));
+  const indices = INDICES.filter((ix) =>
+    trajectoryFeatures.length
+      ? trajectoryFeatures.some((f) => f.toUpperCase().startsWith(`${ix.name} `))
+      : LIVE_INDICES.includes(ix.name),
+  );
+  const plotTotal = ready ? results.plotCounts.reduce((n, c) => n + c.plots, 0) : 0;
+  const level = ready && results.interval?.level ? pct(results.interval.level) : '90%';
+  const noMaturity = ready && results.maturity.length === 0;
   const weatherSites = sites.filter((s) => s.weather);
   const analogSites = weatherSites.filter((s) => s.weather!.analogWeighting);
   const seasonCounts = weatherSites.map((s) => s.weather!.seasons);
@@ -194,9 +259,23 @@ export function MethodologyPage() {
         <Section
           id="pipeline"
           title="From plot imagery to a yield forecast"
-          lead="Imagery is the base layer. Field records and weather add context. One model turns the combined features into a final-yield forecast for each date in the season."
+          lead={
+            usesWeather
+              ? 'Imagery is the base layer. Field records and weather add context. One model turns the combined features into a final-yield forecast for each date in the season.'
+              : 'Imagery is the base layer and field records add context. At each satellite date, each site’s model turns the combined features into a final-yield forecast.'
+          }
         >
-          <MethodPipeline modelLabel={modelLabel} modelDetail={modelDetail} />
+          <MethodPipeline
+            modelLabel={modelLabel}
+            modelDetail={modelDetail}
+            imageryDetail={
+              trajectoryFeatures.length
+                ? `${trajectoryFeatures.map((f) => f.replace(/ trajectory$/i, '')).join(', ')}: values at every pass so far, and how they changed`
+                : undefined
+            }
+            recordsDetail={recordFeatures.length ? recordFeatures.join(', ').replace(/^./, (c) => c.toUpperCase()) : undefined}
+            usesWeather={usesWeather}
+          />
         </Section>
 
         <Section
@@ -205,7 +284,7 @@ export function MethodologyPage() {
           lead="Each plot image is a GeoTIFF from Pléiades Neo with six spectral bands, clipped to the plot polygon and zero-filled outside it."
         >
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="w-full min-w-[440px] text-left">
                 <caption className="sr-only">The six spectral bands</caption>
                 <thead>
@@ -248,11 +327,13 @@ export function MethodologyPage() {
                 <h3 className="font-semibold text-ink">2. Compute plot features</h3>
                 <p className="mt-1">
                   Band reflectance and vegetation indices are computed per pixel, then summarized per plot (mean, median, spread,
-                  percentiles, canopy cover). Across passes, features describe the latest image and how it changed since the
-                  previous one.
+                  percentiles, canopy cover).{' '}
+                  {trajectoryFeatures.length
+                    ? 'Across passes, each index becomes a trajectory: its value at every pass so far, plus summaries such as the change since the first pass, the slope and the area under the curve against days after planting.'
+                    : 'Across passes, features describe the latest image and how it changed since the previous one.'}
                 </p>
                 <ul className="mt-3 space-y-1">
-                  {INDICES.map((ix) => (
+                  {indices.map((ix) => (
                     <li key={ix.name} className="flex gap-3">
                       <span className="w-14 shrink-0 font-medium text-ink">{ix.name}</span>
                       <span className="data text-[13px] text-muted">{ix.formula}</span>
@@ -270,8 +351,9 @@ export function MethodologyPage() {
           lead={
             ready ? (
               <>
-                {results.model?.name} validated by {results.model?.validation}. Each stage uses only the imagery available by that
-                many days after planting.{results.resultsVersion ? ` Results version ${results.resultsVersion}.` : ''}
+                {results.model?.name}: {results.model?.validation?.replace(/^./, (c) => c.toLowerCase())}. Each forecast is
+                out-of-fold: made for plots its model never saw, using only information available through that satellite date.
+                {results.resultsVersion ? ` Results version ${results.resultsVersion}.` : ''}
               </>
             ) : (
               'Validation error by days after planting, from the frozen final run. Plots are validated on data the model did not see during training.'
@@ -280,6 +362,49 @@ export function MethodologyPage() {
         >
           {ready && results.performance.length > 0 ? (
             <div className="space-y-8">
+              {siteSeries.length > 0 && (
+                <>
+                  <div>
+                    <h3 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">Each site, through the season</h3>
+                    <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
+                      Every site has its own model and its own satellite dates. Forecasts generally improved as observations
+                      accumulated, then levelled off, and the point where they levelled off differed by site.
+                      {flattest && ` At ${flattest.name}, imagery added little beyond the field records.`}
+                    </p>
+                  </div>
+                  <SiteTrajectories
+                    sites={siteSeries}
+                    metric="r2"
+                    caption={`Out-of-fold validation, deployed best-validated-so-far policy, ${results.plotCounts[0]?.season ?? ''} SyDAg trials. Open circle: field records only, before any imagery.`}
+                  />
+                  {shownSite && (
+                    <div>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-[14px] font-medium text-ink">Validation by stage at {shownSite.name}</p>
+                        <div className="-mx-1 max-w-full overflow-x-auto px-1 py-0.5">
+                          <SegmentedControl
+                            ariaLabel="Site"
+                            size="sm"
+                            options={siteSeries.map((x) => ({ value: x.id, label: x.name }))}
+                            value={shownSite.id}
+                            onChange={setTableSite}
+                          />
+                        </div>
+                      </div>
+                      <SiteValidationTable site={shownSite.performance} levelLabel={level} />
+                    </div>
+                  )}
+                </>
+              )}
+              <div>
+                <h3 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">All sites together</h3>
+                <p className="mt-1 max-w-3xl text-[14px] leading-relaxed text-muted">
+                  Pooled out-of-fold error across the {plotTotal.toLocaleString('en-US')} plots, one row per satellite stage. The day
+                  shown is the median across sites; each site&rsquo;s own days are in its table above.
+                  {results.performance.every((p) => p.r2 == null) &&
+                    ' R² is not pooled: across sites it would mostly measure the yield differences between locations, not how well each forecast tracks its plots.'}
+                </p>
+              </div>
               <div className="rounded-2xl border border-line bg-surface p-5 sm:p-7">
                 <PerformanceByDap performance={results.performance} earliestUsefulDap={results.earliestUsefulDap} />
               </div>
@@ -297,7 +422,7 @@ export function MethodologyPage() {
             </Pending>
           )}
 
-          {deployed.length > 0 && (
+          {deployed.length > 0 && !ready && (
             <details className="group mt-10 rounded-xl border border-line bg-surface">
               <summary className="cursor-pointer list-none px-5 py-4 text-[15px] font-medium text-ink marker:hidden">
                 Models currently deployed on this server
@@ -370,11 +495,12 @@ export function MethodologyPage() {
                 than predicting the average for every plot; below 0 is worse than that. R² is not an accuracy percentage and not a
                 confidence level.
               </p>
-              {useful?.r2 != null && (
+              {example && (
                 <p className="mt-3 border-t border-line pt-3 text-[14px] leading-relaxed text-ink">
-                  At <span className="data">{useful.dap}</span> days after planting, the model explained about{' '}
-                  <span className="data font-medium">{Math.round(useful.r2 * 100)}%</span> of the observed variation in final
-                  yield in this validation.
+                  At {siteName(example.site.site)}, R² rose from <span className="data">{example.site.preseason!.r2!.toFixed(2)}</span>{' '}
+                  with field records alone to <span className="data font-medium">{example.plateau.r2!.toFixed(2)}</span> by about
+                  day <span className="data">{example.plateau.dap}</span>: the model then explained about{' '}
+                  {Math.round(example.plateau.r2! * 100)}% of the plot-to-plot differences in final yield there.
                 </p>
               )}
             </div>
@@ -388,19 +514,33 @@ export function MethodologyPage() {
             ready && results.interval?.coverage != null ? (
               <>
                 Each forecast carries a range set from validation errors
-                {results.interval.method ? ` (${results.interval.method})` : ''}. In validation,{' '}
+                {results.interval.method ? ` (${results.interval.method})` : ''}. In out-of-fold validation,{' '}
                 <span className="data text-ink">{pct(results.interval.coverage)}</span> of final yields fell inside it
-                {results.interval.level ? `, against a target of ${pct(results.interval.level)}` : ''}. Treat it as an uncertainty
-                range, not a guarantee.
+                {results.interval.level ? `, against a nominal ${pct(results.interval.level)} level` : ''}. The level stays fixed;
+                what improves through the season is how narrow the range is. It is an uncertainty range, not an accuracy
+                percentage.
               </>
             ) : (
               'Each forecast carries a range set from the model’s validation errors. How often final yields fall inside it can shift from site to site, so the range is an uncertainty band, not a guarantee. Coverage on the held-out site is listed with the deployed models above.'
             )
           }
         >
-          <Reveal className="rounded-2xl border border-line bg-surface p-5 sm:p-8">
-            {forecast ? <UncertaintyDemo forecast={forecast} /> : <div className="h-[320px]" />}
-          </Reveal>
+          {ready && siteSeries.length > 0 ? (
+            <div className="space-y-4">
+              <SiteTrajectories
+                sites={siteSeries}
+                metric="medianIntervalWidth"
+                caption={`Median width of the ${level} prediction range across each site's plots, out-of-fold. Open circle: field records only.`}
+              />
+              <p className="max-w-3xl text-[13px] leading-relaxed text-muted">
+                Forecast displays are physically floored at 0 bu/ac; validation metrics use raw model outputs.
+              </p>
+            </div>
+          ) : (
+            <Reveal className="rounded-2xl border border-line bg-surface p-5 sm:p-8">
+              {forecast ? <UncertaintyDemo forecast={forecast} /> : <div className="h-[320px]" />}
+            </Reveal>
+          )}
         </Section>
 
         <Section
@@ -488,17 +628,21 @@ export function MethodologyPage() {
 
         <Section
           id="gdd"
-          title="Growing degree days and maturity"
+          title={noMaturity ? 'Growing degree days' : 'Growing degree days and maturity'}
           lead="Maize development follows accumulated heat, not the calendar. Each day adds growing degree days (GDD) from the daily high and low, counted from planting."
         >
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className={`grid gap-6 ${noMaturity ? '' : 'md:grid-cols-2'}`}>
             <div className="rounded-2xl border border-line bg-surface p-6 text-[14px] leading-relaxed text-ink-soft">
               <p className="data text-[15px] text-ink">GDD = (min(max(Tmax, 50), 86) + min(max(Tmin, 50), 86)) / 2 − 50</p>
               <p className="mt-3">
                 The 86/50 °F method: temperatures are capped at 86 °F and floored at 50 °F, because maize barely develops below 50
-                °F and does not speed up above 86 °F. The same formula builds the model's weather features and the outlook.
+                °F and does not speed up above 86 °F.{' '}
+                {usesWeather
+                  ? "The same formula builds the model's weather features and the outlook."
+                  : 'The historical weather outlook uses it; the 2022 yield models do not, and these results publish no maturity estimate.'}
               </p>
             </div>
+            {!noMaturity && (
             <div className="rounded-2xl border border-line bg-surface p-6 text-[14px] leading-relaxed text-ink-soft">
               <h3 className="text-[16px] font-semibold text-ink">Estimated maturity window</h3>
               {ready && results.maturity.some((m) => m.method) ? (
@@ -515,6 +659,7 @@ export function MethodologyPage() {
                 </p>
               )}
             </div>
+            )}
           </div>
         </Section>
 
@@ -525,8 +670,9 @@ export function MethodologyPage() {
             <>
               Does adding drone imagery to satellite lower the error enough to pay for a flight? The comparison must be matched:
               the same plots, dates, validation split and model framework, with and without UAV.
-              {uavSites.length > 0 &&
-                ` UAV imagery in the challenge data exists for ${uavSites.map((s) => s.name).join(', ')} only.`}
+              {uav?.matched
+                ? ' This is a separate matched experiment, not part of the season forecasts above.'
+                : uavSites.length > 0 && ` UAV imagery in the challenge data exists for ${uavSites.map((s) => s.name).join(', ')} only.`}
             </>
           }
         >
@@ -558,9 +704,9 @@ export function MethodologyPage() {
                     return (
                       <tr key={label as string} className="border-b border-line text-[15px]">
                         <td className="py-3 pr-4 font-medium text-ink">{label as string}</td>
-                        <td className="data py-3 pr-4 text-right text-ink">{variant.mae.toFixed(1)}</td>
-                        <td className="data py-3 pr-4 text-right text-ink-soft">{variant.rmse?.toFixed(1) ?? '—'}</td>
-                        <td className="data py-3 text-right text-ink-soft">{variant.r2?.toFixed(2) ?? '—'}</td>
+                        <td className="data py-3 pr-4 text-right text-ink">{variant.mae.toFixed(2)}</td>
+                        <td className="data py-3 pr-4 text-right text-ink-soft">{variant.rmse?.toFixed(2) ?? '—'}</td>
+                        <td className="data py-3 text-right text-ink-soft">{variant.r2?.toFixed(3) ?? '—'}</td>
                       </tr>
                     );
                   })}
@@ -568,8 +714,8 @@ export function MethodologyPage() {
               </table>
               <p className="mt-3 text-[13px] text-muted">
                 {[
-                  uav.plots && `${uav.plots} plots`,
-                  uav.sites.join(', '),
+                  uav.plots && `${uav.plots} matched plots`,
+                  uav.sites.map(siteName).join(' and '),
                   uav.dap != null && `${uav.dap} days after planting`,
                   uav.validation,
                   uav.framework,
@@ -624,7 +770,7 @@ export function MethodologyPage() {
                 </tr>
               </thead>
               <tbody>
-                {sources.map((s) => (
+                {(ready ? resultSources(results, sources, observationCount(results), plotTotal) : sources).map((s) => (
                   <tr key={s.id} className="border-b border-line">
                     <td className="py-3.5 pr-6 text-[15px] font-medium text-ink">{s.shortName}</td>
                     <td className="py-3.5 pr-6 text-[15px] text-ink-soft">{s.purpose}</td>
@@ -635,7 +781,7 @@ export function MethodologyPage() {
                 ))}
               </tbody>
             </table>
-            {forecast && forecast.fullVegetationSeries.length > 0 && (
+            {!ready && forecast && forecast.fullVegetationSeries.length > 0 && (
               <p className="mt-4 text-[13px] text-muted">
                 Satellite passes for {forecast.field.name}:{' '}
                 <span className="data">
