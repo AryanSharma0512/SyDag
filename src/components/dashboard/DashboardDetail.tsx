@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { DataSource, DecisionSet, FieldForecast, ImageryAblation, ModelInfo } from '../../types/agricultural';
 import type { FinalResults } from '../../types/results';
+import type { TrialSite } from '../../types/sites';
+import { sitePerformanceFor } from '../../services/results';
 import { getDecisions } from '../../services/decisions';
 import { getDataSources } from '../../services/sources';
 import { passDates } from '../../utils/imagery';
@@ -9,7 +11,7 @@ import { formatDay } from '../../utils/formatters';
 import { useLocationContext } from '../../utils/useLocationContext';
 import { Link } from '../../utils/router';
 import { EmptyState, ErrorState } from '../common/SkeletonLoader';
-import { PerformanceTable } from '../results/PerformanceByDap';
+import { PerformanceTable, SiteValidationTable } from '../results/PerformanceByDap';
 import { CropDevelopment } from './CropDevelopment';
 import { EnvironmentalContext } from './EnvironmentalContext';
 import { SpatialFieldView } from './SpatialFieldView';
@@ -22,6 +24,10 @@ import { ModelReliability } from './ModelReliability';
 import { ImageryValue } from './ImageryValue';
 
 interface DashboardDetailProps {
+  site: TrialSite;
+  season: number;
+  /** The viewed forecast's validation stage, highlighted in the site's table. */
+  activeStage?: string | null;
   /** The live model's forecast for the plot; absent when the final results serve it. */
   live?: FieldForecast;
   snapshotIndex: number;
@@ -54,6 +60,9 @@ function Heading({ children, note }: { children: string; note?: string }) {
  */
 export function DashboardDetail(props: DashboardDetailProps) {
   const { live, snapshotIndex, results } = props;
+  const ready = results?.status === 'ready';
+  const site = ready ? sitePerformanceFor(results, props.site.id, props.season) : null;
+  const level = ready && results.interval?.level ? `${Math.round(results.interval.level * 100)}%` : undefined;
   return (
     <div className="space-y-14 pt-8">
       <div className="flex flex-col gap-3 rounded-xl bg-mist/60 px-5 py-4 text-[14px] text-ink-soft sm:flex-row sm:items-center sm:justify-between">
@@ -68,41 +77,41 @@ export function DashboardDetail(props: DashboardDetailProps) {
         </span>
       </div>
 
-      {results?.status === 'ready' && (
+      {site && (
         <section>
           <Heading
             note={[
-              results.model?.name && `${results.model.name}`,
-              results.model?.validation,
+              `${site.plots?.toLocaleString('en-US') ?? ''} plots`,
+              site.folds && `${site.folds}-fold nested cross-validation within the site`,
+              'out-of-fold forecasts',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          >
+            {`Validation at ${props.site.name}`}
+          </Heading>
+          <SiteValidationTable site={site} levelLabel={level} activeStage={props.activeStage} />
+        </section>
+      )}
+
+      {ready && (
+        <section>
+          <Heading
+            note={[
+              results.model?.name,
+              site ? 'pooled out-of-fold error across the site-specific models' : results.model?.validation,
               results.resultsVersion && `results ${results.resultsVersion}`,
             ]
               .filter(Boolean)
               .join(' · ')}
           >
-            Validation by days after planting
+            {site ? 'All sites, by satellite stage' : 'Validation by days after planting'}
           </Heading>
           <PerformanceTable performance={results.performance} earliestUsefulDap={results.earliestUsefulDap} />
         </section>
       )}
 
-      {live ? (
-        <LiveDetail {...props} live={live} snapshotIndex={snapshotIndex} />
-      ) : (
-        <section>
-          <Heading note="The deployed models' own validation, independent of the plot shown above.">Deployed models</Heading>
-          <div className="grid grid-cols-1 items-stretch gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-14">
-            <ModelReliability
-              models={props.models}
-              error={props.modelsError}
-              season={results?.plotCounts[0]?.season ?? new Date().getFullYear()}
-              activeDate=""
-              passes={[]}
-              datasetLabel={props.datasetLabel}
-            />
-            <ImageryValue ablation={props.ablation} error={props.ablationError} season={results?.plotCounts[0]?.season ?? 0} />
-          </div>
-        </section>
-      )}
+      {live && <LiveDetail {...props} live={live} snapshotIndex={snapshotIndex} />}
     </div>
   );
 }

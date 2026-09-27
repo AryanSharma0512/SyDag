@@ -114,6 +114,8 @@ export function PlotPicker({ plots, selectedKey, onSelect }: PlotPickerProps) {
   }, [plots, query]);
   const featuredCount = filtered.filter((p) => p.featured).length;
   const showGroups = featuredCount > 0 && featuredCount < filtered.length;
+  // The final results feature one plot per site, chosen by a fixed rule (see its detail line).
+  const featuredHeading = filtered.some((p) => p.featured && p.source === 'live') ? 'Featured plots' : 'Representative plot';
 
   const choose = (key: string) => {
     setOpen(false);
@@ -173,7 +175,7 @@ export function PlotPicker({ plots, selectedKey, onSelect }: PlotPickerProps) {
                   <li key={p.key} role="none">
                     {showGroups && (i === 0 || i === featuredCount) && (
                       <p className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-[0.06em] text-faint uppercase">
-                        {i === 0 ? 'Featured plots' : 'All plots'}
+                        {i === 0 ? featuredHeading : 'All plots'}
                       </p>
                     )}
                     <button

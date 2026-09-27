@@ -14,10 +14,10 @@ import type { FinalResults, PlotUav, ResultForecastPoint, ResultPlot } from '../
 import type { TrialSite } from '../types/sites';
 import { ALL_FIELDS } from '../mock/fieldsData';
 import { APP_CONFIG } from '../config/appConfig';
-import { formatDay } from '../utils/formatters';
+import { formatDay, shortPlotIds } from '../utils/formatters';
 import { apiGet } from './apiClient';
 import { getForecast } from './forecasts';
-import { getResultPlots, stageForDap } from './results';
+import { getResultPlots, sitePerformanceFor, stageRow } from './results';
 
 export type ForecastSource = 'final' | 'live';
 
@@ -45,6 +45,8 @@ export interface ForecastPoint {
   upperBound: number | null;
   stage?: GrowthStage;
   stageSubtext?: string;
+  /** The final results' validation stage for this forecast, e.g. "TP3". */
+  validationStage?: string | null;
 }
 
 export interface PlotSeries {
@@ -94,17 +96,24 @@ function describe(hybrid?: string | null, nitrogen?: number | null): string {
   return [hybrid, nitrogen != null && `${Math.round(nitrogen)} lb N/ac`].filter(Boolean).join(' · ');
 }
 
+/** Yield cannot be negative: forecasts and range bounds are shown floored at 0 bu/ac. */
+const floor = (v: number) => Math.max(0, v);
+
 function fromResultPoints(key: string, points: ResultForecastPoint[]): ForecastPoint[] {
   return points.map((p, i) => ({
     id: `${key}:${i}`,
     date: p.date,
     displayDate: formatDay(p.date),
     dap: p.dap,
-    yield: p.yield,
-    lowerBound: p.lower ?? null,
-    upperBound: p.upper ?? null,
+    yield: floor(p.yield),
+    lowerBound: p.lower == null ? null : floor(p.lower),
+    upperBound: p.upper == null ? null : floor(p.upper),
+    validationStage: p.stage ?? null,
   }));
 }
+
+/** Says why the plot a site opens on was chosen; the rule is the ML team's, fixed in advance. */
+export const FEATURED_PLOT_NOTE = 'Representative plot: harvested yield closest to the site median';
 
 function liveOption(f: FieldMeta, featured: boolean): PlotOption {
   const plotId = f.plotId ?? f.name;
@@ -130,18 +139,25 @@ export async function getSitePlots(site: TrialSite, results: FinalResults | null
   const f = site.forecasts;
   if (results?.status === 'ready' && f && f.finalPlots > 0) {
     const plots = await getResultPlots(site.id, season);
+    const labels = shortPlotIds(
+      plots.map((p) => p.plotId),
+      site.id,
+    );
     return plots
       .map<PlotOption>((p) => ({
         key: `final:${p.site}:${p.season}:${p.plotId}`,
         source: 'final',
         plotId: p.plotId,
-        label: `Plot ${p.plotId}`,
-        detail: describe(p.hybrid, p.nitrogenLbAc),
+        label: `Plot ${labels.get(p.plotId) ?? p.plotId}`,
+        detail: describe(p.hybrid, p.nitrogenLbAc) || (p.featured ? FEATURED_PLOT_NOTE : ''),
         season: p.season,
-        featured: false,
+        featured: !!p.featured,
         resultPlot: p,
       }))
-      .sort((a, b) => a.plotId.localeCompare(b.plotId, undefined, { numeric: true }));
+      .sort(
+        (a, b) =>
+          Number(b.featured) - Number(a.featured) || a.label.localeCompare(b.label, undefined, { numeric: true }),
+      );
   }
   if (results?.status === 'ready' && f?.finalSiteForecast) {
     const series = results.sites.find(
@@ -243,19 +259,30 @@ export interface TypicalError {
 }
 
 /**
- * The validation error that applies to one forecast: the final results' MAE for the
- * matching stage, or, for the live models, the held-out-site MAE of the model that made
- * the forecast (its cross-validation MAE when there is no held-out test).
+ * The validation error that applies to one forecast: for the final results, the MAE of
+ * the plot's own site at the same satellite stage (else the pooled MAE for that stage);
+ * for the live models, the held-out-site MAE of the model that made the forecast (its
+ * cross-validation MAE when there is no held-out test).
  */
 export function typicalError(
   series: PlotSeries,
   point: ForecastPoint,
   results: FinalResults | null,
   models: ModelInfo[] | null,
+  siteName?: string,
 ): TypicalError | null {
   if (series.source === 'final') {
-    const stage = results?.status === 'ready' ? stageForDap(results.performance, point.dap) : null;
-    return stage?.mae != null ? { mae: stage.mae, basis: `in validation, ${stage.dap} days after planting` } : null;
+    if (results?.status !== 'ready') return null;
+    const site = sitePerformanceFor(results, series.siteId, series.season);
+    const own = site ? stageRow(site.stages, point.validationStage, point.dap) : null;
+    if (own?.mae != null) {
+      return {
+        mae: own.mae,
+        basis: `at ${siteName ?? site!.site} at this satellite stage, in out-of-fold validation`,
+      };
+    }
+    const pooled = stageRow(results.performance, point.validationStage, point.dap);
+    return pooled?.mae != null ? { mae: pooled.mae, basis: `across all sites at this stage, in validation` } : null;
   }
   const model = models?.find((m) => m.asOf === point.date.slice(5));
   if (!model) return null;
