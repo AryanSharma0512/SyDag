@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useMediaQuery } from '../../utils/hooks';
 import { bandPath, monotonePath, scaleLinear, type Pt } from '../../utils/chart';
@@ -9,13 +9,14 @@ import { MarkShapes } from '../brand/SignalMark';
 /**
  * The SoilSignal story in one scene, played once (~5s desktop, ~3.6s mobile):
  *   1. seeds and roots appear in a soil cross-section
- *   2. crop shoots emerge
- *   3. fine rain traces pass through
+ *   2. maize emerges and sets tassels and ears
+ *   3. fine rain traces pass through, and a drone flies in over the canopy
  *   4. a satellite pass sweeps the field and lights up field zones
- *   5. field-record, weather and spectral nodes activate and feed SoilSignal
- *   6. the signal resolves into a yield forecast curve
- * Afterwards only ambient motion remains: an occasional leaf shift, one data
- * pulse, a slow contour drift and a signal emission every ~10s.
+ *   5. satellite, drone, weather and field-record nodes activate and feed SoilSignal
+ *   6. the signal resolves into a yield forecast curve and value
+ * Afterwards only ambient motion remains: the drone hovers and scans, data dots
+ * travel into SoilSignal and on to the forecast, nodes pulse, leaves shift and
+ * the contours drift.
  */
 
 interface NodeSpec {
@@ -36,7 +37,11 @@ interface SceneConfig {
   plantHeight: [number, number];
   rain: number;
   satellite: { y: number; from: number; to: number };
+  /** Where the drone hovers, and the canopy height its scan beam reaches. */
+  drone: { x: number; y: number; scale: number; beamTo: number; beamWidth: number };
   nodes: { spectral: NodeSpec; weather: NodeSpec; soil: NodeSpec };
+  /** Vertical offset at which each source line meets the hub, ordered so the lines never cross. */
+  arrivals: Record<'spectral' | 'weather' | 'drone' | 'soil', number>;
   hub: { x: number; y: number; r: number };
   card: { x: number; y: number; w: number; h: number };
   cells: [number, number];
@@ -56,11 +61,13 @@ const DESKTOP: SceneConfig = {
   plantHeight: [70, 100],
   rain: 26,
   satellite: { y: 50, from: -90, to: 716 },
+  drone: { x: 470, y: 122, scale: 1.4, beamTo: 238, beamWidth: 60 },
   nodes: {
-    spectral: { x: 700, y: 132, label: 'Spectral', color: C.leaf500, labelSide: 'left' },
+    spectral: { x: 716, y: 138, label: 'Satellite', color: C.leaf500, labelSide: 'left' },
     weather: { x: 236, y: 188, label: 'Weather', color: C.rain500, labelSide: 'left' },
     soil: { x: 478, y: 466, label: 'Field records', color: C.soil500, labelSide: 'left' },
   },
+  arrivals: { spectral: -9, drone: -3, weather: 3, soil: 9 },
   hub: { x: 848, y: 232, r: 25 },
   card: { x: 902, y: 88, w: 270, h: 222 },
   cells: [12, 3],
@@ -71,21 +78,23 @@ const DESKTOP: SceneConfig = {
 
 const MOBILE: SceneConfig = {
   w: 720,
-  h: 560,
-  block: { x0: 16, x1: 404, frontY: 384, backY: 344, skew: 40, bottom: 542 },
-  horizons: [430, 484],
+  h: 600,
+  block: { x0: 16, x1: 404, frontY: 410, backY: 370, skew: 40, bottom: 584 },
+  horizons: [458, 516],
   frontRow: 6,
   backRow: 0,
-  plantHeight: [92, 122],
+  plantHeight: [112, 142],
   rain: 10,
-  satellite: { y: 58, from: -80, to: 398 },
+  satellite: { y: 44, from: -80, to: 430 },
+  drone: { x: 124, y: 164, scale: 1.7, beamTo: 262, beamWidth: 72 },
   nodes: {
-    spectral: { x: 400, y: 148, label: 'Spectral', color: C.leaf500, labelSide: 'left' },
-    weather: { x: 120, y: 210, label: 'Weather', color: C.rain500, labelSide: 'left' },
-    soil: { x: 236, y: 470, label: 'Field records', color: C.soil500, labelSide: 'left' },
+    spectral: { x: 430, y: 136, label: 'Satellite', color: C.leaf500, labelSide: 'left' },
+    weather: { x: 262, y: 92, label: 'Weather', color: C.rain500, labelSide: 'left' },
+    soil: { x: 236, y: 530, label: 'Field records', color: C.soil500, labelSide: 'left' },
   },
-  hub: { x: 506, y: 270, r: 30 },
-  card: { x: 552, y: 150, w: 158, h: 236 },
+  arrivals: { spectral: -9, weather: -3, drone: 3, soil: 9 },
+  hub: { x: 504, y: 300, r: 30 },
+  card: { x: 552, y: 150, w: 162, h: 262 },
   cells: [7, 2],
   labels: false,
   time: 0.72,
@@ -132,11 +141,15 @@ function satTimeAt(p: number) {
 
 const round = (v: number) => Math.round(v * 10) / 10;
 
-/** A corn-like plant: a gently leaning stem with alternating arching blades. */
-function plantGeometry(x: number, base: number, height: number, seed: number) {
+/**
+ * A maize plant: a gently leaning stem with alternating arching blades, a tassel
+ * at the top and one ear on the stalk. Each blade has a midrib stroke (drawn in)
+ * and a filled outline (faded in once the midrib is down).
+ */
+function plantGeometry(x: number, base: number, height: number, seed: number, width: number) {
   const lean = Math.sin(seed * 2.3) * 3;
   const stem = `M${round(x)},${round(base)} C${round(x + lean * 0.2)},${round(base - height * 0.45)} ${round(x + lean * 0.8)},${round(base - height * 0.75)} ${round(x + lean)},${round(base - height)}`;
-  const leaves: string[] = [];
+  const leaves: Array<{ rib: string; blade: string }> = [];
   for (let k = 0; k < 4; k++) {
     const t = 0.26 + k * 0.18;
     const ay = base - height * t;
@@ -144,11 +157,94 @@ function plantGeometry(x: number, base: number, height: number, seed: number) {
     const dir = (k + seed) % 2 === 0 ? 1 : -1;
     const len = height * (0.5 - k * 0.075);
     const rise = len * 0.42;
-    leaves.push(
-      `M${round(ax)},${round(ay)} C${round(ax + dir * len * 0.3)},${round(ay - rise)} ${round(ax + dir * len * 0.72)},${round(ay - rise * 0.95)} ${round(ax + dir * len)},${round(ay - rise * 0.35)}`,
-    );
+    const c1 = { x: ax + dir * len * 0.3, y: ay - rise };
+    const c2 = { x: ax + dir * len * 0.72, y: ay - rise * 0.95 };
+    const tip = { x: ax + dir * len, y: ay - rise * 0.35 };
+    // The blade widens above the midrib and tapers to the same tip.
+    const w = width * (1 - k * 0.12);
+    leaves.push({
+      rib: `M${round(ax)},${round(ay)} C${round(c1.x)},${round(c1.y)} ${round(c2.x)},${round(c2.y)} ${round(tip.x)},${round(tip.y)}`,
+      blade: `M${round(ax)},${round(ay)} C${round(c1.x)},${round(c1.y - w)} ${round(c2.x)},${round(c2.y - w * 0.9)} ${round(tip.x)},${round(tip.y)} C${round(c2.x)},${round(c2.y + w * 0.2)} ${round(c1.x)},${round(c1.y + w * 0.3)} ${round(ax)},${round(ay)}Z`,
+    });
   }
-  return { stem, leaves };
+  const top = { x: x + lean, y: base - height };
+  // The ear sits on the side of the lowest blade, just above it, leaning outward.
+  const earT = 0.4;
+  const ear = { x: x + lean * earT, y: base - height * earT, dir: seed % 2 === 0 ? 1 : -1, len: height * 0.24 };
+  return { stem, leaves, top, ear };
+}
+
+/** Tassel branches spreading from the top of the stem (drawn relative to the stem tip). */
+function tasselGeometry(size: number) {
+  const s = size;
+  return [
+    `M0,0 C0,${-s * 0.4} ${s * 0.05},${-s * 0.75} 0,${-s}`,
+    `M0,${-s * 0.2} C${-s * 0.2},${-s * 0.5} ${-s * 0.45},${-s * 0.62} ${-s * 0.62},${-s * 0.48}`,
+    `M0,${-s * 0.2} C${s * 0.2},${-s * 0.52} ${s * 0.46},${-s * 0.66} ${s * 0.64},${-s * 0.5}`,
+    `M0,${-s * 0.42} C${-s * 0.12},${-s * 0.7} ${-s * 0.28},${-s * 0.84} ${-s * 0.38},${-s * 0.8}`,
+    `M0,${-s * 0.42} C${s * 0.14},${-s * 0.72} ${s * 0.3},${-s * 0.86} ${s * 0.4},${-s * 0.82}`,
+  ];
+}
+
+/** An ear of maize drawn upward from its attachment point: cob, kernel rows, husk and silk. */
+function EarShape({ len, sw }: { len: number; sw: number }) {
+  const w = len * 0.36;
+  return (
+    <>
+      <ellipse cx={0} cy={-len * 0.56} rx={w * 0.5} ry={len * 0.42} fill={C.sun300} stroke={C.sun500} strokeWidth={0.7 * sw} />
+      <path
+        d={`M${-w * 0.16},${-len * 0.24} C${-w * 0.22},${-len * 0.5} ${-w * 0.2},${-len * 0.74} ${-w * 0.08},${-len * 0.92}M${w * 0.16},${-len * 0.24} C${w * 0.22},${-len * 0.5} ${w * 0.2},${-len * 0.74} ${w * 0.08},${-len * 0.92}`}
+        fill="none"
+        stroke={C.sun500}
+        strokeWidth={0.55 * sw}
+        opacity={0.55}
+      />
+      <path
+        d={`M0,0 C${-w * 0.95},${-len * 0.2} ${-w * 0.8},${-len * 0.62} ${-w * 0.12},${-len * 0.82} C${-w * 0.3},${-len * 0.52} ${-w * 0.22},${-len * 0.22} 0,0Z`}
+        fill={C.leaf500}
+      />
+      <path
+        d={`M0,0 C${w * 0.9},${-len * 0.18} ${w * 0.78},${-len * 0.5} ${w * 0.2},${-len * 0.66} C${w * 0.34},${-len * 0.42} ${w * 0.22},${-len * 0.18} 0,0Z`}
+        fill={C.leaf600}
+      />
+      <path
+        d={`M0,${-len * 0.96} c${-w * 0.2},${-len * 0.12} ${-w * 0.5},${-len * 0.14} ${-w * 0.7},${-len * 0.08}M0,${-len * 0.96} c${w * 0.1},${-len * 0.14} ${w * 0.4},${-len * 0.2} ${w * 0.62},${-len * 0.16}`}
+        fill="none"
+        stroke={C.soil400}
+        strokeWidth={0.8 * sw}
+        strokeLinecap="round"
+      />
+    </>
+  );
+}
+
+/** Side view of a quadcopter, centered on its body. Rotors blur when the scene is live. */
+function DroneShape({ spin }: { spin: boolean }) {
+  return (
+    <>
+      <path d="M-24 -4H24" stroke={C.inkSoft} strokeWidth={2} strokeLinecap="round" />
+      {[-24, 24].map((x) => (
+        <g key={x}>
+          <rect x={x - 1.6} y={-8.5} width={3.2} height={5} rx={1} fill={C.inkSoft} />
+          <ellipse cx={x} cy={-9.5} rx={11} ry={2.4} fill={C.ink} opacity={0.08} />
+          <path
+            d={`M${x - 10} -9.5H${x + 10}`}
+            stroke={C.inkSoft}
+            strokeWidth={1.4}
+            strokeLinecap="round"
+            className={spin ? 'ss-rotor' : undefined}
+            style={spin ? { animationDelay: x < 0 ? '0s' : '-0.07s' } : undefined}
+          />
+        </g>
+      ))}
+      <rect x={-10} y={-7} width={20} height={9} rx={4.2} fill={C.inkSoft} />
+      <rect x={-6} y={-5.2} width={7} height={2.4} rx={1.2} fill={C.rain300} opacity={0.9} />
+      <circle cx={6} cy={-3} r={1.3} fill={C.leaf300} />
+      <path d="M-7 2L-10 8M7 2L10 8M-12 8H-8M8 8H12" stroke={C.inkSoft} strokeWidth={1.2} strokeLinecap="round" />
+      <circle cx={0} cy={4.8} r={3.1} fill={C.ink} />
+      <circle cx={0} cy={5.4} r={1.2} fill={C.leaf300} />
+    </>
+  );
 }
 
 function rootGeometry(x: number, y: number, depth: number) {
@@ -247,19 +343,26 @@ function buildScene(cfg: SceneConfig) {
     return monotonePath(pts);
   });
 
-  const { hub, card, nodes } = cfg;
+  const { hub, card, nodes, drone, satellite, arrivals } = cfg;
   const arrive = (dy: number): Pt => ({ x: hub.x - hub.r - 1, y: hub.y + dy });
   const lines = [
-    { key: 'spectral', color: nodes.spectral.color, d: flowPath(nodes.spectral, arrive(-7)) },
-    { key: 'weather', color: nodes.weather.color, d: flowPath(nodes.weather, arrive(0)) },
-    { key: 'soil', color: nodes.soil.color, d: flowPath(nodes.soil, arrive(7)) },
+    { key: 'spectral', color: nodes.spectral.color, d: flowPath(nodes.spectral, arrive(arrivals.spectral)) },
+    { key: 'weather', color: nodes.weather.color, d: flowPath(nodes.weather, arrive(arrivals.weather)) },
+    {
+      key: 'drone',
+      color: C.sun500,
+      d: flowPath({ x: drone.x + 4 * drone.scale, y: drone.y + 3 * drone.scale }, arrive(arrivals.drone)),
+    },
+    { key: 'soil', color: nodes.soil.color, d: flowPath(nodes.soil, arrive(arrivals.soil)) },
   ];
+  // The satellite, parked after its pass, beams down to its imagery node.
+  const downlink = `M${satellite.to},${satellite.y + 14 * cfg.stroke}L${nodes.spectral.x},${nodes.spectral.y - 8 * cfg.stroke}`;
 
   const pad = cfg.labels ? 20 : 14;
   const chart = {
     left: card.x + pad,
     right: card.x + card.w - pad,
-    top: card.y + (cfg.labels ? 70 : 34),
+    top: card.y + (cfg.labels ? 84 : 104),
     bottom: card.y + card.h - (cfg.labels ? 34 : 22),
   };
   const sx = scaleLinear(0, 1, chart.left, chart.right);
@@ -267,12 +370,15 @@ function buildScene(cfg: SceneConfig) {
   const mid = SEASON.t.map((t, i) => ({ x: sx(t), y: sy(SEASON.mid[i]) }));
   const hi = SEASON.t.map((t, i) => ({ x: sx(t), y: sy(SEASON.hi[i]) }));
   const lo = SEASON.t.map((t, i) => ({ x: sx(t), y: sy(SEASON.lo[i]) }));
+  const last = SEASON.t.length - 1;
   const forecast = {
     chart,
     line: monotonePath(mid),
     band: bandPath(hi, lo),
     bandCollapsed: bandPath(mid, mid),
     end: mid[mid.length - 1],
+    value: Math.round(SEASON.mid[last]),
+    range: Math.round((SEASON.hi[last] - SEASON.lo[last]) / 2),
     connector: flowPath({ x: hub.x + hub.r + 1, y: hub.y }, mid[0]),
     grid: [150, 175, 200].map((v) => sy(v)),
     months: [
@@ -290,6 +396,7 @@ function buildScene(cfg: SceneConfig) {
     dots,
     contours,
     lines,
+    downlink,
     forecast,
     faces: {
       top: [onTop(0, 0), onTop(1, 0), onTop(1, 1), onTop(0, 1)].map((p) => `${round(p.x)},${round(p.y)}`).join(' '),
@@ -331,13 +438,22 @@ export function HeroSystemAnimation() {
   const opacity = useTransform(scrollY, [0, 520], [1, 0.4]);
   const lift = useTransform(scrollY, [0, 620], [0, -24]);
 
-  const { block, satellite, nodes, hub, card } = cfg;
+  const { block, satellite, nodes, hub, card, drone } = cfg;
   const { forecast } = scene;
   const sw = cfg.stroke;
   const satDelay = T(2.35);
   const satDur = D(1.15);
 
   const nodeList = [nodes.spectral, nodes.weather, nodes.soil];
+  const beamDepth = drone.beamTo - drone.y;
+  const ds = drone.scale;
+  const beamPoints = `${-5 * ds},${9 * ds} ${5 * ds},${9 * ds} ${drone.beamWidth},${beamDepth} ${-drone.beamWidth},${beamDepth}`;
+  // Everything the ambient data dots travel along: sources into the hub, the satellite downlink, the hub out to the forecast.
+  const flows = [
+    ...scene.lines.map((line, i) => ({ key: line.key, d: line.d, color: line.color, dur: 3.2, begin: 0.4 + i * 0.8 })),
+    { key: 'downlink', d: scene.downlink, color: C.leaf500, dur: 1.8, begin: 1.1 },
+    { key: 'forecast', d: forecast.connector, color: C.leaf700, dur: 1.6, begin: 0.2 },
+  ];
 
   return (
     <motion.div
@@ -347,7 +463,7 @@ export function HeroSystemAnimation() {
         ...(reduce ? {} : { scaleX, scaleY, opacity, y: lift, originY: 1 }),
       }}
       role="img"
-      aria-label="Illustration: a maize plot is planted and grows, rain passes and a satellite images the plot. Imagery, weather and the field record feed SoilSignal, which produces a yield forecast curve."
+      aria-label="Illustration: a maize plot is planted and grows ears, rain passes, a drone scans the canopy and a satellite images the plot. Satellite and drone imagery, weather and the field record feed SoilSignal, which produces a yield forecast."
     >
       {/* Background topographic contours, on their own layer so drifting stays on the compositor. */}
       <motion.svg
@@ -368,6 +484,10 @@ export function HeroSystemAnimation() {
           <linearGradient id="hero-beam" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={C.leaf300} stopOpacity="0" />
             <stop offset="100%" stopColor={C.leaf300} stopOpacity="0.5" />
+          </linearGradient>
+          <linearGradient id="hero-drone-beam" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.leaf300} stopOpacity="0.5" />
+            <stop offset="100%" stopColor={C.leaf300} stopOpacity="0.06" />
           </linearGradient>
           <linearGradient id="hero-band" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor={C.leaf400} stopOpacity="0.1" />
@@ -469,12 +589,12 @@ export function HeroSystemAnimation() {
             </g>
           ))}
 
-        {/* ---- Phase 2: crops emerge (back row first, lighter) ----------- */}
+        {/* ---- Phase 2: maize emerges (back row first, lighter) ---------- */}
         {[...scene.plants]
           .sort((a, b) => (a.row === b.row ? 0 : a.row === 'back' ? -1 : 1))
           .map((p, i) => {
-            const geo = plantGeometry(p.x, p.base, p.height, p.seed);
             const back = p.row === 'back';
+            const geo = plantGeometry(p.x, p.base, p.height, p.seed, (back ? 2.2 : 4) * sw);
             const delay = T(1.05 + (back ? 0 : 0.12) + (p.x / cfg.w) * 0.55);
             const swayIndex = i % 3 === 0;
             return (
@@ -493,22 +613,68 @@ export function HeroSystemAnimation() {
                     d={geo.stem}
                     fill="none"
                     stroke={back ? C.leaf300 : C.leaf700}
-                    strokeWidth={(back ? 1.8 : 2.4) * sw}
+                    strokeWidth={(back ? 1.8 : 2.6) * sw}
                     strokeLinecap="round"
                   />
-                  {geo.leaves.map((d, k) => (
-                    <motion.path
-                      key={k}
-                      d={d}
-                      fill="none"
-                      stroke={back ? C.leaf200 : k > 1 ? C.leaf500 : C.leaf700}
-                      strokeWidth={(back ? 1.7 : 2.3) * sw}
-                      strokeLinecap="round"
-                      initial={reduce ? false : { pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: delay + T(0.18 + k * 0.08), duration: D(0.5), ease: EASE_OUT }}
-                    />
-                  ))}
+                  {geo.leaves.map((leaf, k) => {
+                    const leafDelay = delay + T(0.18 + k * 0.08);
+                    return (
+                      <g key={k}>
+                        {!back && (
+                          <motion.path
+                            d={leaf.blade}
+                            fill={k > 1 ? C.leaf400 : C.leaf500}
+                            initial={reduce ? false : { opacity: 0 }}
+                            animate={{ opacity: 0.92 }}
+                            transition={{ delay: leafDelay + D(0.3), duration: D(0.4), ease: 'easeOut' }}
+                          />
+                        )}
+                        <motion.path
+                          d={leaf.rib}
+                          fill="none"
+                          stroke={back ? C.leaf200 : k > 1 ? C.leaf600 : C.leaf700}
+                          strokeWidth={(back ? 1.7 : 1.9) * sw}
+                          strokeLinecap="round"
+                          initial={reduce ? false : { pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ delay: leafDelay, duration: D(0.5), ease: EASE_OUT }}
+                        />
+                      </g>
+                    );
+                  })}
+                  {!back && (
+                    <>
+                      <g transform={`translate(${round(geo.ear.x)} ${round(geo.ear.y)}) rotate(${geo.ear.dir * 24})`}>
+                        <motion.g
+                          style={{ originX: 0.5, originY: 1 }}
+                          initial={reduce ? false : { scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: delay + T(0.62), duration: D(0.5), ease: EASE_OUT }}
+                        >
+                          <EarShape len={geo.ear.len} sw={sw} />
+                        </motion.g>
+                      </g>
+                      <g transform={`translate(${round(geo.top.x)} ${round(geo.top.y)})`}>
+                        <motion.g
+                          style={{ originX: 0.5, originY: 1 }}
+                          initial={reduce ? false : { scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: delay + T(0.52), duration: D(0.45), ease: EASE_OUT }}
+                        >
+                          {tasselGeometry(p.height * 0.15).map((d, k) => (
+                            <path
+                              key={k}
+                              d={d}
+                              fill="none"
+                              stroke={k === 0 ? C.sun500 : C.sun300}
+                              strokeWidth={(k === 0 ? 1.4 : 1.1) * sw}
+                              strokeLinecap="round"
+                            />
+                          ))}
+                        </motion.g>
+                      </g>
+                    </>
+                  )}
                 </g>
               </motion.g>
             );
@@ -536,6 +702,58 @@ export function HeroSystemAnimation() {
               }}
             />
           ))}
+
+        {/* ---- Drone: flies in over the canopy, then hovers and scans ------ */}
+        <motion.g
+          initial={reduce ? false : { x: -drone.x - 60 * ds, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ x: { delay: T(1.55), duration: D(1.4), ease: EASE_OUT }, opacity: { delay: T(1.55), duration: 0.3 } }}
+        >
+          <g transform={`translate(${drone.x} ${drone.y})`}>
+            <motion.g
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: T(2.8), duration: D(0.5), ease: 'easeOut' }}
+            >
+              <clipPath id="hero-drone-clip">
+                <polygon points={beamPoints} />
+              </clipPath>
+              <polygon points={beamPoints} fill="url(#hero-drone-beam)" />
+              <ellipse cx={0} cy={beamDepth} rx={drone.beamWidth} ry={drone.beamWidth * 0.14} fill={C.leaf300} opacity={0.3} />
+              {ambient && (
+                <g clipPath="url(#hero-drone-clip)">
+                  <rect
+                    x={-drone.beamWidth}
+                    y={8 * ds}
+                    width={drone.beamWidth * 2}
+                    height={1.6 * sw}
+                    fill={C.leaf400}
+                    className="ss-scan"
+                    style={{ '--scan': `${beamDepth - 10 * ds}px` } as CSSProperties}
+                  />
+                </g>
+              )}
+            </motion.g>
+            <g className={ambient ? 'ss-hover' : undefined}>
+              <g transform={`scale(${ds})`}>
+                <DroneShape spin={!reduce} />
+              </g>
+            </g>
+            {cfg.labels && (
+              <motion.text
+                x={-38 * ds}
+                y={0}
+                textAnchor="end"
+                className="fill-muted text-[12px] font-medium"
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: T(3.4), duration: 0.4 }}
+              >
+                Drone
+              </motion.text>
+            )}
+          </g>
+        </motion.g>
 
         {/* ---- Phase 4: satellite pass ----------------------------------- */}
         <motion.g
@@ -585,19 +803,43 @@ export function HeroSystemAnimation() {
             }}
           />
         ))}
+        <motion.path
+          d={scene.downlink}
+          fill="none"
+          stroke={C.leaf400}
+          strokeWidth={1.3 * sw}
+          strokeDasharray={`${2 * sw} ${5 * sw}`}
+          strokeLinecap="round"
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 0.8 }}
+          transition={{ delay: T(3.3), duration: D(0.4) }}
+        />
+
+        {/* Ambient data dots: each rides one flow path on a loop (SMIL keeps it off the React render path). */}
         {ambient &&
-          scene.lines.map((line, i) => (
-            <path
-              key={`pulse-${line.key}`}
-              d={line.d}
-              pathLength={100}
-              fill="none"
-              stroke={line.color}
-              strokeWidth={3 * sw}
-              strokeLinecap="round"
-              className="ss-travel"
-              style={{ animationDelay: `${1.5 + i * 3}s` }}
-            />
+          flows.map((flow) => (
+            <g key={`dot-${flow.key}`} opacity={0}>
+              <circle r={6 * sw} fill={flow.color} opacity={0.18} />
+              <circle r={2.6 * sw} fill={flow.color} />
+              <animateMotion
+                path={flow.d}
+                dur={`${flow.dur}s`}
+                begin={`${flow.begin}s`}
+                repeatCount="indefinite"
+                calcMode="spline"
+                keyPoints="0;1"
+                keyTimes="0;1"
+                keySplines="0.45 0 0.55 1"
+              />
+              <animate
+                attributeName="opacity"
+                values="0;1;1;0"
+                keyTimes="0;0.12;0.84;1"
+                dur={`${flow.dur}s`}
+                begin={`${flow.begin}s`}
+                repeatCount="indefinite"
+              />
+            </g>
           ))}
 
         {nodeList.map((node, i) => {
@@ -626,6 +868,18 @@ export function HeroSystemAnimation() {
                   initial={{ scale: 1, opacity: 0 }}
                   animate={{ scale: 3.4, opacity: [0, 0.6, 0] }}
                   transition={{ delay: delay + 0.1, duration: D(0.9), ease: EASE_OUT }}
+                />
+              )}
+              {ambient && (
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={7 * sw}
+                  fill="none"
+                  stroke={node.color}
+                  strokeWidth={1.2}
+                  className="ss-emit"
+                  style={{ animationDelay: `${2.5 + i * 3.1}s` }}
                 />
               )}
               <motion.circle
@@ -709,16 +963,13 @@ export function HeroSystemAnimation() {
             stroke={C.line}
             filter="url(#hero-card-shadow)"
           />
-          {cfg.labels && (
-            <>
-              <text x={forecast.chart.left} y={card.y + 30} className="fill-muted text-[12px] font-medium">
-                Yield forecast
-              </text>
-              <text x={forecast.chart.right} y={card.y + 30} textAnchor="end" className="data fill-faint text-[11px]">
-                bu/ac
-              </text>
-            </>
-          )}
+          <text
+            x={forecast.chart.left}
+            y={card.y + (cfg.labels ? 30 : 38)}
+            className={`fill-muted font-medium ${cfg.labels ? 'text-[12px]' : 'text-[21px]'}`}
+          >
+            {cfg.labels ? 'Yield forecast' : 'Yield'}
+          </text>
           {forecast.grid.map((y) => (
             <line key={y} x1={forecast.chart.left} x2={forecast.chart.right} y1={y} y2={y} stroke={C.line} strokeWidth={1} />
           ))}
@@ -750,6 +1001,28 @@ export function HeroSystemAnimation() {
             opacity: { delay: T(4.2), duration: 0.05 },
           }}
         />
+        {ambient && <path d={forecast.band} fill={C.leaf300} className="ss-glow" />}
+        <motion.g
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: T(4.7), duration: D(0.5), ease: EASE_OUT }}
+        >
+          <text
+            x={forecast.chart.left}
+            y={card.y + (cfg.labels ? 62 : 82)}
+            className={`data fill-ink font-semibold ${cfg.labels ? 'text-[28px]' : 'text-[40px]'}`}
+          >
+            {forecast.value}
+            <tspan dx={cfg.labels ? 6 : 7} className={`fill-faint font-normal ${cfg.labels ? 'text-[12px]' : 'text-[18px]'}`}>
+              bu/ac
+            </tspan>
+          </text>
+          {cfg.labels && (
+            <text x={forecast.chart.right} y={card.y + 62} textAnchor="end" className="data fill-leaf-700 text-[12px]">
+              ±{forecast.range}
+            </text>
+          )}
+        </motion.g>
         <motion.circle
           cx={forecast.end.x}
           cy={forecast.end.y}

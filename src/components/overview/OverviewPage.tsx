@@ -19,22 +19,23 @@ export function OverviewPage() {
 
   return (
     <>
-      <section className="relative overflow-x-clip" aria-labelledby="hero-heading">
-        <div className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 sm:pt-16 lg:pt-20">
+      {/* On phones the scene leads (people arrive from a QR code); from md up the headline leads. */}
+      <section className="relative flex flex-col overflow-x-clip" aria-labelledby="hero-heading">
+        <div className="order-2 mx-auto w-full max-w-6xl px-4 pt-1 sm:px-6 md:order-1 md:pt-14 lg:pt-16">
           <motion.h1
             id="hero-heading"
-            className="max-w-[16ch] text-[42px] leading-[1.02] font-semibold tracking-[-0.04em] text-balance text-ink sm:text-[58px] lg:max-w-none lg:text-[66px]"
+            className="max-w-[16ch] text-[38px] leading-[1.03] font-semibold tracking-[-0.04em] text-balance text-ink sm:text-[58px] lg:max-w-none lg:text-[66px]"
             {...rise(0.05)}
           >
             {APP_CONFIG.tagline}
           </motion.h1>
           <motion.p
-            className="mt-5 max-w-[36rem] text-[17px] leading-relaxed text-pretty text-muted sm:text-[19px]"
+            className="mt-3 max-w-[36rem] text-[16px] leading-normal text-pretty text-muted sm:mt-5 sm:text-[19px] sm:leading-relaxed"
             {...rise(0.15)}
           >
             {APP_CONFIG.subtitle}
           </motion.p>
-          <motion.div className="mt-8 flex flex-wrap items-center gap-3" {...rise(0.25)}>
+          <motion.div className="mt-5 flex flex-wrap items-center gap-3 sm:mt-8" {...rise(0.25)}>
             <Link
               to="dashboard"
               className="lift group inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white shadow-[0_1px_2px_rgb(8_108_76/0.25)] hover:bg-leaf-800 hover:shadow-lift"
@@ -49,13 +50,13 @@ export function OverviewPage() {
               How it works
             </Link>
           </motion.div>
-          <motion.div {...rise(0.32)}>
-            <ChallengeScope />
-          </motion.div>
         </div>
-        <div className="mx-auto mt-8 max-w-6xl px-3 sm:mt-6 sm:px-6">
+        <div className="order-1 mx-auto w-full max-w-6xl px-1 sm:px-6 md:order-2 md:mt-6">
           <HeroSystemAnimation />
         </div>
+        <motion.div className="order-3 mx-auto w-full max-w-6xl px-4 sm:px-6" {...rise(0.32)}>
+          <ChallengeScope />
+        </motion.div>
       </section>
 
       <TrialSiteMap />
@@ -98,7 +99,7 @@ const SCOPE = ['Maize trial plots', 'Iowa + Nebraska', '2022 season', 'Six-band 
 
 function ChallengeScope() {
   return (
-    <dl className="mt-8 flex max-w-3xl flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:items-baseline sm:gap-5">
+    <dl className="mt-10 flex max-w-3xl flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:items-baseline sm:gap-5">
       <dt className="shrink-0 text-[11px] font-medium tracking-[0.08em] text-faint uppercase">IoT4Ag challenge scope</dt>
       <dd className="flex flex-wrap gap-x-2 gap-y-1 text-[14px] text-ink-soft">
         {SCOPE.map((item, i) => (
