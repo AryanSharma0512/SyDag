@@ -80,10 +80,22 @@ export function PerformanceByDap({
     const bottom = margin.top + plotHeight;
     const sy = scaleLinear(y0, y1, bottom, margin.top);
     const pts = points.map((p) => ({ x: sx(p.dap), y: sy(p[metric] as number) }));
+    // Axis labels a stage keeps only when there is room; the viewed stage always keeps its own.
+    const minGap = large ? 40 : 32;
+    const axisVisible = pts.map(() => false);
+    const order = activeIndex >= 0 ? [activeIndex, ...pts.map((_, i) => i).filter((i) => i !== activeIndex)] : pts.map((_, i) => i);
+    const shown: number[] = [];
+    for (const i of order) {
+      if (shown.every((j) => Math.abs(pts[i].x - pts[j].x) >= minGap)) {
+        axisVisible[i] = true;
+        shown.push(i);
+      }
+    }
     return {
       sx,
       bottom,
       pts,
+      axisVisible,
       line: monotonePath(pts),
       ticks: niceTicks(y0, y1, 4).map((t) => ({ value: t, y: sy(t) })),
       useful: earliestUsefulDap != null ? sx(earliestUsefulDap) : null,
@@ -91,7 +103,7 @@ export function PerformanceByDap({
       base: base != null ? sy(base) : null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, width, plotHeight, metric, earliestUsefulDap, activeDap, activeIndex, base, margin.top, margin.bottom]);
+  }, [points, width, plotHeight, metric, earliestUsefulDap, activeDap, activeIndex, base, margin.top, margin.bottom, large]);
 
   const usefulIndex = earliestUsefulDap != null ? points.findIndex((p) => p.dap >= earliestUsefulDap) : -1;
   // Direct labels on the first point (unless a baseline already anchors the scale), the useful stage
@@ -239,7 +251,7 @@ export function PerformanceByDap({
                       {fmt(p[metric], metric === 'mae' ? 1 : 2)}
                     </text>
                   )}
-                  {hasStage && (
+                  {hasStage && geo.axisVisible[i] && (
                     <text
                       x={pt.x}
                       y={rowY('Stage')}
@@ -249,10 +261,12 @@ export function PerformanceByDap({
                       {p.stage ?? ''}
                     </text>
                   )}
-                  <text x={pt.x} y={rowY('Day')} textAnchor="middle" className={`data fill-muted tabular-nums ${tick}`}>
-                    {p.dap}
-                  </text>
-                  {showR2Row && (
+                  {geo.axisVisible[i] && (
+                    <text x={pt.x} y={rowY('Day')} textAnchor="middle" className={`data fill-muted tabular-nums ${tick}`}>
+                      {p.dap}
+                    </text>
+                  )}
+                  {showR2Row && geo.axisVisible[i] && (
                     <text x={pt.x} y={rowY('R²')} textAnchor="middle" className={`data fill-ink-soft tabular-nums ${tick}`}>
                       {fmt(p.r2, 2)}
                     </text>

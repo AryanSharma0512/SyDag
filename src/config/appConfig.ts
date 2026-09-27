@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   name: 'SoilSignal',
   tagline: 'Know the season before harvest.',
   subtitle:
-    'SoilSignal uses satellite imagery, field records and weather history to estimate final maize yield during the growing season.',
+    'SoilSignal turns satellite imagery and field records into an estimate of final maize yield during the growing season, with a range and its validated error.',
   version: '1.0.0-hackathon',
   // What the site's numbers come from when the published results do not name it.
   datasetLabel: 'SyDAg 2022 maize trials',

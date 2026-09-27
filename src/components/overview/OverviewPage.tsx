@@ -6,6 +6,7 @@ import { Link } from '../../utils/router';
 import { Reveal } from '../common/Reveal';
 import { HeroSystemAnimation } from './HeroSystemAnimation';
 import { ForecastPreview } from './ForecastPreview';
+import { ResultsSummary } from './ResultsSummary';
 import { Principles } from './Principles';
 import { TrialSiteMap } from './TrialSiteMap';
 
@@ -57,6 +58,8 @@ export function OverviewPage() {
           <HeroSystemAnimation />
         </div>
       </section>
+
+      <ResultsSummary />
 
       <TrialSiteMap />
 

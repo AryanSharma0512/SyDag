@@ -2,71 +2,157 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import type { FieldForecast } from '../../types/agricultural';
+import type { FinalResults } from '../../types/results';
 import { getForecast } from '../../services/forecasts';
 import { getFields, pickDefaultFieldId } from '../../services/fields';
 import { getDatasetLabel } from '../../services/dataset';
+import { getFinalResults, getResultPlots } from '../../services/results';
+import { getTrialSites, siteLabel } from '../../services/sites';
 import { APP_CONFIG } from '../../config/appConfig';
 import { bandPath, monotonePath, scaleLinear, toTime } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { useElementWidth } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
-import { shortCropName } from '../../utils/formatters';
+import { formatDay, shortCropName, shortPlotIds } from '../../utils/formatters';
 import { Link } from '../../utils/router';
 import { daysAfterPlanting } from '../../services/plotForecasts';
 
-const INPUTS = [
+const ALL_INPUTS = [
   { label: 'Satellite imagery', color: C.leaf500 },
   { label: 'Field record', color: C.inkSoft },
   { label: 'Weather', color: C.rain500 },
 ];
+
+interface PreviewPoint {
+  date: string;
+  displayDate: string;
+  yield: number;
+  lower: number;
+  upper: number;
+}
+
+/** One plot's season, from the final results or the live models, in the shape the card draws. */
+interface Preview {
+  title: string;
+  subtitle: string;
+  caption: string;
+  points: PreviewPoint[];
+  activeIndex: number;
+  dap: number | null;
+  stage?: string;
+  rangeLabel: string;
+  link?: { site: string; plot: string | null };
+}
+
+/** The featured (representative) plot of the first site the final results cover. */
+async function finalPreview(results: FinalResults): Promise<Preview | null> {
+  const sites = await getTrialSites();
+  const site = sites.find((x) => (x.forecasts?.finalPlots ?? 0) > 0);
+  if (!site) return null;
+  const plots = await getResultPlots(site.id);
+  const plot = plots.find((x) => x.featured) ?? plots[0];
+  if (!plot || !plot.forecasts.every((f) => f.lower != null && f.upper != null)) return null;
+  const label = shortPlotIds(
+    plots.map((x) => x.plotId),
+    site.id,
+  ).get(plot.plotId);
+  const points = plot.forecasts.map((f) => ({
+    date: f.date,
+    displayDate: formatDay(f.date),
+    yield: Math.max(0, f.yield),
+    lower: Math.max(0, f.lower!),
+    upper: Math.max(0, f.upper!),
+  }));
+  const last = plot.forecasts[plot.forecasts.length - 1];
+  return {
+    title: `Plot ${label ?? plot.plotId}`,
+    subtitle: `${site.crop} · ${plot.season}`,
+    caption: `${results.datasetLabel?.split(' · ')[0] ?? APP_CONFIG.datasetLabel} · ${siteLabel(site)} · representative plot`,
+    points,
+    activeIndex: points.length - 1,
+    dap: last.dap,
+    rangeLabel: results.interval?.level ? `${Math.round(results.interval.level * 100)}% prediction range` : 'Prediction range',
+    link: { site: site.id, plot: plot.plotId },
+  };
+}
+
+function livePreview(forecast: FieldForecast, datasetLabel: string): Preview {
+  const index = Math.min(APP_CONFIG.defaultDateIndex, forecast.snapshots.length - 1);
+  const snapshot = forecast.snapshots[index];
+  return {
+    title: forecast.field.name,
+    subtitle: `${shortCropName(forecast.field.crop)} · ${forecast.field.season}`,
+    caption: `${datasetLabel} · ${forecast.field.location}`,
+    points: forecast.snapshots.map((s) => ({
+      date: s.date,
+      displayDate: s.displayDate,
+      yield: s.yield,
+      lower: s.lowerBound,
+      upper: s.upperBound,
+    })),
+    activeIndex: index,
+    dap: daysAfterPlanting(forecast.field.plantingDate, snapshot.date),
+    stage: snapshot.stage,
+    rangeLabel: 'Prediction range',
+    link: forecast.field.site ? { site: forecast.field.site, plot: forecast.field.plotId ?? null } : undefined,
+  };
+}
 
 /**
  * The scroll hand-off from the hero: the three inputs lead into a preview of one
  * plot's forecast, whose line then draws itself.
  */
 export function ForecastPreview() {
-  const [forecast, setForecast] = useState<FieldForecast | null>(null);
-  const [datasetLabel, setDatasetLabel] = useState(APP_CONFIG.demoMode ? APP_CONFIG.datasetLabel : '');
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [usesWeather, setUsesWeather] = useState(true);
   const reduce = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: '0px 0px -18% 0px' });
   const [linesRef, linesWidth] = useElementWidth<HTMLDivElement>();
   const shown = inView || !!reduce;
 
+  // The published final results when they exist; the live models only before then.
   useEffect(() => {
     let active = true;
-    getFields()
-      .then((fields) => {
-        const id = pickDefaultFieldId(fields);
-        return id ? getForecast(id) : null;
+    const live = () =>
+      Promise.all([
+        getFields().then((fields) => {
+          const id = pickDefaultFieldId(fields);
+          return id ? getForecast(id) : null;
+        }),
+        getDatasetLabel().catch(() => ''),
+      ]).then(([forecast, label]) => (forecast ? livePreview(forecast, label) : null));
+    getFinalResults()
+      .catch(() => null)
+      .then((results) => {
+        if (results?.status !== 'ready') return live();
+        const features = results.model?.features ?? [];
+        if (active) setUsesWeather(!features.length || features.some((f) => /weather|rain|gdd|temperature/i.test(f)));
+        return finalPreview(results);
       })
-      .then((data) => {
-        if (active && data) setForecast(data);
-      })
-      .catch(() => undefined);
-    getDatasetLabel()
-      .then((label) => active && setDatasetLabel(label))
+      .then((next) => active && next && setPreview(next))
       .catch(() => undefined);
     return () => {
       active = false;
     };
   }, []);
+  const INPUTS = usesWeather ? ALL_INPUTS : ALL_INPUTS.filter((input) => input.label !== 'Weather');
 
   const lineHeight = 112;
   const converge = useMemo(() => {
     const w = Math.max(linesWidth, 1);
     const target = { x: w / 2, y: lineHeight };
     return INPUTS.map((input, i) => {
-      const x = (w * (i * 2 + 1)) / 6;
+      const x = (w * (i * 2 + 1)) / (INPUTS.length * 2);
       return {
         ...input,
         d: `M${x},0 C${x},${lineHeight * 0.55} ${target.x},${lineHeight * 0.45} ${target.x},${lineHeight}`,
       };
     });
-  }, [linesWidth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linesWidth, INPUTS.length]);
 
-  const snapshot = forecast?.snapshots[Math.min(APP_CONFIG.defaultDateIndex, (forecast?.snapshots.length ?? 1) - 1)];
-  const dap = snapshot ? daysAfterPlanting(forecast?.field.plantingDate, snapshot.date) : null;
+  const point = preview?.points[preview.activeIndex];
 
   return (
     <section className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 sm:pt-16 sm:pb-10" aria-labelledby="preview-heading">
@@ -101,7 +187,7 @@ export function ForecastPreview() {
 
       <div className="mx-auto mt-12 max-w-4xl">
         {/* Converging inputs */}
-        <div className="grid grid-cols-3 text-center">
+        <div className={`grid text-center ${INPUTS.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
           {INPUTS.map((input, i) => (
             <motion.div
               key={input.label}
@@ -172,38 +258,34 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0, scale: 1 } : undefined}
           transition={{ duration: 0.7, ease: EASE_OUT, delay: 1.25 }}
         >
-          {forecast && snapshot ? (
+          {preview && point ? (
             <>
               <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-[16px] font-semibold tracking-tight text-ink">{forecast.field.name}</span>
-                  <span className="text-[14px] text-muted">
-                    {shortCropName(forecast.field.crop)} · <span className="data">{forecast.field.season}</span>
-                  </span>
+                  <span className="text-[16px] font-semibold tracking-tight text-ink">{preview.title}</span>
+                  <span className="data text-[14px] text-muted">{preview.subtitle}</span>
                 </div>
-                <span className="data text-[14px] text-ink-soft">{snapshot.displayDate}</span>
+                <span className="data text-[14px] text-ink-soft">{point.displayDate}</span>
               </div>
               <div className="mt-5 grid grid-cols-3 divide-x divide-line">
-                <PreviewMetric value={snapshot.yield.toFixed(0)} unit="bu/ac" label="Final yield forecast" />
+                <PreviewMetric value={point.yield.toFixed(0)} unit="bu/ac" label="Final yield forecast" />
                 <PreviewMetric
-                  value={`${Math.round(snapshot.lowerBound)}–${Math.round(snapshot.upperBound)}`}
+                  value={`${Math.round(point.lower)}–${Math.round(point.upper)}`}
                   unit="bu/ac"
-                  label="Prediction range"
+                  label={preview.rangeLabel}
                 />
-                {dap !== null ? (
-                  <PreviewMetric value={String(dap)} unit="days after planting" label={`As of ${snapshot.displayDate}`} />
+                {preview.dap !== null ? (
+                  <PreviewMetric value={String(preview.dap)} unit="days after planting" label={`As of ${point.displayDate}`} />
                 ) : (
-                  <PreviewMetric value={snapshot.displayDate} unit={snapshot.stage} label="Forecast date" />
+                  <PreviewMetric value={point.displayDate} unit={preview.stage ?? ''} label="Forecast date" />
                 )}
               </div>
-              <PreviewChart forecast={forecast} activeIndex={APP_CONFIG.defaultDateIndex} play={shown} />
-              <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-                <span className="text-[13px] text-muted">
-                  {datasetLabel}<span className="hidden sm:inline"> · {forecast.field.location}</span>
-                </span>
+              <PreviewChart points={preview.points} activeIndex={preview.activeIndex} play={shown} />
+              <div className="mt-4 flex items-center justify-between gap-4 border-t border-line pt-4">
+                <span className="text-[13px] text-muted">{preview.caption}</span>
                 <Link
                   to="dashboard"
-                  query={forecast.field.site ? { site: forecast.field.site, plot: forecast.field.plotId ?? null } : undefined}
+                  query={preview.link}
                   className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-leaf-700 hover:text-leaf-800"
                 >
                   View forecast
@@ -230,7 +312,7 @@ function PreviewMetric({ value, unit, label }: { value: string; unit: string; la
   );
 }
 
-function PreviewChart({ forecast, activeIndex, play }: { forecast: FieldForecast; activeIndex: number; play: boolean }) {
+function PreviewChart({ points, activeIndex, play }: { points: PreviewPoint[]; activeIndex: number; play: boolean }) {
   const reduce = useReducedMotion();
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const height = 170;
@@ -238,15 +320,15 @@ function PreviewChart({ forecast, activeIndex, play }: { forecast: FieldForecast
 
   const geo = useMemo(() => {
     if (width <= 0) return null;
-    const snaps = forecast.snapshots;
+    const snaps = points;
     const times = snaps.map((s) => toTime(s.date));
     const x = scaleLinear(times[0], times[times.length - 1], pad.left, width - pad.right);
-    const lo = Math.min(...snaps.map((s) => s.lowerBound));
-    const hi = Math.max(...snaps.map((s) => s.upperBound));
-    const y = scaleLinear(lo - 6, hi + 6, height - pad.bottom, pad.top);
+    const lo = Math.min(...snaps.map((s) => s.lower));
+    const hi = Math.max(...snaps.map((s) => s.upper));
+    const y = scaleLinear(Math.max(0, lo - 6), hi + 6, height - pad.bottom, pad.top);
     const mid = snaps.map((s, i) => ({ x: x(times[i]), y: y(s.yield) }));
-    const up = snaps.map((s, i) => ({ x: x(times[i]), y: y(s.upperBound) }));
-    const low = snaps.map((s, i) => ({ x: x(times[i]), y: y(s.lowerBound) }));
+    const up = snaps.map((s, i) => ({ x: x(times[i]), y: y(s.upper) }));
+    const low = snaps.map((s, i) => ({ x: x(times[i]), y: y(s.lower) }));
     const index = Math.min(activeIndex, snaps.length - 1);
     return {
       line: monotonePath(mid),
@@ -261,7 +343,7 @@ function PreviewChart({ forecast, activeIndex, play }: { forecast: FieldForecast
       activeAt: index === 0 ? 'first' : index === snaps.length - 1 ? 'last' : 'middle',
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecast, width, activeIndex]);
+  }, [points, width, activeIndex]);
 
   const clipId = 'preview-past';
 

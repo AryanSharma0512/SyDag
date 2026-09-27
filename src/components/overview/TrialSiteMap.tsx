@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check, Minus } from 'lucide-react';
 import type { TrialSite } from '../../types/sites';
 import { getTrialSites, hasForecasts, isMappable } from '../../services/sites';
+import { getFinalResults, uavComparisonSites } from '../../services/results';
 import { formatNumber } from '../../utils/formatters';
 import { EASE_OUT } from '../../utils/motion';
 import { PALETTE as C } from '../../utils/palette';
@@ -92,6 +93,17 @@ export function TrialSiteMap() {
   const [failed, setFailed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
+
+  const [uavSites, setUavSites] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let active = true;
+    getFinalResults()
+      .then((r) => active && setUavSites(uavComparisonSites(r)))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -221,7 +233,7 @@ export function TrialSiteMap() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18, ease: EASE_OUT }}
               >
-                <SitePanel site={selected} />
+                <SitePanel site={selected} inUavComparison={uavSites.has(selected.id.toLowerCase())} />
               </motion.div>
             ) : (
               <div className="ss-skeleton mt-4 h-56 rounded-lg" />
@@ -250,11 +262,15 @@ function Availability({ ok, label, detail }: { ok: boolean; label: string; detai
   );
 }
 
-function SitePanel({ site }: { site: TrialSite }) {
+function SitePanel({ site, inUavComparison }: { site: TrialSite; inUavComparison: boolean }) {
   const season = site.seasons[site.seasons.length - 1];
   const satellite = season?.satellite;
   const uav = season?.uav;
   const forecasts = hasForecasts(site);
+  // The published results model every plot here on the site's satellite passes, whatever the
+  // inventory export counted as usable plot images.
+  const modeled = site.forecasts?.finalPlots ?? 0;
+  const hasSatellite = (!!satellite && satellite.plotImages > 0) || modeled > 0;
   return (
     <>
       <h3 className="mt-3 text-[26px] font-semibold tracking-[-0.025em] text-ink">{site.name}</h3>
@@ -283,21 +299,25 @@ function SitePanel({ site }: { site: TrialSite }) {
 
       <ul className="mt-5 space-y-3 border-t border-line pt-4">
         <Availability
-          ok={!!satellite && satellite.plotImages > 0}
-          label={satellite && satellite.plotImages > 0 ? 'Satellite imagery available' : 'No satellite plot imagery'}
+          ok={hasSatellite}
+          label={hasSatellite ? 'Satellite imagery available' : 'No satellite plot imagery'}
           detail={
-            satellite && satellite.plotImages > 0
-              ? `${satellite.acquisitions} passes, ${formatNumber(satellite.plotImages)} plot images`
-              : 'Not in the challenge data for this site'
+            modeled > 0 && satellite
+              ? `${satellite.acquisitions} passes; ${formatNumber(modeled)} plots modeled in the results`
+              : satellite && satellite.plotImages > 0
+                ? `${satellite.acquisitions} passes, ${formatNumber(satellite.plotImages)} plot images`
+                : 'Not in the challenge data for this site'
           }
         />
         <Availability
-          ok={!!uav && uav.plotImages > 0}
-          label={uav && uav.plotImages > 0 ? 'UAV imagery available' : 'No UAV imagery'}
+          ok={(!!uav && uav.plotImages > 0) || inUavComparison}
+          label={(uav && uav.plotImages > 0) || inUavComparison ? 'UAV imagery available' : 'No UAV imagery'}
           detail={
             uav && uav.plotImages > 0
               ? `${uav.acquisitions} flights, ${formatNumber(uav.plotImages)} plot images`
-              : 'Optional; not collected here'
+              : inUavComparison
+                ? 'In the matched satellite vs UAV comparison'
+                : 'Optional; not collected here'
           }
         />
         <Availability

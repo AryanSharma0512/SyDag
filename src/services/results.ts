@@ -121,6 +121,12 @@ export function imageryGain(preseason: ValidationMetrics | null | undefined, sta
   return gain < 0.05 ? 'little' : gain < 0.15 ? 'modest' : 'clear';
 }
 
+/** Sites (lowercased ids) whose plots are in the published matched UAV comparison. */
+export function uavComparisonSites(results: FinalResults | null): Set<string> {
+  const uav = results?.status === 'ready' ? results.uav : null;
+  return new Set(uav?.matched ? uav.sites.map((s) => s.toLowerCase()) : []);
+}
+
 /** Total dated forecasts (plot observations) across the published plots. */
 export function observationCount(results: FinalResults | null): number {
   return results?.status === 'ready' ? results.plotCounts.reduce((n, c) => n + (c.observations ?? 0), 0) : 0;

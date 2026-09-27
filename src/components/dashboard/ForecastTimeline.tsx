@@ -120,6 +120,7 @@ export function ForecastTimeline({
         opacity: 0.16,
       })),
       labelVisible,
+      minGap,
       trackY: bottom + 26,
       passes: lanePasses.map((d) => ({ date: d, x: sx(toTime(d)) })),
       planting: lanePlanting ? sx(toTime(lanePlanting)) : null,
@@ -425,7 +426,8 @@ export function ForecastTimeline({
                 transition={transition}
               />
               {snapshots.map((s, i) =>
-                geo.labelVisible[i] || i === index ? (
+                // The active date always shows; a neighbour too close to it steps aside.
+                i === index || (geo.labelVisible[i] && Math.abs(geo.mid[i].x - geo.mid[index].x) >= geo.minGap) ? (
                   <text
                     key={s.id}
                     x={geo.mid[i].x}

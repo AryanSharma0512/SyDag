@@ -32,6 +32,8 @@ baseline each site's stages are compared against.
   the rule the ML team fixed in advance (ties go to the lower plot id). `--featured`
   overrides it for a site.
 - `earliest_useful_dap` stays unset unless `--earliest-useful-mae` names the rule.
+- Metrics keep a decimal more than the website shows (R² and coverage 4, errors 3), so
+  a value is rounded once, for display, never twice.
 """
 
 import argparse
@@ -246,8 +248,8 @@ def _pooled_performance(deployed: pd.DataFrame, coords: pd.DataFrame) -> list[di
                 "dap": int(round(float(at["dap"].median()))),
                 "stage": stage,
                 "label": f"{stage} · site DAP {low}–{high}",
-                "mae": round(m["mae"], 2),
-                "rmse": round(m["rmse"], 2),
+                "mae": round(m["mae"], 3),
+                "rmse": round(m["rmse"], 3),
                 "r2": None,
                 "n": int(group["plot_id"].nunique()),
             }
@@ -279,10 +281,10 @@ def _site_performance(
                     "dap": int(row.dap),
                     "dap_min": int(row.dap_min),
                     "dap_max": int(row.dap_max),
-                    "r2": round(row.deployed_r2, 3),
-                    "mae": round(row.deployed_mae, 2),
-                    "rmse": round(row.deployed_rmse, 2),
-                    "coverage": round(row.deployed_pi_coverage_90, 3),
+                    "r2": round(row.deployed_r2, 4),
+                    "mae": round(row.deployed_mae, 3),
+                    "rmse": round(row.deployed_rmse, 3),
+                    "coverage": round(row.deployed_pi_coverage_90, 4),
                     "median_interval_width": round(row.deployed_median_pi_width_90, 2),
                     "n": int(row.n_plots),
                 }
@@ -306,10 +308,10 @@ def _site_performance(
                 "plots": int(first.n_plots),
                 "folds": int(first.n_folds),
                 "preseason": {
-                    "r2": round(first.preseason_agronomic_r2, 3),
-                    "mae": round(first.preseason_agronomic_mae, 2),
-                    "rmse": round(base["rmse"], 2),
-                    "coverage": round(base["coverage"], 3),
+                    "r2": round(first.preseason_agronomic_r2, 4),
+                    "mae": round(first.preseason_agronomic_mae, 3),
+                    "rmse": round(base["rmse"], 3),
+                    "coverage": round(base["coverage"], 4),
                     "median_interval_width": round(first.preseason_agronomic_median_pi_width_90, 2),
                     "n": base["n"],
                 },

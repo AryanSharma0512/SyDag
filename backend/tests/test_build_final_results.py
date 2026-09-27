@@ -131,7 +131,7 @@ def test_negative_forecasts_are_floored_but_metrics_use_raw_outputs(run):
     assert (tp1["yield"], tp1["lower"], tp1["upper"]) == (0.0, -24.0, 16.0)
     # Pooled TP1 MAE over all six plots uses the raw -4 (|−4 − 10| = 14), not 0.
     tp1_errors = [10, 10, 15, 14, 5, 20]
-    assert doc["performance"][0]["mae"] == round(sum(tp1_errors) / 6, 2)
+    assert doc["performance"][0]["mae"] == round(sum(tp1_errors) / 6, 3)
     assert doc["performance"][0]["r2"] is None
     assert doc["performance"][0]["stage"] == "TP1"
     assert doc["performance"][0]["label"].startswith("TP1 · site DAP ")

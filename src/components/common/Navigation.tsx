@@ -18,6 +18,8 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
   const [scrolled, setScrolled] = useState(false);
   // What the forecasts run on, from the backend in API mode; hidden until known.
   const [datasetLabel, setDatasetLabel] = useState<string | null>(null);
+  // "SyDAg 2022 maize trials · 2,131 plots · 5 sites" → its first part, where space is short.
+  const shortLabel = datasetLabel?.split(' · ')[0];
 
   useEffect(() => {
     let active = true;
@@ -106,7 +108,17 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {datasetLabel && <DataBadge variant="demo" label={datasetLabel} className="hidden sm:inline-flex" />}
+          {/* Wrapped, so the badge's own display class cannot override `hidden`; the full label only where it fits. */}
+          {datasetLabel && (
+            <>
+              <span className="hidden sm:inline-flex lg:hidden">
+                <DataBadge variant="demo" label={shortLabel ?? datasetLabel} />
+              </span>
+              <span className="hidden lg:inline-flex">
+                <DataBadge variant="demo" label={datasetLabel} />
+              </span>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -155,7 +167,7 @@ export function Navigation({ isPresentationMode, onExitPresentation }: Navigatio
                 );
               })}
               <li className="mt-2 border-t border-line px-2 pt-4 pb-1">
-                {datasetLabel && <DataBadge variant="demo" label={datasetLabel} />}
+                {datasetLabel && <DataBadge variant="demo" label={shortLabel ?? datasetLabel} />}
               </li>
             </ul>
           </motion.nav>
