@@ -236,6 +236,71 @@
   animation: ss-breathe 7s ease-in-out infinite;
 }
 
+/* Hero drone: a slow hover, blurred rotors and a scan line sweeping down its beam. */
+@keyframes ss-hover {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ss-rotor {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.3);
+  }
+}
+
+@keyframes ss-scan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.75;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(var(--scan, 0px));
+    opacity: 0;
+  }
+}
+
+@keyframes ss-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.22;
+  }
+}
+
+.ss-hover {
+  animation: ss-hover 3.6s ease-in-out infinite;
+}
+
+.ss-rotor {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: ss-rotor 0.14s linear infinite alternate;
+}
+
+.ss-scan {
+  animation: ss-scan 2.8s ease-in infinite;
+}
+
+.ss-glow {
+  animation: ss-glow 5s ease-in-out infinite;
+}
+
 .ss-skeleton {
   background: linear-gradient(90deg, var(--color-mist) 25%, #f7f5f0 50%, var(--color-mist) 75%);
   background-size: 200% 100%;
