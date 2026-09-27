@@ -32,6 +32,8 @@ export interface TeamMember {
   name: string;
   initials: string;
   /** Leave unset until confirmed; the card keeps the line's space so every card stays the same size. */
+  /** Role on the team, shown under the name. */
+  role: string;
   degree?: string;
   /** Profile photo under /public; the initials show until one is set. */
   photo?: string;
@@ -40,9 +42,9 @@ export interface TeamMember {
 }
 
 export const TEAM: TeamMember[] = [
-  { name: 'Aryan Sharma', initials: 'AS', degree: 'B.S. Agriculture', photo: '/team/aryan-sharma.jpg', photoPosition: '50% 20%' },
-  { name: 'Sahil Jain', initials: 'SJ', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
-  { name: 'Shashwat Goel', initials: 'SG', degree: 'B.S. Computer Science', photo: '/team/shashwat-goel.webp' },
-  { name: 'Sri Madur', initials: 'SM', degree: 'B.S. Mathematics' },
-  { name: 'Sidney Millen', initials: 'SM', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
+  { name: 'Aryan Sharma', initials: 'AS', role: 'Team lead & backend guru', degree: 'B.S. Agriculture', photo: '/team/aryan-sharma.jpg', photoPosition: '50% 20%' },
+  { name: 'Sri Madur', initials: 'SM', role: 'ML wizard', degree: 'B.S. Mathematics', photo: '/team/sri-madur.webp' },
+  { name: 'Sahil Jain', initials: 'SJ', role: 'Frontend nerd', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
+  { name: 'Shashwat Goel', initials: 'SG', role: 'Pipeline tester', degree: 'B.S. Computer Science', photo: '/team/shashwat-goel.webp' },
+  { name: 'Sidney Millen', initials: 'SM', role: 'Resident white-hat hacker', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
 ];
