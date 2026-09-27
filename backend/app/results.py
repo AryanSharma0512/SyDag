@@ -24,8 +24,8 @@ The numbers below only illustrate the shape.
       "model": {"name": "Random Forest", "validation": "leave-one-site-out, 3 sites",
                 "description": "...", "features": ["ndvi_tp1", "..."]},
       "interval": {"level": 0.9, "coverage": 0.86, "method": "split conformal"},
-      "performance": [{"dap": 57, "label": "TP1", "mae": 30.1, "rmse": 38.0, "r2": 0.21,
-                       "n": 900}, ...],
+      "performance": [{"dap": 57, "stage": "TP1", "label": "TP1", "mae": 30.1, "rmse": 38.0,
+                       "r2": 0.21, "n": 900}, ...],
       "earliest_useful_dap": 82,
       "earliest_useful_rule": "first stage whose MAE ...",
       "sites": [{"site": "Ames", "season": 2022, "plots": 256,
@@ -33,10 +33,15 @@ The numbers below only illustrate the shape.
                                 "lower": 160.0, "upper": 199.0}]}],
       "plots": [{"plot_id": "4231-17-3", "site": "Ames", "season": 2022,
                  "hybrid": "B73 X MO17", "nitrogen_lb_ac": 150, "planting_date": "2022-05-22",
-                 "irrigated": false,
-                 "forecasts": [{"date": "2022-08-12", "dap": 82, "yield": 184.0,
+                 "irrigated": false, "featured": true,
+                 "forecasts": [{"date": "2022-08-12", "dap": 82, "stage": "TP1", "yield": 184.0,
                                 "lower": 166.0, "upper": 194.0}],
                  "uav": {"dap": 80, "satellite_only": 184.0, "satellite_plus_uav": 181.0}}],
+      "site_performance": [{"site": "Ames", "season": 2022, "plots": 256, "folds": 5,
+                            "preseason": {"r2": 0.3, "mae": 21.0, "median_interval_width": 92},
+                            "stages": [{"stage": "TP1", "dap": 82, "r2": 0.4, "mae": 20.0,
+                                        "rmse": 25.0, "coverage": 0.91,
+                                        "median_interval_width": 84.0, "n": 256}]}],
       "maturity": [{"site": "Ames", "season": 2022, "plot_id": null, "as_of": "2022-08-12",
                     "gdd_since_planting": 1940, "gdd_to_maturity": 2700,
                     "window_start": "2022-09-18", "window_end": "2022-09-24",
@@ -50,6 +55,9 @@ The numbers below only illustrate the shape.
 
 `lower`/`upper` are the prediction range; `interval.coverage` is the share of validation
 yields inside it, which is what the website quotes (never a nominal level on its own).
+`stage` ties a forecast to its validation row (`performance[].stage`,
+`site_performance[].stages[].stage`): plots at one site can sit a day or two either side
+of the stage's DAP, so matching on DAP alone would pick the wrong row.
 The UAV panels fill only when `uav.matched` is true: the same plots, dates, validation
 split and model framework with and without UAV.
 """
@@ -88,7 +96,8 @@ class IntervalInfo(ApiModel):
 
 class StagePerformance(ApiModel):
     dap: int = Field(ge=0)  # days after planting of the latest data the stage can use
-    label: str | None = None  # e.g. "TP1-TP3"
+    stage: str | None = None  # key matching forecasts[].stage, e.g. "TP3"
+    label: str | None = None  # for people, e.g. "TP3 · site DAP 79–104"
     mae: float | None = Field(default=None, ge=0)
     rmse: float | None = Field(default=None, ge=0)
     r2: float | None = None
@@ -104,6 +113,7 @@ class StagePerformance(ApiModel):
 class ForecastPoint(ApiModel):
     date: date
     dap: int = Field(ge=0)
+    stage: str | None = None  # the validation stage this forecast belongs to, e.g. "TP3"
     yield_: float = Field(ge=0)
     lower: float | None = None
     upper: float | None = None
@@ -152,6 +162,9 @@ class PlotForecast(ApiModel):
     irrigated: bool | None = None
     forecasts: list[ForecastPoint] = Field(min_length=1)
     uav: PlotUav | None = None
+    # The plot the dashboard opens on at its site (e.g. the one closest to the site's
+    # median yield); the rule belongs in the model description, not here.
+    featured: bool = False
 
     @model_validator(mode="after")
     def _order(self) -> "PlotForecast":
@@ -176,6 +189,43 @@ class MaturityEstimate(ApiModel):
             raise ValueError("maturity window needs both window_start and window_end")
         if self.window_start and self.window_start > self.window_end:
             raise ValueError("maturity window_start is after window_end")
+        return self
+
+
+class ValidationMetrics(ApiModel):
+    r2: float | None = None
+    mae: float | None = Field(default=None, ge=0)
+    rmse: float | None = Field(default=None, ge=0)
+    coverage: float | None = Field(default=None, ge=0, le=1)  # share inside the range
+    median_interval_width: float | None = Field(default=None, ge=0)  # bu/ac, upper - lower
+    n: int | None = Field(default=None, ge=1)
+
+
+class SiteStage(ValidationMetrics):
+    stage: str  # matches forecasts[].stage
+    dap: int = Field(ge=0)  # the site's typical days after planting at this stage
+    dap_min: int | None = Field(default=None, ge=0)
+    dap_max: int | None = Field(default=None, ge=0)
+
+
+class SitePerformance(ApiModel):
+    """Validation of one site's own models: a baseline before any imagery, then each
+    satellite stage. The site-specific story the pooled `performance` rows cannot tell."""
+
+    site: str
+    season: int
+    plots: int | None = Field(default=None, ge=1)
+    folds: int | None = Field(default=None, ge=2)
+    preseason: ValidationMetrics | None = None  # field records only, before imagery
+    stages: list[SiteStage] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _order(self) -> "SitePerformance":
+        daps = [s.dap for s in self.stages]
+        if daps != sorted(daps):
+            raise ValueError(f"site_performance {self.site}: stages must be in DAP order")
+        if len({s.stage for s in self.stages}) != len(self.stages):
+            raise ValueError(f"site_performance {self.site}: each stage must appear once")
         return self
 
 
@@ -212,6 +262,7 @@ class _ResultsFile(ApiModel):
     earliest_useful_rule: str | None = None
     sites: list[SiteForecast] = Field(default_factory=list)
     plots: list[PlotForecast] = Field(default_factory=list)
+    site_performance: list[SitePerformance] = Field(default_factory=list)
     maturity: list[MaturityEstimate] = Field(default_factory=list)
     uav: UavComparison | None = None
 
@@ -223,6 +274,9 @@ class _ResultsFile(ApiModel):
         keys = [(p.site.lower(), p.season, p.plot_id) for p in self.plots]
         if len(set(keys)) != len(keys):
             raise ValueError("plots: each (site, season, plot_id) must appear once")
+        sites = [(s.site.lower(), s.season) for s in self.site_performance]
+        if len(set(sites)) != len(sites):
+            raise ValueError("site_performance: each (site, season) must appear once")
         return self
 
 
@@ -230,6 +284,7 @@ class PlotCount(ApiModel):
     site: str
     season: int
     plots: int
+    observations: int = 0  # dated forecasts across those plots
 
 
 class FinalResults(ApiModel):
@@ -248,6 +303,7 @@ class FinalResults(ApiModel):
     earliest_useful_rule: str | None = None
     sites: list[SiteForecast] = Field(default_factory=list)
     plot_counts: list[PlotCount] = Field(default_factory=list)
+    site_performance: list[SitePerformance] = Field(default_factory=list)
     maturity: list[MaturityEstimate] = Field(default_factory=list)
     uav: UavComparison | None = None
 
@@ -255,14 +311,17 @@ class FinalResults(ApiModel):
 class LoadedResults:
     def __init__(self, parsed: _ResultsFile) -> None:
         self.parsed = parsed
-        counts: dict[tuple[str, int], int] = {}
+        counts: dict[tuple[str, int], list[int]] = {}
         for p in parsed.plots:
-            counts[(p.site, p.season)] = counts.get((p.site, p.season), 0) + 1
+            c = counts.setdefault((p.site, p.season), [0, 0])
+            c[0] += 1
+            c[1] += len(p.forecasts)
         self.summary = FinalResults(
             status="ready",
             **parsed.model_dump(exclude={"plots"}),
             plot_counts=[
-                PlotCount(site=s, season=y, plots=n) for (s, y), n in sorted(counts.items())
+                PlotCount(site=s, season=y, plots=n, observations=o)
+                for (s, y), (n, o) in sorted(counts.items())
             ],
         )
 
@@ -318,6 +377,7 @@ def main(argv: list[str]) -> int:
     print(f"  earliest useful DAP {s.earliest_useful_dap}")
     print(f"  plots by site: {[(c.site, c.season, c.plots) for c in s.plot_counts]}")
     print(f"  site forecasts {len(s.sites)}, maturity estimates {len(s.maturity)}")
+    print(f"  site validation {[(v.site, len(v.stages)) for v in s.site_performance]}")
     uav = "none" if s.uav is None else "matched" if s.uav.matched else "not matched"
     print(f"  UAV comparison: {uav}")
     return 0

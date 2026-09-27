@@ -18,6 +18,7 @@ const PENDING: FinalResults = {
   performance: [],
   sites: [],
   plotCounts: [],
+  sitePerformance: [],
   maturity: [],
   uav: null,
 };
