@@ -1,16 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
   <style>
-    .soil { stroke: #A66A3F; }
-    .leaf { fill: #086C4C; }
-    .arc { stroke: #086C4C; }
+    .soil { stroke: #A2653A; } .soil2 { stroke: #D4B2A0; }
+    .leaf { fill: #17684B; } .stem { stroke: #17684B; } .echo { stroke: #97C5A9; }
     @media (prefers-color-scheme: dark) {
-      .soil { stroke: #D3A882; }
-      .leaf { fill: #5FBF95; }
-      .arc { stroke: #5FBF95; }
+      .soil { stroke: #D3A882; } .soil2 { stroke: #8A6A55; }
+      .leaf { fill: #5FBF95; } .stem { stroke: #5FBF95; } .echo { stroke: #3F7F62; }
     }
   </style>
-  <path class="soil" d="M10.5 24.6H26" stroke-width="3" stroke-linecap="round"/>
-  <path class="soil" d="M6 29.1H19" stroke-width="3" stroke-linecap="round" opacity=".5"/>
-  <path class="leaf" d="M9.6 14C14.4 12.7 21.8 15.1 23.4 20.4C18.6 21.7 11.2 19.3 9.6 14Z"/>
-  <path class="arc" d="M22.38 8.61A7 7 0 0 0 9.27 10.93" stroke-width="3.2" stroke-linecap="round"/>
+  <g stroke-linecap="round">
+    <path class="soil" d="M6.7 25.66H26.84" stroke-width="2.6"/>
+    <path class="soil2" d="M3.61 30.16H19.02" stroke-width="2.6"/>
+    <path class="leaf" d="M5.99 9.78C11.2 9.01 15.05 12.27 16.06 16.53L15.64 18.07C10.61 18.67 6.46 15.23 5.99 9.78Z"/>
+    <path class="stem" d="M16.18 24.12C16.06 17.01 17.13 13.45 20.21 10.01" stroke-width="2.1"/>
+    <circle class="leaf" cx="20.21" cy="10.01" r="1.7"/>
+    <path class="stem" d="M20.21 5.27A4.74 4.74 0 0 1 24.95 10.01" stroke-width="2.1"/>
+    <path class="echo" d="M20.21 1.48A8.53 8.53 0 0 1 28.74 10.01" stroke-width="2.1"/>
+  </g>
 </svg>
