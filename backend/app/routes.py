@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.forecast.evaluation import imagery_ablation
 from app.model.artifact import ArtifactError, FeatureValidationError, ModelArtifact, ModelRegistry
 from app.providers import ForecastProvider, ProviderError, get_provider, get_registry
+from app.results import PENDING, FinalResults, PlotForecast, ResultsError, load_results
 from app.schemas import (
     DecisionSet,
     FeatureImportanceItem,
@@ -22,7 +23,9 @@ from app.schemas import (
     SoilContext,
     WeatherContext,
 )
-from app.weather_outlook.service import OutlookRequestError, weather_outlook
+from app.sites import SiteForecasts, SiteWeather, TrialSite, load_sites
+from app.weather_outlook.history import LibraryError
+from app.weather_outlook.service import OutlookRequestError, get_engine, weather_outlook
 
 router = APIRouter(prefix="/api")
 
@@ -83,9 +86,12 @@ def health() -> Health:
 
 # Optional fields the provider leaves unset are omitted, matching `field?: T` in the TS types.
 @router.get("/fields", response_model_exclude_none=True)
-def list_fields(provider: Provider) -> list[FieldMeta]:
-    """The featured plots. Every plot in /api/decisions also resolves by id below."""
-    return provider.list_fields()
+def list_fields(provider: Provider, site: str | None = None) -> list[FieldMeta]:
+    """The featured plots. With `site`, every plot with a forecast at that trial site
+    (the location selector's plot list). Every plot in /api/decisions resolves by id below."""
+    if site is None:
+        return provider.list_fields()
+    return [f for f in provider.list_plots() if (f.site or "").lower() == site.lower()]
 
 
 @router.get("/fields/{field_id}", response_model_exclude_none=True)
@@ -167,6 +173,89 @@ def get_weather_outlook(
         return weather_outlook(site, as_of_date, horizon_days, planting_date, library)
     except OutlookRequestError as err:
         raise HTTPException(status_code=err.status, detail=str(err)) from err
+
+
+def _final_results():
+    try:
+        return load_results(get_settings().model_dir)
+    except ResultsError as err:
+        raise HTTPException(status_code=503, detail=str(err)) from err
+
+
+@router.get("/results")
+def get_results() -> FinalResults:
+    """The frozen final results (app/results.py), without the per-plot forecasts.
+    `pending` until artifacts/final_results.json exists; 503 if it is malformed."""
+    loaded = _final_results()
+    return loaded.summary if loaded else PENDING
+
+
+@router.get("/results/plots")
+def get_result_plots(site: str, season: int | None = None) -> list[PlotForecast]:
+    """Per-plot forecasts from the final results for one site (and season). Empty while
+    the results are pending or when the site has none."""
+    loaded = _final_results()
+    return loaded.plots(site, season) if loaded else []
+
+
+@router.get("/sites", response_model_exclude_none=True)
+def list_sites() -> list[TrialSite]:
+    """The trial sites (data/trial_sites.json) with what this deployment can show for
+    each: weather history for the outlook, and plots with forecasts. Each part is filled
+    independently, so a missing weather library or model never hides the sites."""
+    settings = get_settings()
+    try:
+        library = get_engine(settings.weather_outlook_library).library
+    except LibraryError:
+        library = None
+    try:
+        live = get_provider().list_plots()
+    except (ProviderError, ArtifactError):
+        live = []
+    try:
+        final = load_results(settings.model_dir)
+    except ResultsError:
+        final = None
+
+    out = []
+    for site in load_sites(settings.sites_file):
+        key = site.id.lower()
+        weather = None
+        if library is not None:
+            match = next((s for s in library.sites.values() if s.name.lower() == key), None)
+            if match is not None and match.seasons:
+                weather = SiteWeather(
+                    library_site=match.name,
+                    seasons=len(match.seasons),
+                    first_season=min(match.seasons),
+                    last_season=max(match.seasons),
+                    station=match.station.get("name"),
+                    analog_weighting=match.analog_weighting,
+                )
+        live_here = [f for f in live if (f.site or "").lower() == key]
+        final_here = (
+            [c for c in final.summary.plot_counts if c.site.lower() == key] if final else []
+        )
+        site_series = [s for s in final.summary.sites if s.site.lower() == key] if final else []
+        seasons = (
+            {f.season for f in live_here}
+            | {c.season for c in final_here}
+            | {s.season for s in site_series}
+        )
+        out.append(
+            site.model_copy(
+                update={
+                    "weather": weather,
+                    "forecasts": SiteForecasts(
+                        live_plots=len(live_here),
+                        final_plots=sum(c.plots for c in final_here),
+                        final_site_forecast=bool(site_series),
+                        seasons=sorted(seasons),
+                    ),
+                }
+            )
+        )
+    return out
 
 
 @router.get("/models")

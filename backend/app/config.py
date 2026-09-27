@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # by `python -m soilsignal_ml.weather_outlook history`; `long` is the default.
     weather_history_dir: Path = BACKEND_ROOT / "data" / "weather_history"
     weather_outlook_library: str = "long"
+    # Trial-site registry for the map and location selector (/api/sites), written by
+    # scripts/export_trial_sites.py from the challenge inventory.
+    sites_file: Path = BACKEND_ROOT / "data" / "trial_sites.json"
 
     @field_validator("nass_api_key", mode="before")
     @classmethod
