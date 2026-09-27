@@ -5,16 +5,18 @@
 
 export const APP_CONFIG = {
   name: 'SoilSignal',
-  tagline: 'See the season before harvest.',
+  tagline: 'Know the season before harvest.',
   subtitle:
-    'Maize plot yield forecasts from satellite imagery and field records, with the plots most worth scouting.',
+    'SoilSignal uses satellite imagery, field records and weather history to estimate final maize yield during the growing season.',
   version: '1.0.0-hackathon',
   datasetLabel: 'Demo Data',
   // Build with VITE_DEMO_MODE=false to fetch from the SoilSignal API instead of src/mock.
   demoMode: import.meta.env.VITE_DEMO_MODE !== 'false',
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
   defaultFieldId: 'purdue-104',
-  defaultDateIndex: 4,
+  // Forecast date the live models open on (index into a plot's forecast dates): mid-season,
+  // before harvest. The final results open on their own earliest useful stage instead.
+  defaultDateIndex: 2,
   seasonYear: 2026,
   // Validation MAE (bu/ac) the team treats as good enough to act on. Unset until the team
   // agrees one; when set, the model reliability chart draws it as a reference line.

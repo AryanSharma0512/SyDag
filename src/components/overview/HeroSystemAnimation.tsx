@@ -12,7 +12,7 @@ import { MARK_PATHS } from '../brand/SignalMark';
  *   2. crop shoots emerge
  *   3. fine rain traces pass through
  *   4. a satellite pass sweeps the field and lights up field zones
- *   5. soil, weather and spectral signal nodes activate and converge on SoilSignal
+ *   5. field-record, weather and spectral nodes activate and feed SoilSignal
  *   6. the signal resolves into a yield forecast curve
  * Afterwards only ambient motion remains: an occasional leaf shift, one data
  * pulse, a slow contour drift and a signal emission every ~10s.
@@ -59,7 +59,7 @@ const DESKTOP: SceneConfig = {
   nodes: {
     spectral: { x: 700, y: 132, label: 'Spectral', color: C.leaf500, labelSide: 'left' },
     weather: { x: 236, y: 188, label: 'Weather', color: C.rain500, labelSide: 'left' },
-    soil: { x: 478, y: 466, label: 'Soil', color: C.soil500, labelSide: 'left' },
+    soil: { x: 478, y: 466, label: 'Field records', color: C.soil500, labelSide: 'left' },
   },
   hub: { x: 848, y: 232, r: 25 },
   card: { x: 902, y: 88, w: 270, h: 222 },
@@ -82,7 +82,7 @@ const MOBILE: SceneConfig = {
   nodes: {
     spectral: { x: 400, y: 148, label: 'Spectral', color: C.leaf500, labelSide: 'left' },
     weather: { x: 120, y: 210, label: 'Weather', color: C.rain500, labelSide: 'left' },
-    soil: { x: 236, y: 470, label: 'Soil', color: C.soil500, labelSide: 'left' },
+    soil: { x: 236, y: 470, label: 'Field records', color: C.soil500, labelSide: 'left' },
   },
   hub: { x: 506, y: 270, r: 30 },
   card: { x: 552, y: 150, w: 158, h: 236 },
@@ -347,7 +347,7 @@ export function HeroSystemAnimation() {
         ...(reduce ? {} : { scaleX, scaleY, opacity, y: lift, originY: 1 }),
       }}
       role="img"
-      aria-label="Illustration: a maize plot is planted and grows, rain passes and a satellite images the plot. Imagery, weather and soil feed SoilSignal, which produces a yield forecast curve."
+      aria-label="Illustration: a maize plot is planted and grows, rain passes and a satellite images the plot. Imagery, weather and the field record feed SoilSignal, which produces a yield forecast curve."
     >
       {/* Background topographic contours, on their own layer so drifting stays on the compositor. */}
       <motion.svg

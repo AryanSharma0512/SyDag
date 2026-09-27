@@ -10,13 +10,14 @@ import { bandPath, monotonePath, scaleLinear, toTime } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { useElementWidth } from '../../utils/hooks';
 import { PALETTE as C } from '../../utils/palette';
-import { ratingLabel, shortCropName } from '../../utils/formatters';
+import { shortCropName } from '../../utils/formatters';
 import { Link } from '../../utils/router';
+import { daysAfterPlanting } from '../../services/plotForecasts';
 
 const INPUTS = [
   { label: 'Satellite imagery', color: C.leaf500 },
   { label: 'Field record', color: C.inkSoft },
-  { label: 'Weather & soil', color: C.rain500 },
+  { label: 'Weather', color: C.rain500 },
 ];
 
 /**
@@ -65,6 +66,7 @@ export function ForecastPreview() {
   }, [linesWidth]);
 
   const snapshot = forecast?.snapshots[Math.min(APP_CONFIG.defaultDateIndex, (forecast?.snapshots.length ?? 1) - 1)];
+  const dap = snapshot ? daysAfterPlanting(forecast?.field.plantingDate, snapshot.date) : null;
 
   return (
     <section className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 sm:pt-16 sm:pb-10" aria-labelledby="preview-heading">
@@ -92,7 +94,7 @@ export function ForecastPreview() {
           animate={shown ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.1 }}
         >
-          The line is the predicted final yield and the band is its 90% range. Each point uses only the imagery and
+          The line is the predicted final yield and the band is its prediction range. Each point uses only the imagery and
           records available by that date.
         </motion.p>
       </div>
@@ -182,13 +184,17 @@ export function ForecastPreview() {
                 <span className="data text-[14px] text-ink-soft">{snapshot.displayDate}</span>
               </div>
               <div className="mt-5 grid grid-cols-3 divide-x divide-line">
-                <PreviewMetric value={snapshot.yield.toFixed(1)} unit="bu/ac" label="Predicted yield" />
+                <PreviewMetric value={snapshot.yield.toFixed(0)} unit="bu/ac" label="Final yield forecast" />
                 <PreviewMetric
                   value={`${Math.round(snapshot.lowerBound)}–${Math.round(snapshot.upperBound)}`}
                   unit="bu/ac"
-                  label="90% range"
+                  label="Prediction range"
                 />
-                <PreviewMetric value={`${snapshot.confidence}%`} unit="confidence" label={ratingLabel(snapshot.confidenceRating)} />
+                {dap !== null ? (
+                  <PreviewMetric value={String(dap)} unit="days after planting" label={`As of ${snapshot.displayDate}`} />
+                ) : (
+                  <PreviewMetric value={snapshot.displayDate} unit={snapshot.stage} label="Forecast date" />
+                )}
               </div>
               <PreviewChart forecast={forecast} activeIndex={APP_CONFIG.defaultDateIndex} play={shown} />
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
@@ -197,9 +203,10 @@ export function ForecastPreview() {
                 </span>
                 <Link
                   to="dashboard"
+                  query={forecast.field.site ? { site: forecast.field.site, plot: forecast.field.plotId ?? null } : undefined}
                   className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-leaf-700 hover:text-leaf-800"
                 >
-                  Review plots
+                  View forecast
                   <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Link>
               </div>

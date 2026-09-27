@@ -22,7 +22,7 @@ interface HybridRow {
   plots: number;
   meanYield: number;
   spread: number; // standard deviation of the plot forecasts
-  halfRange: number; // mean half-width of the 90% range
+  halfRange: number; // mean half-width of the prediction range
   sites: number;
 }
 
@@ -93,7 +93,7 @@ export function HybridPerformance({ plots, asOfLabel }: { plots: PlotDecision[];
               <th scope="col" className={`px-2 py-2.5 text-right font-medium ${sort === 'consistent' ? 'text-ink' : ''}`} title="Standard deviation of the plot forecasts, bu/ac">
                 Plot spread
               </th>
-              <th scope="col" className={`px-2 py-2.5 text-right font-medium ${sort === 'uncertain' ? 'text-ink' : ''}`} title="Mean half-width of the 90% range, bu/ac">
+              <th scope="col" className={`px-2 py-2.5 text-right font-medium ${sort === 'uncertain' ? 'text-ink' : ''}`} title="Mean half-width of the prediction range, bu/ac">
                 Typical range
               </th>
               <th scope="col" className="py-2.5 pr-4 pl-2 text-right font-medium">Sites</th>

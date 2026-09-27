@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { RotateCcw, Wrench, X } from 'lucide-react';
-import type { FieldMeta } from '../../types/agricultural';
+import type { TrialSite } from '../../types/sites';
 import { useDismiss } from '../../utils/hooks';
 import { EASE_OUT } from '../../utils/motion';
 
 interface DebugPanelProps {
-  fields: FieldMeta[];
-  selectedFieldId: string;
-  onSelectField: (fieldId: string) => void;
+  sites: TrialSite[];
+  selectedSiteId: string;
+  onSelectSite: (siteId: string) => void;
   simulateLoading: boolean;
   onToggleLoading: () => void;
   simulateMissingSatellite: boolean;
@@ -70,22 +70,22 @@ export function DebugPanel(props: DebugPanelProps) {
             </div>
 
             <div className="border-t border-line px-2 pt-3 pb-2">
-              <div className="text-[12px] text-muted">Scenario</div>
+              <div className="text-[12px] text-muted">Location</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {props.fields.map((f, i) => {
-                  const active = f.id === props.selectedFieldId;
+                {props.sites.map((f, i) => {
+                  const active = f.id === props.selectedSiteId;
                   return (
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => props.onSelectField(f.id)}
+                      onClick={() => props.onSelectSite(f.id)}
                       aria-pressed={active}
                       title={`Shortcut: ${i + 1}`}
                       className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
                         active ? 'border-leaf-700 bg-leaf-700 text-white' : 'border-line text-ink-soft hover:border-line-strong'
                       }`}
                     >
-                      {f.name.replace(' Plot ', ' ').replace(' Field ', ' ')}
+                      {f.name}
                     </button>
                   );
                 })}
@@ -100,7 +100,7 @@ export function DebugPanel(props: DebugPanelProps) {
             </div>
 
             <div className="mt-1 flex items-center justify-between border-t border-line px-2 pt-3 pb-1">
-              <span className="data text-[11px] leading-relaxed text-faint">← → dates · 1–5 fields · R reset · F present</span>
+              <span className="data text-[11px] leading-relaxed text-faint">← → dates · 1–9 locations · R reset · F present</span>
               <button
                 type="button"
                 onClick={props.onReset}

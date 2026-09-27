@@ -1,123 +1,140 @@
 import { motion, useReducedMotion } from 'motion/react';
-import type { ForecastSnapshot } from '../../types/agricultural';
+import type { ForecastPoint, TypicalError } from '../../services/plotForecasts';
 import { AnimatedNumber } from '../common/AnimatedNumber';
 import { DATA_TRANSITION } from '../../utils/motion';
-import { ratingLabel } from '../../utils/formatters';
+import { formatFullDay } from '../../utils/imagery';
 
 interface ForecastSummaryProps {
-  snapshot: ForecastSnapshot;
+  point: ForecastPoint;
   /** The forecast date before this one, for the change since then. */
-  previous?: ForecastSnapshot;
+  previous?: ForecastPoint;
   /** Range of bounds across the season; the range glyph is drawn against it. */
   seasonDomain: [number, number];
+  /** Validation error for this point in the season; null while it is not published. */
+  typicalError: TypicalError | null;
   isPresentationMode?: boolean;
 }
 
-const RATING_TONE: Record<ForecastSnapshot['confidenceRating'], { bar: string; dot: string }> = {
-  HIGH: { bar: 'bg-leaf-600', dot: 'bg-leaf-600' },
-  MODERATE: { bar: 'bg-sun-500', dot: 'bg-sun-500' },
-  LOW: { bar: 'bg-faint', dot: 'bg-faint' },
-};
-
 /**
- * The three numbers that lead the dashboard. Deliberately light: no boxes,
- * vertical hairlines between columns, values that count to their new state.
+ * The first thing the dashboard answers: final yield, its prediction range, and how
+ * far into the season the forecast is. There is deliberately no "confidence %": the
+ * old heuristic was not a probability. Error is shown as validation MAE in bu/ac.
  */
-export function ForecastSummary({ snapshot, previous, seasonDomain, isPresentationMode = false }: ForecastSummaryProps) {
+export function ForecastSummary({
+  point,
+  previous,
+  seasonDomain,
+  typicalError,
+  isPresentationMode = false,
+}: ForecastSummaryProps) {
   const reduce = useReducedMotion();
   const transition = reduce ? { duration: 0 } : DATA_TRANSITION;
-  const valueSize = isPresentationMode
-    ? 'text-[46px] sm:text-[60px]'
-    : 'text-[40px] sm:text-[50px]';
-  const secondarySize = isPresentationMode ? 'text-[30px] sm:text-[60px]' : 'text-[26px] sm:text-[50px]';
+  const hero = isPresentationMode ? 'text-[88px] sm:text-[112px]' : 'text-[64px] sm:text-[84px]';
+  const value = isPresentationMode ? 'text-[26px] sm:text-[30px]' : 'text-[21px] sm:text-[24px]';
+  const label = isPresentationMode ? 'text-[15px]' : 'text-[13px]';
 
+  const hasRange = point.lowerBound !== null && point.upperBound !== null;
   const [d0, d1] = seasonDomain;
   const span = Math.max(1, d1 - d0);
-  const rangeStart = (snapshot.lowerBound - d0) / span;
-  const rangeWidth = (snapshot.upperBound - snapshot.lowerBound) / span;
-  const pointAt = (snapshot.yield - d0) / span;
-  const tone = RATING_TONE[snapshot.confidenceRating];
-  const change = previous ? Math.round((snapshot.yield - previous.yield) * 10) / 10 : null;
+  const rangeStart = hasRange ? (point.lowerBound! - d0) / span : 0;
+  const rangeWidth = hasRange ? (point.upperBound! - point.lowerBound!) / span : 0;
+  const pointAt = (point.yield - d0) / span;
+  const change = previous ? Math.round(point.yield - previous.yield) : null;
 
   return (
-    <section aria-label="Forecast summary" className="grid grid-cols-2 gap-y-6 sm:grid-cols-3">
-      <div className="col-span-2 border-b border-line pb-6 sm:col-span-1 sm:border-r sm:border-b-0 sm:pr-8 sm:pb-0">
-        <div className={`data-tight leading-none font-medium text-ink ${valueSize}`}>
-          <AnimatedNumber value={snapshot.yield} decimals={1} from={0} />
-        </div>
-        <div className="data mt-2 text-[13px] text-muted">bu/ac</div>
-        <div className="mt-3 text-[14px] text-ink-soft">Predicted yield</div>
-      </div>
-
-      <div className="border-r border-line pr-4 sm:px-8">
-        <div className={`data-tight leading-none font-medium whitespace-nowrap text-ink ${secondarySize}`}>
-          <AnimatedNumber value={snapshot.lowerBound} decimals={0} from={0} />
-          <span className="text-faint">–</span>
-          <AnimatedNumber value={snapshot.upperBound} decimals={0} from={0} />
-        </div>
-        <div className="data mt-2 text-[13px] text-muted">bu/ac</div>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="text-[14px] text-ink-soft">90% range</span>
-          <div className="relative hidden h-1.5 w-24 overflow-x-clip rounded-full bg-mist sm:block" aria-hidden="true">
-            <motion.div
-              className="absolute inset-y-0 left-0 w-full origin-left rounded-full bg-leaf-200"
-              initial={false}
-              animate={{ x: `${rangeStart * 100}%`, scaleX: rangeWidth }}
-              transition={transition}
-            />
-            <motion.div className="absolute inset-0" initial={false} animate={{ x: `${pointAt * 100}%` }} transition={transition}>
-              <span className="absolute -top-[3px] left-0 -ml-px h-3 w-[2px] rounded-full bg-leaf-700" />
-            </motion.div>
-          </div>
-        </div>
-      </div>
-
-      <div className="pl-4 sm:pl-8">
-        <div className={`data-tight leading-none font-medium text-ink ${secondarySize}`}>
-          <AnimatedNumber value={snapshot.confidence} decimals={0} from={0} />
-          <span className="text-faint">%</span>
-        </div>
-        <div className="data mt-2 text-[13px] text-muted">confidence</div>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 text-[14px] text-ink-soft">
-            <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} aria-hidden="true" />
-            {ratingLabel(snapshot.confidenceRating)}
+    <section
+      aria-label="Final yield forecast"
+      className="grid gap-8 rounded-2xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12"
+    >
+      <div>
+        <p className={`font-medium tracking-[0.08em] text-leaf-700 uppercase ${label}`}>Final yield forecast</p>
+        <div className="mt-3 flex items-baseline gap-3">
+          <span className={`leading-none font-semibold tracking-[-0.045em] text-ink ${hero}`}>
+            <AnimatedNumber value={point.yield} decimals={0} from={0} />
           </span>
-          <div className="relative hidden h-1.5 w-24 overflow-hidden rounded-full bg-mist sm:block" aria-hidden="true">
-            <motion.div
-              className={`absolute inset-y-0 left-0 w-full origin-left rounded-full ${tone.bar}`}
-              initial={false}
-              animate={{ scaleX: snapshot.confidence / 100 }}
-              transition={transition}
-            />
-          </div>
+          <span className={`font-medium text-muted ${isPresentationMode ? 'text-[26px]' : 'text-[20px]'}`}>bu/ac</span>
         </div>
+        {previous && change !== null ? (
+          <p className={`mt-4 text-muted ${label}`} aria-live="polite">
+            <span
+              className={`data font-medium ${change <= -5 ? 'text-stress-600' : change >= 5 ? 'text-leaf-700' : 'text-ink-soft'}`}
+            >
+              {change > 0 ? '+' : change < 0 ? '−' : '±'}
+              {Math.abs(change)} bu/ac
+            </span>{' '}
+            since the {previous.displayDate} forecast
+          </p>
+        ) : (
+          <p className={`mt-4 text-muted ${label}`}>First forecast of the season.</p>
+        )}
       </div>
 
-      <dl className="col-span-2 flex flex-wrap items-baseline gap-x-8 gap-y-1 border-t border-line pt-4 text-[14px] sm:col-span-3" aria-live="polite">
-        {previous && change !== null ? (
-          <>
-            <div className="flex items-baseline gap-2">
-              <dt className="text-muted">
-                Previous forecast, <span className="data">{previous.displayDate}</span>
-              </dt>
-              <dd className="data text-ink-soft tabular-nums">{previous.yield.toFixed(1)}</dd>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <dt className="text-muted">Change</dt>
-              <dd
-                className={`data font-medium tabular-nums ${change <= -5 ? 'text-stress-600' : change >= 5 ? 'text-leaf-700' : 'text-ink'}`}
-              >
-                {change > 0 ? '+' : change < 0 ? '−' : '±'}
-                {Math.abs(change).toFixed(1)} <span className="font-normal text-muted">bu/ac</span>
+      <dl className="grid content-center gap-5 border-t border-line pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-12">
+        <div>
+          <dt className={`text-muted ${label}`}>Prediction range</dt>
+          <dd className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {hasRange ? (
+              <>
+                <span className={`data font-medium whitespace-nowrap text-ink ${value}`}>
+                  <AnimatedNumber value={point.lowerBound!} decimals={0} from={0} />
+                  <span className="text-faint"> – </span>
+                  <AnimatedNumber value={point.upperBound!} decimals={0} from={0} />
+                  <span className="ml-1.5 text-[0.6em] font-normal text-muted">bu/ac</span>
+                </span>
+                <span className="relative hidden h-1.5 w-28 overflow-x-clip rounded-full bg-mist sm:block" aria-hidden="true">
+                  <motion.span
+                    className="absolute inset-y-0 left-0 block w-full origin-left rounded-full bg-leaf-200"
+                    initial={false}
+                    animate={{ x: `${rangeStart * 100}%`, scaleX: rangeWidth }}
+                    transition={transition}
+                  />
+                  <motion.span
+                    className="absolute inset-0 block"
+                    initial={false}
+                    animate={{ x: `${pointAt * 100}%` }}
+                    transition={transition}
+                  >
+                    <span className="absolute -top-[3px] left-0 -ml-px h-3 w-[2px] rounded-full bg-leaf-700" />
+                  </motion.span>
+                </span>
+              </>
+            ) : (
+              <span className={`text-muted ${label}`}>Not published for this forecast.</span>
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt className={`text-muted ${label}`}>As of</dt>
+          <dd className={`mt-1 font-medium text-ink ${value}`}>
+            {point.dap !== null ? (
+              <>
+                <span className="data">{point.dap}</span> days after planting
+              </>
+            ) : (
+              <span className="data">{point.displayDate}</span>
+            )}
+          </dd>
+          <dd className={`mt-0.5 text-muted ${label}`}>
+            {formatFullDay(point.date)}
+            {point.stage ? ` · ${point.stage} stage` : ''}
+          </dd>
+        </div>
+
+        <div>
+          <dt className={`text-muted ${label}`}>Typical validation error</dt>
+          {typicalError ? (
+            <>
+              <dd className={`data mt-1 font-medium text-ink ${value}`}>
+                ±{Math.round(typicalError.mae)}
+                <span className="ml-1.5 text-[0.6em] font-normal text-muted">bu/ac</span>
               </dd>
-            </div>
-          </>
-        ) : (
-          <div>
-            <dt className="text-muted">First forecast of the season; no earlier forecast to compare with.</dt>
-          </div>
-        )}
+              <dd className={`mt-0.5 text-muted ${label}`}>Average miss {typicalError.basis}</dd>
+            </>
+          ) : (
+            <dd className={`mt-1 text-muted ${label}`}>Published with the final model results.</dd>
+          )}
+        </div>
       </dl>
     </section>
   );

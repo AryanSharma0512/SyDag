@@ -7,6 +7,7 @@ import { Reveal } from '../common/Reveal';
 import { HeroSystemAnimation } from './HeroSystemAnimation';
 import { ForecastPreview } from './ForecastPreview';
 import { Principles } from './Principles';
+import { TrialSiteMap } from './TrialSiteMap';
 
 export function OverviewPage() {
   const reduce = useReducedMotion();
@@ -28,25 +29,24 @@ export function OverviewPage() {
             {APP_CONFIG.tagline}
           </motion.h1>
           <motion.p
-            className="mt-5 max-w-[34rem] text-[17px] leading-relaxed text-pretty text-muted sm:text-[19px]"
+            className="mt-5 max-w-[36rem] text-[17px] leading-relaxed text-pretty text-muted sm:text-[19px]"
             {...rise(0.15)}
           >
-            Estimate end-of-season maize yield from satellite imagery and field records, then identify the plots where a
-            scouting visit could matter most.
+            {APP_CONFIG.subtitle}
           </motion.p>
           <motion.div className="mt-8 flex flex-wrap items-center gap-3" {...rise(0.25)}>
             <Link
               to="dashboard"
               className="lift group inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white shadow-[0_1px_2px_rgb(8_108_76/0.25)] hover:bg-leaf-800 hover:shadow-lift"
             >
-              Review plots
+              View forecast
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
             <Link
               to="methodology"
               className="lift inline-flex items-center rounded-full border border-line-strong bg-surface px-5 py-2.5 text-[15px] font-medium text-ink hover:border-faint hover:shadow-float"
             >
-              See the method
+              How it works
             </Link>
           </motion.div>
           <motion.div {...rise(0.32)}>
@@ -58,16 +58,18 @@ export function OverviewPage() {
         </div>
       </section>
 
-      <ForecastPreview />
+      <TrialSiteMap />
 
       <Principles />
+
+      <ForecastPreview />
 
       <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <Reveal className="flex flex-col gap-6 border-t border-line pt-10 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-ink sm:text-[26px]">Review the trial.</h2>
+            <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-ink sm:text-[26px]">See the forecast.</h2>
             <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted">
-              Sort every plot by forecast range or predicted yield, then open any plot's season.
+              Start with the yield estimate, then open the methodology when you want the technical detail.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -75,14 +77,14 @@ export function OverviewPage() {
               to="dashboard"
               className="lift inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white hover:bg-leaf-800 hover:shadow-lift"
             >
-              Review plots
+              View forecast
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="about"
+              to="methodology"
               className="lift inline-flex items-center rounded-full border border-line-strong px-5 py-2.5 text-[15px] font-medium text-ink hover:border-faint"
             >
-              Meet the team
+              How it works
             </Link>
           </div>
         </Reveal>
@@ -91,8 +93,8 @@ export function OverviewPage() {
   );
 }
 
-/** What the challenge covers. It describes the challenge, not what this deployment runs on. */
-const SCOPE = ['Maize plots', 'Nebraska + Iowa', '2022–2023 trials', 'Six-band satellite imagery'];
+/** What the challenge covers (see backend/data/trial_sites.json). It describes the challenge, not this deployment. */
+const SCOPE = ['Maize trial plots', 'Iowa + Nebraska', '2022 season', 'Six-band satellite imagery'];
 
 function ChallengeScope() {
   return (

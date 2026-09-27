@@ -3,7 +3,7 @@
 What exists, where it lives, and what to run or call to move the site from the
 practice data to the challenge data. **Keep this file updated in the same PR as any structural change.**
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ---
 
@@ -47,7 +47,9 @@ In order. **Ready** = built and tested. **Not built** = still to do.
 | 10 | Remove the dummy models | Delete `backend/artifacts/dummy-*` locally and on the server (the registry would mix them with real cutoffs) | — |
 | 11 | Public data for the real fields | Give each field its real `latitude`/`longitude`; soil, observed weather and county yields load automatically through `/api/context/all`. Regenerate the demo snapshot with `cd backend && uv run python -m scripts.snapshot_context` | Ready |
 | 11b | Publish the imagery comparison | Write `backend/artifacts/imagery_ablation.json` (validation MAE with and without imagery; format in `backend/app/forecast/evaluation.py`) and deploy it with the models. The dashboard shows "Waiting for the current training run." until it exists | Ready (file to write) |
-| 11c | Historical weather outlook | Put the challenge weather file in `ml/data/raw/weather/`, then `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml.weather_outlook history` (NOAA/IEM download, season QC, publishes `backend/data/weather_history/{supplied,long}/`) and `... backtest --library long`. Serve with `GET /api/weather-outlook`. Method and results: `ml/research/weather_outlook.md` | Ready (no dashboard section yet) |
+| 11c | Historical weather outlook | Put the challenge weather file in `ml/data/raw/weather/`, then `cd ml && uv run --project ../backend --group ml python -m soilsignal_ml.weather_outlook history` (NOAA/IEM download, season QC, publishes `backend/data/weather_history/{supplied,long}/`) and `... backtest --library long`. Serve with `GET /api/weather-outlook`. Method and results: `ml/research/weather_outlook.md` | Ready (dashboard "Historical weather outlook") |
+| 11d | **Publish the frozen final results** | Write `final_results.json` (contract in `backend/app/results.py`, walkthrough in `docs/FINAL_RESULTS_CONTRACT.md`), check it with `cd backend && uv run python -m app.results <file>`, copy it to `backend/artifacts/` locally and on the server (the folder is mounted; no restart or rebuild). Feeds "How early can we know?", the typical validation error, per-plot forecasts by location, maturity, and satellite vs UAV | Ready (file to write) |
+| 11e | Trial-site registry | After the challenge inventory changes: `cd backend && uv run --group ml python -m scripts.export_trial_sites` (writes `backend/data/trial_sites.json` and `src/mock/trialSites.ts`); served by `GET /api/sites` | Ready |
 | 12 | County yield history | Locally the key is in `backend/.env` (git-ignored). On the server, put `SOILSIGNAL_NASS_API_KEY=...` in a `.env` next to `compose.sydag.yml` and restart the backend. **Never commit the key: the repo is public** | Ready (add the key on the server) |
 
 ---
@@ -59,7 +61,10 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | Method | Endpoint | Called by / when | Returns |
 |--------|----------|------------------|---------|
 | GET | `/api/health` | Deploy checks, Docker healthcheck, navigation badge | `status`, `version`, `dataSource` (`model`, `mock`, or `unavailable`), `modelsLoaded`, `datasetLabel` ("Practice data") |
-| GET | `/api/fields` | Frontend `getFields()` | `FieldMeta[]`: the featured plots, with `plotId`, `site`, `hybrid`, `nitrogenLbAc`, `plantingDate` when the bundle has them |
+| GET | `/api/fields?site=` | Frontend `getFields()`; with `site`, the dashboard's plot picker (`getSitePlots()`) | `FieldMeta[]`: the featured plots, with `plotId`, `site`, `hybrid`, `nitrogenLbAc`, `plantingDate` when the bundle has them. With `site`, every plot with a forecast at that trial site |
+| GET | `/api/sites` | Overview map, dashboard location bar, Data and Methodology pages (`getTrialSites()`) | `TrialSite[]` (`backend/app/sites.py`): the five trial sites from `data/trial_sites.json` (state, coordinates, irrigation, plots, satellite and UAV acquisitions and usable plot images per season), plus what this deployment can show: `weather` (weather-library key, seasons, station, whether similar seasons are weighted) and `forecasts` (live-model plots, final-result plots, seasons) |
+| GET | `/api/results` | Dashboard and Methodology (`getFinalResults()`) | `FinalResults` (`backend/app/results.py`): `status` `pending` until `artifacts/final_results.json` exists, then model, validation, performance by days after planting (R², MAE, RMSE), earliest useful DAP, site forecasts, plot counts, maturity, satellite vs UAV. `503` naming the problem if the file is malformed |
+| GET | `/api/results/plots?site=&season=` | Dashboard plot picker and forecast when the final results cover a site (`getResultPlots()`) | Per-plot forecasts (`date`, `dap`, `yield`, `lower`, `upper`) and optional per-plot UAV predictions; empty while pending |
 | GET | `/api/fields/{id}` | Frontend `getFieldById()` | `FieldMeta`. Every plot in `/api/decisions` resolves here and in `/forecast`, not only the featured ones |
 | GET | `/api/fields/{id}/forecast` | Dashboard on load and on field switch (`getForecast()`) | `FieldForecast`: one snapshot per model cutoff (point-in-time features + model), vegetation, events, history, sources. `503` if the model data source can't serve |
 | GET | `/api/fields/{id}/weather?snapshotId=` | Frontend `getWeatherContext()` | `WeatherContext` (latest snapshot by default) |
@@ -67,7 +72,7 @@ Base path `/api`. Interactive docs at `/api/docs`. JSON is camelCase.
 | GET | `/api/decisions?asOfDate=` | Dashboard scouting queue and hybrid table, on every change of forecast date (`getDecisions()`) | `DecisionSet`: every plot in that season at its latest forecast on or before the date (same features and model as the dashboard snapshot), previous forecast and change, top negative driver. `404` for an unknown season or a date before the first forecast |
 | GET | `/api/models` | Dashboard "When does the forecast become useful?" (`getModels()`); after deploying a model, to confirm it loaded | id, metrics, validation, `asOf`, feature list, `dataset`, `holdout` (held-out site accuracy) |
 | GET | `/api/evaluation/imagery` | Dashboard "What did the satellite imagery add?" (`getImageryAblation()`) | `ImageryAblation`: `status` `pending` until `artifacts/imagery_ablation.json` exists, then the variants' validation MAE. `503` if the file is malformed |
-| GET | `/api/weather-outlook?site=&asOfDate=&horizonDays=&plantingDate=&library=` | Not called by the dashboard yet (planned: a compact section under the yield forecast) | Historical analog outlook (contract in `backend/app/weather_outlook/contract.py`, `contractVersion`): favorable / typical / adverse probabilities with bootstrap intervals, historical and effective seasons, weather outcome percentiles, representative seasons, analog weights. `horizonDays` is days or `season`. `404` unknown site or library name, `422` a date/horizon the library cannot answer, `503` library missing |
+| GET | `/api/weather-outlook?site=&asOfDate=&horizonDays=&plantingDate=&library=` | Dashboard "Historical weather outlook" on every change of site, forecast date or horizon (`src/services/weatherOutlook.ts`, which maps it to the website's own `WeatherOutlook` type; `site` is the weather-library key from `/api/sites`, e.g. `MOValley`) | Historical analog outlook (contract in `backend/app/weather_outlook/contract.py`, `contractVersion`): favorable / typical / adverse probabilities with bootstrap intervals, historical and effective seasons, weather outcome percentiles, representative seasons, analog weights. `horizonDays` is days or `season`. `404` unknown site or library name, `422` a date/horizon the library cannot answer, `503` library missing |
 | POST | `/api/predict` | **Prediction on real data.** Body: `{"features": {...}, "asOfDate": "YYYY-MM-DD"}` or `"modelId"` | `yield`, `lowerBound`, `upperBound`, `intervalLevel`, `confidence` (interval precision × share of inputs inside the training range), `confidenceRating`, `drivers` (this forecast's own drivers when the schema has typical values) |
 | GET | `/api/context/all?lat=&lon=&date=` | Dashboard once per field (`getLocationContext()`), with `date` repeated for every forecast date | `LocationContext`: `county`, and `soil` / `weather` / `yieldHistory` parts, each with its own `status` (`ok`, `unavailable`, `not_configured`) |
 | GET | `/api/context/soil?lat=&lon=` | Soil for one point | `SoilProfile` from USDA NRCS SSURGO |
@@ -118,6 +123,9 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `app/forecast/bundle.py` | Loads a showcase bundle (raw inputs for the dashboard's fields) into `FieldInputs` |
 | `app/forecast/builder.py` | `FieldForecast` from inputs + models: per-cutoff snapshots, weather vs normals, soil, drivers as plain-language explanations, neighbouring-plot map, events, history, provenance; the trial record on `FieldMeta`; `decisions()` scores every bundled plot per forecast date for `/api/decisions` |
 | `app/forecast/evaluation.py` | Reads `artifacts/imagery_ablation.json` (the ML team's with/without imagery comparison) for `/api/evaluation/imagery` |
+| `app/results.py` | The frozen final-results contract: parses `artifacts/final_results.json` (re-read when it changes), serves `/api/results` and `/api/results/plots`; `python -m app.results <file>` checks a file |
+| `app/sites.py` | Trial-site models for `/api/sites`; loads `data/trial_sites.json` |
+| `data/trial_sites.json` | The five trial sites from the challenge inventory (written by `scripts/export_trial_sites.py`) |
 | `app/weather_outlook/` | Historical weather outlook: `history.py` (library loader), `features.py` (season-to-date descriptors and horizon outcomes from `app/features/weather.py`), `analogs.py` (robust standardization, kernel weights, effective sample size, terciles), `stress.py` (provisional FAO water/heat stress scorer), `scenarios.py` (`WeatherOutlook.generate`, trajectories, bootstrap, `couple_yield`), `coupling.py` (`artifact_predictor`: a yield model scores each trajectory), `contract.py` (JSON + trajectory table), `service.py` (API) |
 | `app/config.py` | Settings (`SOILSIGNAL_*` env vars) |
 | `app/model/contract.py` | Model artifact format: `ModelMetadata` (incl. held-out evaluation), `FeatureSchema` (incl. typical values, training ranges, driver phrases) |
@@ -139,8 +147,9 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `data/practice/<dataset>.json` | Showcase bundle: raw inputs (images, weather, soil, management, county history, climate normals) for the held-out plots the dashboard shows. Written by `ml ... showcase`; holds no yields |
 | `data/weather_history/<library>/` | Weather libraries for the outlook: `daily.csv.gz` (one station per site) and `manifest.json` (station, seasons kept and left out with reasons, site parameters, outlook settings). `supplied` = challenge file 2018-2023; `long` = NOAA GHCN-Daily 1994-2025. Written by `ml ... weather_outlook history` |
 | `scripts/make_dummy_model.py` | Trains 3 synthetic cutoff models; export reference |
+| `scripts/export_trial_sites.py` | `ml/data/challenge/` inventory → `data/trial_sites.json` and `src/mock/trialSites.ts` |
 | `scripts/snapshot_context.py` | Fetches public data for every demo field; writes `src/mock/contextSnapshot.ts` and warms the cache |
-| `tests/` | `test_api.py` (endpoints + contract, no-fallback), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_forecast.py` (model-backed forecasts recomputed from raw inputs), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
+| `tests/` | `test_results_sites.py` (final-results contract, trial sites, `/api/fields?site=`), `test_api.py` (endpoints + contract, no-fallback), `test_model.py` (artifacts, predict, point-in-time), `test_features.py` (formulas, leakage), `test_forecast.py` (model-backed forecasts recomputed from raw inputs), `test_context.py` (public data, replayed offline from `tests/fixtures/context/`) |
 | `Dockerfile` | Python 3.13 + uv, frozen lockfile, non-root, healthcheck |
 | `pyproject.toml` / `uv.lock` | Pinned deps. **Models must be trained with these versions**. Training-only libraries are the `ml` dependency group (not installed in Docker) |
 | `README.md` | Backend details: running, testing, artifact format |
@@ -150,9 +159,15 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | Path | Purpose |
 |------|---------|
 | `types/agricultural.ts` | Frontend data contract (`FieldForecast` and friends) |
+| `types/results.ts`, `types/sites.ts` | Mirrors of `backend/app/results.py` and `backend/app/sites.py` |
+| `types/weatherOutlook.ts` | The website's own weather-outlook shape (not the raw API) |
+| `services/sites.ts` | `getTrialSites()`: `/api/sites`; demo mode: `mock/trialSites.ts` plus a "Demo fields" location for the demo data |
+| `services/results.ts` | `getFinalResults()`, `getResultPlots()`, `stageForDap()`, `maturityFor()`; demo mode: pending. Swap the source here to move from the frozen file to live inference |
+| `services/plotForecasts.ts` | One `PlotSeries` per plot whichever source serves it (final results where they cover a site, else the live models); plot lists per site; typical validation error; the default forecast date |
+| `services/weatherOutlook.ts` | Wraps `/api/weather-outlook`: fractions → whole percentages, mm → inches, loading / success / unavailable; no fallback numbers |
 | `services/*.ts` | The only code that fetches data: demo data in demo mode, `/api` otherwise |
 | `services/sources.ts` | Data provenance: the forecast's `sources` in API mode, the demo list in demo mode |
-| `services/dataset.ts` | Dataset label for the navigation badge ("Practice data" from `/api/health` in API mode) |
+| `services/dataset.ts` | Dataset labels: `getDatasetLabel()` for live-model views (`/api/health`), `getSiteDatasetLabel()` for the navigation badge (the final results' label once published) |
 | `services/context.ts` | `getLocationContext()`: public soil, weather and county yields for a field; `getLocationContextCsv()` for downloads |
 | `services/decisions.ts` | `getDecisions(asOfDate)`: every plot at a date for the scouting queue (demo mode assembles it from the demo fields) |
 | `services/evaluation.ts` | `getModels()` and `getImageryAblation()` for the model reliability section (demo mode: none / pending) |
@@ -163,18 +178,25 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | `config/appConfig.ts` | Branding, event, team, `demoMode`, `apiBaseUrl`, defaults |
 | `mock/fieldsData.ts` | 5 demo fields and `DATA_SOURCES` (source of `backend/data/mock/fields.json`). Coordinates are real farmland whose SSURGO soil matches each field; yields are scaled to each county's real NASS five-year average |
 | `mock/contextSnapshot.ts` | Generated snapshot of the public data for the demo fields, used in demo mode |
+| `mock/trialSites.ts` | Generated trial-site list for the demo build |
 | `App.tsx` | Page shell: route transitions, presentation (`?presentation=true`, `F`) and debug (`?debug=true`) flags |
 | `utils/router.tsx` | Client-side routes: `/` overview, `/dashboard`, `/data`, `/methodology`, `/about` |
-| `components/dashboard/DashboardView.tsx` | Dashboard state and section order: fields, selected plot, active date, decisions for that date, models, field-switch transition, shortcuts |
+| `components/dashboard/DashboardView.tsx` | Farmer view: location → season → plot (URL `?site=&plot=`), then yield forecast, timeline, how early, weather outlook, crop development, satellite vs UAV, and a collapsed "More detail"; shortcuts; presentation mode |
+| `components/dashboard/LocationBar.tsx` | Location tabs, season picker (hidden with one season), per-site plot picker with a filter |
+| `components/dashboard/ForecastSummary.tsx` | Final yield forecast, prediction range, days after planting, typical validation error. No confidence % |
+| `components/dashboard/HowEarly.tsx`, `WeatherOutlookCard.tsx`, `MaturityCard.tsx`, `SatelliteVsUav.tsx` | The four supporting modules; each waits honestly for its data |
+| `components/dashboard/DashboardDetail.tsx` | "More detail": drivers, crop observations, neighbouring plots, every plot at this date, hybrids, deployed-model validation, location context, provenance (loaded when opened) |
+| `components/results/PerformanceByDap.tsx` | MAE (or R²) by days after planting with R² in an aligned row, and its table |
+| `components/overview/TrialSiteMap.tsx`, `usMap.ts` | U.S. map of the trial sites; `usMap.ts` is generated by `scripts/build-us-map.mjs` (no map library at runtime) |
 | `components/dashboard/ScoutingQueue.tsx` | "Plots to review": transparent sorts (most uncertain, lowest, highest, largest change), table on tablet/desktop, stacked rows on phones, top 10 with "View all" |
 | `components/dashboard/HybridPerformance.tsx` | Hybrid table from the same decisions; hidden unless at least 3 hybrids have 3+ plots |
 | `components/dashboard/ModelReliability.tsx`, `ImageryValue.tsx` | Validation error by forecast date (optional threshold line: `acceptableMaeBuAc` in `appConfig.ts`); the imagery comparison or "Waiting for the current training run." |
 | `components/dashboard/*` | One component per dashboard section; hand-built SVG charts |
-| `components/data/*` | Data Explorer (`/data`): source status, weather, soil and county-yield panels, Visual/Data views, CSV menu |
+| `components/data/*` | Data page (`/data`): trial data by location (`TrialDataSection.tsx`), then public context: source status, weather, county-yield and soil panels, Visual/Data views, CSV menu |
 | `components/overview/`, `components/methodology/`, `components/about/` | The other three pages |
 | `components/brand/` | SoilSignal mark, lockup and animated logo |
 | `components/common/` | Navigation, footer, page transitions, animated numbers, shared controls |
-| `components/debug/DebugPanel.tsx` | Scenario switcher and simulated loading/error states (`?debug=true`) |
+| `components/debug/DebugPanel.tsx` | Location switcher and simulated loading/error states (`?debug=true`) |
 | `utils/` | Chart geometry, motion timings, palette, formatting, hooks |
 
 `public/` holds the favicon, touch icon and social preview image.
@@ -184,6 +206,7 @@ no bundles or models. There is no fallback to demo data; the dashboard shows an 
 | Path | Purpose |
 |------|---------|
 | `scripts/export-mock-data.ts` | `npm run export:mock` → regenerates `backend/data/mock/fields.json` |
+| `scripts/build-us-map.mjs` | Regenerates `src/components/overview/usMap.ts` from us-atlas (install the listed packages with `--no-save` first) |
 | `vite.config.ts` | Dev server; proxies `/api` to `localhost:8000` |
 
 ### ML pipeline (`ml/`)
@@ -234,6 +257,9 @@ Details in `ml/README.md`.
 | Forecast cutoffs (`ml/configs/*.yaml`) | Re-export models and re-run `showcase` (the bundle's dates) | `ml/tests/test_end_to_end.py` |
 | Weather outlook contract (`app/weather_outlook/contract.py`) | bump `CONTRACT_VERSION`; this file | `backend/tests/test_weather_outlook.py` |
 | `ml/configs/weather_outlook.yaml` (stations, QC, per-site weighting) | Re-run `weather_outlook history` (republishes the libraries) and the backtest | `ml/tests/test_weather_outlook.py` |
+| Final-results contract (`backend/app/results.py`) | `src/types/results.ts`, `docs/FINAL_RESULTS_CONTRACT.md` | `test_results_sites.py` |
+| Trial-site models (`backend/app/sites.py`) or the challenge inventory | `src/types/sites.ts`; rerun `scripts/export_trial_sites.py` | `test_sites_come_from_the_inventory_with_honest_imagery_flags` |
+| Weather outlook JSON shape | `src/services/weatherOutlook.ts` (the only reader of the raw shape) | — |
 | An endpoint | `src/services/*.ts`, this file | — |
 
 ---
@@ -255,6 +281,7 @@ Details in `ml/README.md`.
 | `SOILSIGNAL_SEASON_START` | Backend | `05-01` | Season totals (degree days, heat days, dry spells) count from this date |
 | `SOILSIGNAL_WEATHER_HISTORY_DIR` | Backend | `backend/data/weather_history` | Weather outlook libraries |
 | `SOILSIGNAL_WEATHER_OUTLOOK_LIBRARY` | Backend | `long` | Library `/api/weather-outlook` uses when the request names none |
+| `SOILSIGNAL_SITES_FILE` | Backend | `backend/data/trial_sites.json` | Trial-site registry for `/api/sites` |
 
 ---
 

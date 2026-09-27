@@ -1,35 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import type { DataSource, DecisionSet, FieldForecast, FieldMeta, ImageryAblation, ModelInfo } from '../../types/agricultural';
-import { getFields, pickDefaultFieldId } from '../../services/fields';
-import { getForecast } from '../../services/forecasts';
-import { getDataSources } from '../../services/sources';
-import { getDecisions } from '../../services/decisions';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronDown, MapPin } from 'lucide-react';
+import type { ImageryAblation, ModelInfo } from '../../types/agricultural';
+import type { FinalResults } from '../../types/results';
+import type { TrialSite } from '../../types/sites';
+import { findSite, getTrialSites, hasForecasts, seasonFor, siteLabel } from '../../services/sites';
+import { getFinalResults, maturityFor } from '../../services/results';
 import { getImageryAblation, getModels } from '../../services/evaluation';
 import { getDatasetLabel } from '../../services/dataset';
-import { passDates, plantingDate, satellitePlatform } from '../../utils/imagery';
-import { formatDay } from '../../utils/formatters';
-import { APP_CONFIG } from '../../config/appConfig';
+import {
+  defaultPointIndex,
+  getPlotSeries,
+  getSitePlots,
+  typicalError,
+  type PlotOption,
+  type PlotSeries,
+} from '../../services/plotForecasts';
+import { passDates } from '../../utils/imagery';
+import { formatDay, formatNumber } from '../../utils/formatters';
 import { isTypingTarget } from '../../utils/hooks';
-import { useLocationContext } from '../../utils/useLocationContext';
 import { nearestIndex, toTime } from '../../utils/chart';
-import { DashboardSkeleton, EmptyState, ErrorState } from '../common/SkeletonLoader';
-import { Reveal } from '../common/Reveal';
+import { EASE_OUT } from '../../utils/motion';
+import { DashboardSkeleton, ErrorState } from '../common/SkeletonLoader';
 import { DebugPanel } from '../debug/DebugPanel';
-import { FieldContext } from './FieldContext';
+import { LocationTabs, PlotPicker, SeasonPicker } from './LocationBar';
 import { ForecastSummary } from './ForecastSummary';
 import { ForecastTimeline } from './ForecastTimeline';
-import { GrowthStageRail } from './GrowthStageRail';
-import { CropDevelopment } from './CropDevelopment';
-import { EnvironmentalContext } from './EnvironmentalContext';
-import { SpatialFieldView } from './SpatialFieldView';
-import { ModelExplanation } from './ModelExplanation';
-import { HistoricalComparison } from './HistoricalComparison';
-import { DataSources } from './DataSources';
-import { ScoutingQueue } from './ScoutingQueue';
-import { HybridPerformance } from './HybridPerformance';
-import { ModelReliability } from './ModelReliability';
-import { ImageryValue } from './ImageryValue';
+import { HowEarly } from './HowEarly';
+import { WeatherOutlookCard } from './WeatherOutlookCard';
+import { MaturityCard } from './MaturityCard';
+import { SatelliteVsUav } from './SatelliteVsUav';
+import { DashboardDetail } from './DashboardDetail';
 
 interface DashboardViewProps {
   isPresentationMode: boolean;
@@ -37,169 +38,86 @@ interface DashboardViewProps {
   onTogglePresentationMode: () => void;
 }
 
-/** Field switch choreography: fade out, swap data, let values move, fade back in. */
-const FADE_OUT_MS = 150;
-const DATA_HOLD_MS = 200;
-/** Scrubbing through dates requests the plot list only where the user pauses. */
-const DECISIONS_DEBOUNCE_MS = 120;
-
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-function SectionLabel({ children }: { children: string }) {
-  return <p className="mb-4 text-[11px] font-medium tracking-[0.08em] text-faint uppercase">{children}</p>;
+/** The first site this deployment can show forecasts for: final results first, then live models. */
+function defaultSite(sites: TrialSite[]): TrialSite | undefined {
+  return (
+    sites.find((s) => (s.forecasts?.finalPlots ?? 0) > 0) ??
+    sites.find((s) => s.forecasts?.finalSiteForecast) ??
+    sites.find(hasForecasts) ??
+    sites[0]
+  );
+}
+
+function seasonsOf(site: TrialSite): number[] {
+  const withForecasts = site.forecasts?.seasons ?? [];
+  return withForecasts.length ? withForecasts : site.seasons.map((s) => s.year);
+}
+
+/** Keep the dashboard's place in the URL (?site=&plot=) so a view can be shared or reloaded. */
+function writeUrl(siteId: string | null, plotId: string | null) {
+  const url = new URL(window.location.href);
+  if (siteId) url.searchParams.set('site', siteId);
+  else url.searchParams.delete('site');
+  if (plotId) url.searchParams.set('plot', plotId);
+  else url.searchParams.delete('plot');
+  if (url.href !== window.location.href) window.history.replaceState(null, '', url);
+}
+
+function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <section className={`rounded-2xl border border-line bg-surface p-5 sm:p-7 ${className}`}>{children}</section>;
 }
 
 export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresentationMode }: DashboardViewProps) {
-  const reduce = useReducedMotion();
-  const [fields, setFields] = useState<FieldMeta[]>([]);
-  const [sources, setSources] = useState<DataSource[]>([]);
-  // Chosen once the field list loads: the configured default if this dataset has it.
-  const [defaultFieldId, setDefaultFieldId] = useState<string | null>(null);
-  const [fieldId, setFieldId] = useState<string | null>(null);
-  // A failed API call is shown as an error; the dashboard never falls back to demo data.
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const initial = useRef(new URLSearchParams(window.location.search));
   const [attempt, setAttempt] = useState(0);
-  const [forecast, setForecast] = useState<FieldForecast | null>(null);
-  const [index, setIndex] = useState(APP_CONFIG.defaultDateIndex);
-  const [dim, setDim] = useState(false);
-  const [showSkeleton, setShowSkeleton] = useState(false);
 
-  const [decisions, setDecisions] = useState<DecisionSet | null>(null);
-  const [decisionsLoading, setDecisionsLoading] = useState(false);
-  const [decisionsError, setDecisionsError] = useState<string | null>(null);
-  const [decisionsAttempt, setDecisionsAttempt] = useState(0);
-  const decisionCache = useRef(new Map<string, DecisionSet>());
+  const [sites, setSites] = useState<TrialSite[] | null>(null);
+  const [sitesError, setSitesError] = useState<string | null>(null);
+  const [results, setResults] = useState<FinalResults | null>(null);
+  const [resultsError, setResultsError] = useState<string | null>(null);
+  const [resultsSettled, setResultsSettled] = useState(false);
+
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const [season, setSeason] = useState<number | null>(null);
+  const [plots, setPlots] = useState<PlotOption[] | null>(null);
+  const [plotsError, setPlotsError] = useState<string | null>(null);
+  const [plotKey, setPlotKey] = useState<string | null>(null);
+  const [series, setSeries] = useState<PlotSeries | null>(null);
+  const [seriesError, setSeriesError] = useState<string | null>(null);
+  const [index, setIndex] = useState(0);
+
   const [models, setModels] = useState<ModelInfo[] | null>(null);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [ablation, setAblation] = useState<ImageryAblation | null>(null);
   const [ablationError, setAblationError] = useState<string | null>(null);
   const [datasetLabel, setDatasetLabel] = useState<string | null>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   const [simulateLoading, setSimulateLoading] = useState(false);
   const [missingSatellite, setMissingSatellite] = useState(false);
   const [weatherError, setWeatherError] = useState(false);
 
-  const forecastRef = useRef<FieldForecast | null>(null);
   const activeDateRef = useRef<string | null>(null);
-  const resetPendingRef = useRef(false);
-  const reduceRef = useRef(reduce);
-  reduceRef.current = reduce;
+  const resetRef = useRef(false);
 
+  // Sites and the final results decide where to start; results failing never hides the live forecasts.
   useEffect(() => {
     let active = true;
-    getFields()
-      .then((list) => {
-        if (!active) return;
-        const id = pickDefaultFieldId(list);
-        if (!id) throw new Error('The forecast service returned no fields.');
-        setFields(list);
-        setDefaultFieldId(id);
-        setFieldId((current) => current ?? id);
-      })
-      .catch((err: unknown) => active && setLoadError(err instanceof Error ? err.message : String(err)));
-    const id = window.setTimeout(() => setShowSkeleton(true), 250);
-    return () => {
-      active = false;
-      window.clearTimeout(id);
-    };
-  }, [attempt]);
-
-  // Load the selected field through the service layer. Switching keeps the same point in the season.
-  useEffect(() => {
-    if (!fieldId) return;
-    let cancelled = false;
-    const timers: number[] = [];
-    const animate = forecastRef.current !== null && !reduceRef.current;
-    const started = performance.now();
-    if (animate) setDim(true);
-
-    getForecast(fieldId)
-      .then((data) => {
-      if (cancelled) return;
-      const swap = () => {
-        if (cancelled) return;
-        let nextIndex = Math.min(APP_CONFIG.defaultDateIndex, data.snapshots.length - 1);
-        if (resetPendingRef.current) {
-          resetPendingRef.current = false;
-        } else if (activeDateRef.current) {
-          nextIndex = nearestIndex(
-            data.snapshots.map((s) => toTime(s.date)),
-            toTime(activeDateRef.current),
-          );
-        }
-        forecastRef.current = data;
-        setForecast(data);
-        setIndex(nextIndex);
-        if (animate) timers.push(window.setTimeout(() => !cancelled && setDim(false), DATA_HOLD_MS));
-        else setDim(false);
-      };
-      const elapsed = performance.now() - started;
-      if (animate && elapsed < FADE_OUT_MS) timers.push(window.setTimeout(swap, FADE_OUT_MS - elapsed));
-      else swap();
-      getDataSources(data).then((list) => !cancelled && setSources(list));
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setDim(false);
-        setLoadError(err instanceof Error ? err.message : String(err));
-      });
-
-    return () => {
-      cancelled = true;
-      timers.forEach((t) => window.clearTimeout(t));
-    };
-  }, [fieldId, attempt]);
-
-  // Public data (soil, observed weather, county yields) for every forecast date of the loaded field.
-  const forecastDates = useMemo(() => forecast?.snapshots.map((s) => s.date) ?? [], [forecast]);
-  const context = useLocationContext(forecast?.field ?? null, forecastDates);
-
-  const snapshotIndex = forecast ? Math.min(index, forecast.snapshots.length - 1) : 0;
-  const snapshot = forecast?.snapshots[snapshotIndex];
-  const asOfDate = snapshot?.date ?? null;
-
-  useEffect(() => {
-    activeDateRef.current = snapshot?.date ?? null;
-  }, [snapshot]);
-
-  // Every plot as of the selected date, so the queue never shows a forecast from later on.
-  useEffect(() => {
-    if (!asOfDate) return;
-    const cached = decisionCache.current.get(asOfDate);
-    if (cached) {
-      setDecisions(cached);
-      setDecisionsError(null);
-      setDecisionsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setDecisionsLoading(true);
-    const timer = window.setTimeout(() => {
-      getDecisions(asOfDate)
-        .then((set) => {
-          if (cancelled) return;
-          decisionCache.current.set(asOfDate, set);
-          setDecisions(set);
-          setDecisionsError(null);
-        })
-        .catch((err: unknown) => !cancelled && setDecisionsError(message(err)))
-        .finally(() => !cancelled && setDecisionsLoading(false));
-    }, DECISIONS_DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [asOfDate, decisionsAttempt]);
-
-  // Validation results and the imagery comparison describe the models, not a plot: load once.
-  useEffect(() => {
-    let active = true;
+    setSitesError(null);
+    getTrialSites()
+      .then((list) => active && setSites(list))
+      .catch((err: unknown) => active && setSitesError(message(err)));
+    getFinalResults()
+      .then((r) => active && setResults(r))
+      .catch((err: unknown) => active && setResultsError(message(err)))
+      .finally(() => active && setResultsSettled(true));
     getModels()
       .then((list) => active && setModels(list))
       .catch((err: unknown) => active && setModelsError(message(err)));
     getImageryAblation()
-      .then((result) => active && setAblation(result))
+      .then((a) => active && setAblation(a))
       .catch((err: unknown) => active && setAblationError(message(err)));
     getDatasetLabel()
       .then((label) => active && setDatasetLabel(label))
@@ -207,44 +125,129 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     return () => {
       active = false;
     };
+  }, [attempt]);
+
+  const site = sites ? findSite(sites, siteId) : undefined;
+
+  // First visit: the site in the URL, else the first one with forecasts.
+  useEffect(() => {
+    if (!sites || siteId) return;
+    const chosen = findSite(sites, initial.current.get('site')) ?? defaultSite(sites);
+    if (chosen) setSiteId(chosen.id);
+  }, [sites, siteId]);
+
+  const seasons = useMemo(() => (site ? seasonsOf(site) : []), [site]);
+  // The chosen season if this site has it, else the site's latest; derived, so a new site never sees the old one's.
+  const activeSeason = season !== null && seasons.includes(season) ? season : (seasons[seasons.length - 1] ?? null);
+
+  // The site's plots, once the final results have settled (they replace the live models where they cover a site).
+  useEffect(() => {
+    if (!site || !resultsSettled) return;
+    let active = true;
+    setPlots(null);
+    setPlotsError(null);
+    getSitePlots(site, results, activeSeason ?? undefined)
+      .then((list) => {
+        if (!active) return;
+        setPlots(list);
+        const wanted = initial.current.get('plot');
+        initial.current.delete('plot');
+        const chosen =
+          (wanted && list.find((p) => p.plotId === wanted || p.fieldId === wanted)) || list.find((p) => p.featured) || list[0];
+        setPlotKey(chosen?.key ?? null);
+        if (!chosen) setSeries(null);
+      })
+      .catch((err: unknown) => active && setPlotsError(message(err)));
+    return () => {
+      active = false;
+    };
+  }, [site, activeSeason, results, resultsSettled, attempt]);
+
+  const option = plots?.find((p) => p.key === plotKey) ?? null;
+
+  useEffect(() => {
+    if (!option || !site) return;
+    let active = true;
+    setSeriesError(null);
+    getPlotSeries(option, site, results)
+      .then((next) => {
+        if (!active) return;
+        let nextIndex = defaultPointIndex(next.points, results, next.source);
+        if (resetRef.current) resetRef.current = false;
+        else if (activeDateRef.current && series && series.siteId === next.siteId) {
+          // Switching plots at the same site keeps the same point in the season.
+          nextIndex = nearestIndex(
+            next.points.map((p) => toTime(p.date)),
+            toTime(activeDateRef.current),
+          );
+        }
+        setSeries(next);
+        setIndex(nextIndex);
+      })
+      .catch((err: unknown) => active && setSeriesError(message(err)));
+    return () => {
+      active = false;
+    };
+    // `series` is read only to compare sites; reloading on its change would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [option, site, results]);
+
+  const current = series && series.siteId === site?.id ? series : null;
+  const pointIndex = current ? Math.min(index, current.points.length - 1) : 0;
+  const point = current?.points[pointIndex];
+  useEffect(() => {
+    activeDateRef.current = point?.date ?? null;
+  }, [point]);
+
+  useEffect(() => {
+    if (!site) return;
+    writeUrl(site.id, current && !current.isSiteAverage ? current.plotId : null);
+  }, [site, current]);
+
+  const selectSite = useCallback((id: string) => {
+    setSiteId(id);
+    setPlots(null);
+    setPlotKey(null);
   }, []);
 
-  const selectPlot = useCallback((id: string) => {
-    setFieldId(id);
-    // The forecast for the new plot is above the queue; bring it into view if it is scrolled away.
-    const top = headerRef.current?.getBoundingClientRect().top ?? 0;
-    if (top < 0) headerRef.current?.scrollIntoView({ behavior: reduceRef.current ? 'auto' : 'smooth', block: 'start' });
-  }, []);
+  const selectLivePlot = useCallback(
+    (fieldId: string) => {
+      const match = plots?.find((p) => p.fieldId === fieldId);
+      if (match) {
+        setPlotKey(match.key);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+    [plots],
+  );
 
   const reset = useCallback(() => {
     setSimulateLoading(false);
     setMissingSatellite(false);
     setWeatherError(false);
-    if (!defaultFieldId || fieldId === defaultFieldId) {
-      setIndex(APP_CONFIG.defaultDateIndex);
-    } else {
-      resetPendingRef.current = true;
-      setFieldId(defaultFieldId);
-    }
-  }, [fieldId, defaultFieldId]);
+    if (!sites) return;
+    const first = defaultSite(sites);
+    resetRef.current = true;
+    if (first && first.id !== siteId) selectSite(first.id);
+    else if (current) setIndex(defaultPointIndex(current.points, results, current.source));
+  }, [sites, siteId, current, results, selectSite]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return;
       const target = event.target as HTMLElement | null;
-      if (target?.closest('[role="slider"], [role="tablist"], [role="menu"], [role="group"]')) return;
-      const count = forecastRef.current?.snapshots.length ?? 0;
-      if (!count) return;
+      if (target?.closest('[role="slider"], [role="tablist"], [role="menu"], [role="listbox"], [role="group"]')) return;
+      const count = current?.points.length ?? 0;
       const facilitator = isDebugMode || isPresentationMode;
-      if (event.key === 'ArrowLeft') {
+      if (event.key === 'ArrowLeft' && count) {
         event.preventDefault();
         setIndex((i) => Math.max(0, Math.min(i, count - 1) - 1));
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === 'ArrowRight' && count) {
         event.preventDefault();
         setIndex((i) => Math.min(count - 1, i + 1));
-      } else if (facilitator && /^[1-5]$/.test(event.key)) {
-        const next = fields[Number(event.key) - 1];
-        if (next) setFieldId(next.id);
+      } else if (facilitator && sites && /^[1-9]$/.test(event.key)) {
+        const next = sites[Number(event.key) - 1];
+        if (next) selectSite(next.id);
       } else if (facilitator && (event.key === 'r' || event.key === 'R')) {
         event.preventDefault();
         reset();
@@ -252,212 +255,224 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [fields, isDebugMode, isPresentationMode, reset]);
+  }, [current, sites, isDebugMode, isPresentationMode, reset, selectSite]);
 
   const seasonDomain = useMemo<[number, number]>(() => {
-    if (!forecast) return [0, 1];
-    const lo = Math.min(...forecast.snapshots.map((s) => s.lowerBound));
-    const hi = Math.max(...forecast.snapshots.map((s) => s.upperBound));
+    if (!current) return [0, 1];
+    const lo = Math.min(...current.points.map((p) => p.lowerBound ?? p.yield));
+    const hi = Math.max(...current.points.map((p) => p.upperBound ?? p.yield));
     return [lo - 6, hi + 6];
-  }, [forecast]);
+  }, [current]);
 
-  const field = forecast?.field;
-  const passes = useMemo(() => (forecast ? passDates(forecast) : []), [forecast]);
-  // Plots opened from the queue are not all in the featured list; keep the open one selectable.
-  const selectorFields = field ? (fields.some((f) => f.id === field.id) ? fields : [field, ...fields]) : fields;
+  // Live plots: the plot's own image dates. Final results: the site's pass calendar, which defines their stages.
+  const passes = useMemo(() => {
+    if (current?.live) return passDates(current.live);
+    const inventory = site?.seasons.find((s) => s.year === current?.season)?.satellite;
+    return inventory && inventory.plotImages > 0 ? inventory.acquisitionDates : [];
+  }, [current, site]);
+  const error = point && current ? typicalError(current, point, results, models) : null;
+  const liveSnapshot = current?.live?.snapshots[pointIndex];
+  const seasonYear = activeSeason ?? current?.season ?? (site ? seasonFor(site, undefined)?.year : undefined);
+  const maturity = site && seasonYear ? maturityFor(results, site.id, seasonYear, current?.plotId) : null;
+  const loadingSeries = !!option && (!current || current.key !== option.key) && !seriesError;
 
-  // Each source is used only when it loaded; otherwise panels keep the demo values and say why.
-  const live = context && field && context.fieldId === field.id ? context : null;
-  const unreachable = live && !live.data ? 'Public data could not be loaded.' : null;
-  const soilPart = live?.data?.soil;
-  const weatherPart = live?.data?.weather;
-  const yieldPart = live?.data?.yieldHistory;
-  const soilProfile = soilPart?.status === 'ok' ? soilPart.data : null;
-  const observedWeather = weatherPart?.status === 'ok' ? weatherPart.data : null;
-  const countyHistory = yieldPart?.status === 'ok' ? yieldPart.data : null;
-  const soilLabel = soilProfile
-    ? `${soilProfile.series} ${soilProfile.texture ? soilProfile.texture.toLowerCase() : 'soil'}`
-    : undefined;
+  const heading = isPresentationMode ? 'text-[40px] sm:text-[52px]' : 'text-[32px] sm:text-[42px]';
 
   return (
     <div className={`mx-auto max-w-6xl px-4 pb-24 sm:px-6 ${isPresentationMode ? 'pt-6' : 'pt-8 sm:pt-10'}`}>
-      <h1 className="sr-only">Yield forecast dashboard</h1>
-      {loadError ? (
+      {sitesError ? (
         <ErrorState
           title="Forecasts are unavailable"
-          message={`The SoilSignal API did not return forecasts (${loadError}). No demo data is shown in their place.`}
-          onRetry={() => {
-            setLoadError(null);
-            setAttempt((n) => n + 1);
-          }}
+          message={`The SoilSignal API did not respond (${sitesError}). No demo data is shown in its place.`}
+          onRetry={() => setAttempt((n) => n + 1)}
         />
-      ) : forecast && field && snapshot ? (
+      ) : !sites || !site ? (
+        <DashboardSkeleton />
+      ) : (
         <>
-          <div ref={headerRef} className="scroll-mt-24">
-            <FieldContext
-              fields={selectorFields}
-              field={field}
-              snapshot={snapshot}
-              onSelectField={setFieldId}
-              isPresentationMode={isPresentationMode}
-              soilLabel={soilLabel}
-            />
-          </div>
+          <LocationTabs sites={sites} selectedId={site.id} onSelect={selectSite} large={isPresentationMode} />
 
-          <motion.div
-            className="mt-8"
-            initial={false}
-            animate={{ opacity: dim ? 0.4 : 1 }}
-            transition={{ duration: FADE_OUT_MS / 1000, ease: 'easeOut' }}
-          >
-            {simulateLoading ? (
-              <DashboardSkeleton />
-            ) : (
-              <ForecastSummary
-                snapshot={snapshot}
-                previous={forecast.snapshots[snapshotIndex - 1]}
-                seasonDomain={seasonDomain}
-                isPresentationMode={isPresentationMode}
-              />
-            )}
-          </motion.div>
-
-          <div className="mt-14">
-            <ScoutingQueue
-              decisions={decisions}
-              updating={decisionsLoading && decisions !== null}
-              error={decisionsError}
-              onRetry={() => setDecisionsAttempt((n) => n + 1)}
-              selectedFieldId={field.id}
-              onSelectPlot={selectPlot}
-            />
-          </div>
-
-          {!simulateLoading && (
-            <motion.div
-              initial={false}
-              animate={{ opacity: dim ? 0.4 : 1 }}
-              transition={{ duration: FADE_OUT_MS / 1000, ease: 'easeOut' }}
+          <header className="mt-7">
+            <p
+              className={`flex flex-wrap items-center gap-x-3 gap-y-2 font-medium text-leaf-700 ${isPresentationMode ? 'text-[16px]' : 'text-[14px]'}`}
             >
-              <section className="mt-14 rounded-2xl border border-line bg-surface p-5 transition-colors duration-300 hover:border-line-strong sm:p-7">
+              <span>
+                {site.crop}
+                {seasonYear ? (
+                  <>
+                    {' · '}
+                    <span className="data">{seasonYear}</span> season
+                  </>
+                ) : null}
+              </span>
+              <SeasonPicker seasons={seasons} value={activeSeason ?? 0} onChange={setSeason} />
+            </p>
+            <h1 className={`mt-1 leading-[1.05] font-semibold tracking-[-0.035em] text-ink ${heading}`}>{siteLabel(site)}</h1>
+            {current && !current.isSiteAverage ? (
+              <div
+                className={`mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 ${isPresentationMode ? 'text-[17px]' : 'text-[15px]'}`}
+              >
+                <PlotPicker plots={plots ?? []} selectedKey={plotKey} onSelect={setPlotKey} />
+                {current.hybrid && (
+                  <span className="text-muted">
+                    Hybrid <span className="data font-medium text-ink">{current.hybrid}</span>
+                  </span>
+                )}
+                {current.nitrogenLbAc != null && (
+                  <span className="text-muted">
+                    <span className="data font-medium text-ink">{Math.round(current.nitrogenLbAc)}</span> lb N/ac
+                  </span>
+                )}
+                {current.plantingDate && (
+                  <span className="text-muted">
+                    Planted <span className="data font-medium text-ink">{formatDay(current.plantingDate)}</span>
+                  </span>
+                )}
+                {current.irrigated !== undefined && (
+                  <span className="text-muted">{current.irrigated ? 'Irrigated' : 'Rainfed'}</span>
+                )}
+              </div>
+            ) : current?.isSiteAverage ? (
+              <p className="mt-3 text-[15px] text-muted">All plots at this location (site average)</p>
+            ) : null}
+          </header>
+
+          {plotsError || seriesError ? (
+            <div className="mt-8">
+              <ErrorState
+                title="This forecast is unavailable"
+                message={`The SoilSignal API did not return it (${plotsError ?? seriesError}). No demo data is shown in its place.`}
+                onRetry={() => setAttempt((n) => n + 1)}
+              />
+            </div>
+          ) : plots && plots.length === 0 ? (
+            <NoForecasts site={site} results={results} />
+          ) : !current || !point || simulateLoading ? (
+            <div className="mt-8">
+              <DashboardSkeleton />
+            </div>
+          ) : (
+            <motion.div initial={false} animate={{ opacity: loadingSeries ? 0.45 : 1 }} transition={{ duration: 0.15 }}>
+              <div className="mt-8">
+                <ForecastSummary
+                  point={point}
+                  previous={current.points[pointIndex - 1]}
+                  seasonDomain={seasonDomain}
+                  typicalError={error}
+                  isPresentationMode={isPresentationMode}
+                />
+              </div>
+
+              <p
+                className={`mt-12 mb-3 font-medium tracking-[0.08em] text-faint uppercase ${isPresentationMode ? 'text-[13px]' : 'text-[11px]'}`}
+              >
+                How the forecast developed
+              </p>
+              <Card>
                 <ForecastTimeline
-                  fieldKey={field.id}
-                  snapshots={forecast.snapshots}
-                  activeIndex={snapshotIndex}
+                  fieldKey={current.key}
+                  snapshots={current.points}
+                  activeIndex={pointIndex}
                   onSelectIndex={setIndex}
                   isPresentationMode={isPresentationMode}
                   passes={passes}
-                  plantingDate={plantingDate(forecast)}
-                  platform={satellitePlatform(forecast)}
+                  plantingDate={current.plantingDate}
+                  platform={current.live?.spatial?.satellitePlatform}
                 />
-                <div className="mt-2 border-t border-line pt-5">
-                  <GrowthStageRail stage={snapshot.stage} detail={snapshot.stageSubtext} compact={isPresentationMode} />
-                </div>
-              </section>
+              </Card>
 
-              <Reveal className="mt-6">
-                {missingSatellite ? (
-                  <EmptyState
-                    title="No satellite observations for this period"
-                    message="Cloud cover or an orbital gap left this window without imagery. Weather and soil context are unaffected."
+              <Card className="mt-6">
+                <HowEarly
+                  results={results}
+                  error={resultsError}
+                  activeDap={current.source === 'final' ? point.dap : null}
+                  isPresentationMode={isPresentationMode}
+                />
+              </Card>
+
+              <div className="mt-6 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+                <Card>
+                  <WeatherOutlookCard
+                    site={site}
+                    asOfDate={point.date}
+                    plantingDate={current.plantingDate}
+                    isPresentationMode={isPresentationMode}
                   />
-                ) : (
-                  <CropDevelopment
-                    fieldKey={field.id}
-                    timeline={forecast.fullVegetationSeries}
-                    events={forecast.events}
-                    activeDate={snapshot.date}
+                </Card>
+                <Card>
+                  <MaturityCard
+                    gdd={liveSnapshot ? { value: liveSnapshot.weather.gddAccumulated, asOf: liveSnapshot.date } : null}
+                    stage={point.stage}
+                    stageDetail={point.stageSubtext}
+                    maturity={maturity}
+                    isPresentationMode={isPresentationMode}
                   />
-                )}
-              </Reveal>
+                </Card>
+              </div>
 
-              <Reveal className="mt-6">
-                {(forecast.spatial ?? snapshot.spatial) ? (
-                  <SpatialFieldView spatial={(forecast.spatial ?? snapshot.spatial)!} fieldName={field.name} />
-                ) : (
-                  <EmptyState
-                    title="Nothing to map yet"
-                    message={`As of ${snapshot.displayDate} there is no satellite image of this plot; the map appears with the first one.`}
-                  />
-                )}
-              </Reveal>
-
-              <Reveal className="mt-16">
-                <ModelExplanation drivers={snapshot.explanations} featureImportance={snapshot.featureImportance} />
-              </Reveal>
-
-              {decisions && (
-                <Reveal className="mt-16 empty:hidden">
-                  <HybridPerformance plots={decisions.plots} asOfLabel={formatDay(decisions.asOfDate)} />
-                </Reveal>
-              )}
-
-              <Reveal className="mt-16 border-t border-line pt-10">
-                <SectionLabel>Model reliability</SectionLabel>
-                <div className="grid grid-cols-1 items-stretch gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-14">
-                  <ModelReliability
-                    models={models}
-                    error={modelsError}
-                    season={field.season}
-                    activeDate={snapshot.date}
-                    passes={passes}
-                    datasetLabel={datasetLabel}
-                  />
-                  <ImageryValue ablation={ablation} error={ablationError} season={field.season} />
-                </div>
-              </Reveal>
-
-              <Reveal className="mt-16 border-t border-line pt-10">
-                <SectionLabel>Environmental context · NOAA and USDA</SectionLabel>
-                <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-                  {weatherError ? (
-                    <ErrorState
-                      title="Weather context is unavailable"
-                      message="The weather service did not respond. The forecast and crop observations are unaffected."
-                      onRetry={() => setWeatherError(false)}
-                    />
-                  ) : (
-                    <EnvironmentalContext
-                      weather={snapshot.weather}
-                      soil={snapshot.soil}
-                      asOf={snapshot.date}
-                      observed={observedWeather}
-                      soilProfile={soilProfile}
-                      weatherNote={weatherPart?.message ?? unreachable}
-                      soilNote={soilPart?.message ?? unreachable}
-                    />
-                  )}
-                  <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
-                    <HistoricalComparison
-                      historical={forecast.historical}
-                      currentForecastYield={snapshot.yield}
-                      seasonYear={field.season}
-                      countyHistory={countyHistory}
-                      countyNote={yieldPart?.status === 'unavailable' ? yieldPart.message : null}
-                    />
-                  </div>
-                </div>
-              </Reveal>
+              <Card className="mt-6">
+                <SatelliteVsUav results={results} plotUav={current.uav} sites={sites} isPresentationMode={isPresentationMode} />
+              </Card>
 
               {!isPresentationMode && (
-                <Reveal className="mt-16 border-t border-line pt-10">
-                  <DataSources sources={sources} />
-                </Reveal>
+                <div className="mt-12 border-t border-line pt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetail((v) => !v)}
+                    aria-expanded={showDetail}
+                    aria-controls="dashboard-detail"
+                    className="group flex w-full items-center justify-between gap-4 rounded-xl px-1 py-2 text-left"
+                  >
+                    <span>
+                      <span className="block text-[17px] font-semibold tracking-[-0.01em] text-ink">More detail</span>
+                      <span className="mt-0.5 block text-[14px] text-muted">
+                        Model drivers, crop observations, every plot at this date, model validation, weather and soil, data
+                        sources.
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`h-5 w-5 shrink-0 text-muted transition-transform duration-200 group-hover:text-ink ${showDetail ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {showDetail && (
+                      <motion.div
+                        id="dashboard-detail"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: EASE_OUT }}
+                        className="overflow-hidden"
+                      >
+                        <DashboardDetail
+                          live={current.live}
+                          snapshotIndex={pointIndex}
+                          results={results}
+                          models={models}
+                          modelsError={modelsError}
+                          ablation={ablation}
+                          ablationError={ablationError}
+                          datasetLabel={datasetLabel}
+                          onSelectLivePlot={selectLivePlot}
+                          simulateMissingSatellite={missingSatellite}
+                          simulateWeatherError={weatherError}
+                          onClearWeatherError={() => setWeatherError(false)}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </motion.div>
           )}
         </>
-      ) : showSkeleton ? (
-        <DashboardSkeleton />
-      ) : (
-        <div className="min-h-[70vh]" />
       )}
 
-      {isDebugMode && fields.length > 0 && (
+      {isDebugMode && sites && (
         <DebugPanel
-          fields={fields}
-          selectedFieldId={fieldId ?? ''}
-          onSelectField={setFieldId}
+          sites={sites}
+          selectedSiteId={site?.id ?? ''}
+          onSelectSite={selectSite}
           simulateLoading={simulateLoading}
           onToggleLoading={() => setSimulateLoading((v) => !v)}
           simulateMissingSatellite={missingSatellite}
@@ -470,5 +485,54 @@ export function DashboardView({ isPresentationMode, isDebugMode, onTogglePresent
         />
       )}
     </div>
+  );
+}
+
+/** A location this deployment has no plot forecasts for: say so, and what data exists there. */
+function NoForecasts({ site, results }: { site: TrialSite; results: FinalResults | null }) {
+  const season = site.seasons[0];
+  const satellite = season?.satellite.plotImages ?? 0;
+  const uav = season?.uav.plotImages ?? 0;
+  return (
+    <section className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface/60 p-6 sm:p-8">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mist text-muted">
+          <MapPin className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-ink">No plot forecasts for {site.name} yet</h2>
+          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-muted">
+            {results?.status === 'ready'
+              ? 'The published final results do not include this location.'
+              : 'Forecasts for this location appear when the final model results include it.'}{' '}
+            {satellite === 0 && season
+              ? 'The challenge data has field records here but no usable plot imagery, so a forecast would rest on records and weather alone.'
+              : ''}
+          </p>
+        </div>
+      </div>
+      {season && (
+        <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 border-t border-line pt-5 text-[14px] sm:grid-cols-4">
+          <div>
+            <dt className="text-muted">Trial plots, {season.year}</dt>
+            <dd className="data mt-0.5 text-[18px] font-medium text-ink">{formatNumber(season.plots)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Satellite plot images</dt>
+            <dd className="data mt-0.5 text-[18px] font-medium text-ink">{formatNumber(satellite)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">UAV plot images</dt>
+            <dd className="data mt-0.5 text-[18px] font-medium text-ink">{formatNumber(uav)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Weather history</dt>
+            <dd className="data mt-0.5 text-[18px] font-medium text-ink">
+              {site.weather ? `${site.weather.seasons} seasons` : '—'}
+            </dd>
+          </div>
+        </dl>
+      )}
+    </section>
   );
 }

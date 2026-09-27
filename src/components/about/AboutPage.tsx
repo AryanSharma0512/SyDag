@@ -134,7 +134,7 @@ export function AboutPage() {
           </motion.h1>
           <motion.p className="mt-5 text-[17px] leading-relaxed text-pretty text-muted sm:text-[18px]" {...rise(0.12)}>
             SoilSignal is being built for the {EVENT_CONTEXT.name} at {EVENT_CONTEXT.host}. We are testing how early
-            satellite imagery can predict final maize yield well enough to support scouting decisions.
+            satellite imagery can predict final maize yield before harvest, and what weather history, crop development and UAV imagery add.
           </motion.p>
         </header>
 
@@ -148,21 +148,21 @@ export function AboutPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           <p className="max-w-md text-[15px] leading-relaxed text-muted">
-            Review the plots in the current trial, or read how the forecasts are built and validated.
+            See the yield forecasts for the trial plots, or read how they are built and validated.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               to="dashboard"
               className="lift group inline-flex items-center gap-2 rounded-full bg-leaf-700 px-5 py-2.5 text-[15px] font-medium text-white hover:bg-leaf-800 hover:shadow-lift"
             >
-              Review plots
+              View forecast
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
             <Link
               to="methodology"
               className="lift inline-flex items-center rounded-full border border-line-strong bg-surface px-5 py-2.5 text-[15px] font-medium text-ink hover:border-faint"
             >
-              See the method
+              How it works
             </Link>
           </div>
         </motion.div>

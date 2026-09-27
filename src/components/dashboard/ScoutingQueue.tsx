@@ -23,7 +23,7 @@ export const plotLabel = (p: { plotId?: string; name: string }) => p.plotId ?? p
 /** Transparent orderings only: every key is a number shown in the table. */
 const ORDER: Record<SortKey, (a: PlotDecision, b: PlotDecision) => number> = {
   uncertain: (a, b) =>
-    tenths(width(b)) - tenths(width(a)) || a.confidence - b.confidence || a.predictedYield - b.predictedYield,
+    tenths(width(b)) - tenths(width(a)) || a.predictedYield - b.predictedYield,
   lowest: (a, b) => a.predictedYield - b.predictedYield,
   highest: (a, b) => b.predictedYield - a.predictedYield,
   change: (a, b) => Math.abs(b.changeSincePrevious ?? -1) - Math.abs(a.changeSincePrevious ?? -1),
@@ -66,8 +66,8 @@ export function ScoutingQueue({ decisions, updating, error, onRetry, selectedFie
 
   const sortNote = {
     uncertain: sameWidth
-      ? 'Every plot has the same 90% range width on this date, so ties go to lower confidence, then lower forecast.'
-      : 'Widest 90% range first.',
+      ? 'Every plot has the same prediction range width on this date, so ties go to the lower forecast.'
+      : 'Widest prediction range first.',
     lowest: 'Lowest predicted yield first.',
     highest: 'Highest predicted yield first.',
     change: previousDate
@@ -173,11 +173,8 @@ export function ScoutingQueue({ decisions, updating, error, onRetry, selectedFie
                   <Th right active={sort === 'lowest' || sort === 'highest'} title="Predicted yield, bu/ac">
                     Forecast
                   </Th>
-                  <Th right active={sort === 'uncertain'} title="90% prediction range, bu/ac">
-                    90% range
-                  </Th>
-                  <Th right title="Confidence">
-                    Conf.
+                  <Th right active={sort === 'uncertain'} title="Prediction range, bu/ac">
+                    Range
                   </Th>
                   <Th right active={sort === 'change'} className="pr-4 lg:pr-2" title="Change since the previous forecast date, bu/ac">
                     Δ prev.
@@ -233,7 +230,6 @@ export function ScoutingQueue({ decisions, updating, error, onRetry, selectedFie
                           />
                         </div>
                       </td>
-                      <td className="data px-2 text-right text-ink-soft tabular-nums">{Math.round(p.confidence)}%</td>
                       <td className="pr-4 pl-2 text-right lg:pr-2">
                         <Change value={p.changeSincePrevious} />
                       </td>
@@ -276,7 +272,7 @@ export function ScoutingQueue({ decisions, updating, error, onRetry, selectedFie
                           .join(' · ') || p.irrigationStatus}
                       </span>
                       <span className="data shrink-0 tabular-nums">
-                        {Math.round(p.lowerBound)}–{Math.round(p.upperBound)} · {Math.round(p.confidence)}%
+                        {Math.round(p.lowerBound)}–{Math.round(p.upperBound)}
                       </span>
                     </span>
                     {p.changeSincePrevious != null && p.previousForecastDate && (
@@ -349,7 +345,7 @@ function Change({ value }: { value: number | null | undefined }) {
   return <span className={`data tabular-nums ${tone}`}>{`${sign}${Math.abs(value).toFixed(1)}`}</span>;
 }
 
-/** The 90% range on the table's shared scale, with a tick at the forecast. */
+/** The prediction range on the table's shared scale, with a tick at the forecast. */
 function RangeGlyph({ start, end, point }: { start: number; end: number; point: number }) {
   return (
     <span className="relative hidden h-1.5 w-16 shrink-0 rounded-full bg-mist lg:block" aria-hidden="true">

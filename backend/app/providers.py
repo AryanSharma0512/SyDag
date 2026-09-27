@@ -38,6 +38,10 @@ class ForecastProvider(Protocol):
 
     def list_fields(self) -> list[FieldMeta]: ...
 
+    def list_plots(self) -> list[FieldMeta]:
+        """Every plot with a forecast (the featured ones and the rest), for per-site lists."""
+        ...
+
     def get_forecast(self, field_id: str) -> FieldForecast | None: ...
 
     def get_decisions(self, as_of: date | None) -> DecisionSet | None:
@@ -72,6 +76,9 @@ class MockForecastProvider:
 
     def list_fields(self) -> list[FieldMeta]:
         return [f.field for f in self._forecasts.values()]
+
+    def list_plots(self) -> list[FieldMeta]:
+        return self.list_fields()
 
     def get_forecast(self, field_id: str) -> FieldForecast | None:
         return self._forecasts.get(field_id)
@@ -152,6 +159,9 @@ class ModelForecastProvider:
 
     def list_fields(self) -> list[FieldMeta]:
         return [builder.field_meta(field) for builder, field in self._fields.values()]
+
+    def list_plots(self) -> list[FieldMeta]:
+        return [builder.field_meta(field) for builder, field in self._plots.values()]
 
     def get_forecast(self, field_id: str) -> FieldForecast | None:
         if field_id not in self._plots:
