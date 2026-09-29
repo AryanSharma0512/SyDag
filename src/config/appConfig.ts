@@ -46,9 +46,9 @@ export interface TeamMember {
 }
 
 export const TEAM: TeamMember[] = [
-  { name: 'Aryan Sharma', initials: 'AS', role: 'Team lead & backend guru', degree: 'B.S. Agriculture', photo: '/team/aryan-sharma.jpg', photoPosition: '50% 20%' },
+  { name: 'Aryan Sharma', initials: 'AS', role: 'Team Lead & Full Stack Designer', degree: 'B.S. Agriculture', photo: '/team/aryan-sharma.jpg', photoPosition: '50% 20%' },
   { name: 'Sri Madur', initials: 'SM', role: 'ML wizard', degree: 'B.S. Mathematics', photo: '/team/sri-madur.webp' },
-  { name: 'Sahil Jain', initials: 'SJ', role: 'Frontend nerd', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
+  { name: 'Sahil Jain', initials: 'SJ', role: 'Data Pre-processor', degree: 'B.S. Computer Science', photo: '/team/sahil-jain.webp' },
   { name: 'Shashwat Goel', initials: 'SG', role: 'Pipeline tester', degree: 'B.S. Computer Science', photo: '/team/shashwat-goel.webp' },
-  { name: 'Sidney Millen', initials: 'SM', role: 'Security specialist & firewall whisperer', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
+  { name: 'Sidney Millen', initials: 'SM', role: 'Security Specialist', degree: 'B.S. Cybersecurity', photo: '/team/sidney-millen.webp' },
 ];
