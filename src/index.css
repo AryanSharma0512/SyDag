@@ -236,7 +236,7 @@
   animation: ss-breathe 7s ease-in-out infinite;
 }
 
-/* Hero drone: a slow hover, blurred rotors and a scan line sweeping down its beam. */
+/* Hero drone: a slow hover and blurred rotors (its flight and scan line run in HeroSystemAnimation). */
 @keyframes ss-hover {
   0%,
   100% {
@@ -253,23 +253,6 @@
   }
   to {
     transform: scaleX(0.3);
-  }
-}
-
-@keyframes ss-scan {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.75;
-  }
-  80% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translateY(var(--scan, 0px));
-    opacity: 0;
   }
 }
 
@@ -291,10 +274,6 @@
   transform-box: fill-box;
   transform-origin: 50% 50%;
   animation: ss-rotor 0.14s linear infinite alternate;
-}
-
-.ss-scan {
-  animation: ss-scan 2.8s ease-in infinite;
 }
 
 .ss-glow {
