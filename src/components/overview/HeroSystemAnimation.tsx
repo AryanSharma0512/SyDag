@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useMediaQuery } from '../../utils/hooks';
 import { bandPath, monotonePath, scaleLinear, type Pt } from '../../utils/chart';
 import { EASE_OUT } from '../../utils/motion';
 import { PALETTE as C } from '../../utils/palette';
 import { MarkShapes } from '../brand/SignalMark';
+import { compileFlight, fly, flightAt, hold, orbit, satelliteAt, smoothstep, sweep, type FlightPlan, type SatTrack } from './heroFlight';
 
 /**
  * The SoilSignal story in one scene, played once (~5s desktop, ~3.6s mobile):
@@ -14,9 +15,12 @@ import { MarkShapes } from '../brand/SignalMark';
  *   4. a satellite pass sweeps the field and lights up field zones
  *   5. satellite, drone, weather and field-record nodes activate and feed SoilSignal
  *   6. the signal resolves into a yield forecast curve and value
- * Afterwards only ambient motion remains: the drone hovers and scans, data dots
- * travel into SoilSignal and on to the forecast, nodes pulse, leaves shift and
- * the contours drift.
+ * Afterwards the sensing layer keeps working (see heroFlight.ts): the drone
+ * surveys the plots, lighting the one it inspects, and the satellite drifts on,
+ * fades out before the forecast card and returns on a slow loop, washing the
+ * field as it crosses and downlinking as it passes its node. Data dots travel
+ * into SoilSignal and on to the forecast, nodes pulse, leaves shift and the
+ * contours drift. With reduced motion the scene rests on its final frame.
  */
 
 interface NodeSpec {
@@ -36,9 +40,24 @@ interface SceneConfig {
   backRow: number;
   plantHeight: [number, number];
   rain: number;
-  satellite: { y: number; from: number; to: number };
-  /** Where the drone hovers, and the canopy height its scan beam reaches. */
-  drone: { x: number; y: number; scale: number; beamTo: number; beamWidth: number };
+  /** The intro pass runs from `from` to `track.park`; the ambient loop continues along `track`. */
+  satellite: {
+    from: number;
+    track: SatTrack;
+    /** Distance from the imaging node over which the downlink fades in (near) and out (far). */
+    link: [number, number];
+    /** Distance from the satellite at which its swath fully lights (near) and stops lighting (far) a plot. */
+    swath: [number, number];
+  };
+  drone: {
+    scale: number;
+    /** Height above the plot being scanned, and the extra height it climbs to while transiting. */
+    alt: number;
+    climb: number;
+    /** Half-width of the scan cone where it meets the plots. */
+    footprint: number;
+    flight: FlightPlan;
+  };
   nodes: { spectral: NodeSpec; weather: NodeSpec; soil: NodeSpec };
   /** Vertical offset at which each source line meets the hub, ordered so the lines never cross. */
   arrivals: Record<'spectral' | 'weather' | 'drone' | 'soil', number>;
@@ -60,8 +79,38 @@ const DESKTOP: SceneConfig = {
   backRow: 10,
   plantHeight: [70, 100],
   rain: 26,
-  satellite: { y: 50, from: -90, to: 716 },
-  drone: { x: 470, y: 122, scale: 1.4, beamTo: 238, beamWidth: 60 },
+  satellite: {
+    from: -90,
+    track: { y: 50, park: 716, enter: -40, exit: 890, fadeIn: 150, fadeOut: 110, arc: 16, speed: 22, gap: 6 },
+    link: [50, 150],
+    swath: [12, 46],
+  },
+  drone: {
+    scale: 1.45,
+    alt: 170,
+    climb: 8,
+    footprint: 34,
+    // Plots are 12 columns by 3 rows; the survey keeps to columns 5-9 so the drone
+    // stays clear of the weather and satellite nodes.
+    flight: {
+      home: [7, 1],
+      legs: [
+        hold(2.4),
+        fly([5, 0], 3, 0.25),
+        hold(1.8),
+        sweep([8, 0], 6),
+        hold(1.2),
+        orbit([8, 1], 7.5, -1),
+        fly([9, 2], 2.6, -0.3),
+        hold(2.2),
+        sweep([6, 2], 5.6),
+        hold(1.4),
+        fly([5, 1], 2.2, 0.3),
+        hold(2),
+        fly([7, 1], 3, -0.25),
+      ],
+    },
+  },
   nodes: {
     spectral: { x: 716, y: 138, label: 'Satellite', color: C.leaf500, labelSide: 'left' },
     weather: { x: 236, y: 188, label: 'Weather', color: C.rain500, labelSide: 'left' },
@@ -85,8 +134,23 @@ const MOBILE: SceneConfig = {
   backRow: 0,
   plantHeight: [112, 142],
   rain: 10,
-  satellite: { y: 44, from: -80, to: 430 },
-  drone: { x: 124, y: 164, scale: 1.7, beamTo: 262, beamWidth: 72 },
+  satellite: {
+    from: -80,
+    track: { y: 44, park: 430, enter: -50, exit: 545, fadeIn: 110, fadeOut: 80, arc: 12, speed: 16, gap: 5 },
+    link: [36, 110],
+    swath: [14, 50],
+  },
+  drone: {
+    scale: 1.7,
+    alt: 212,
+    climb: 8,
+    footprint: 40,
+    // A simpler survey on phones: columns 1-3 of 7, no orbit.
+    flight: {
+      home: [1, 1],
+      legs: [hold(2.4), fly([2, 0], 3, 0.25), hold(1.8), sweep([3, 0], 3.6), hold(1.6), fly([3, 1], 2.2), hold(1.8), sweep([1, 1], 6)],
+    },
+  },
   nodes: {
     spectral: { x: 430, y: 136, label: 'Satellite', color: C.leaf500, labelSide: 'left' },
     weather: { x: 262, y: 92, label: 'Weather', color: C.rain500, labelSide: 'left' },
@@ -257,9 +321,91 @@ function rootGeometry(x: number, y: number, depth: number) {
 }
 
 /** Gentle horizontal S-curve between two points, used for converging signal lines. */
-function flowPath(from: Pt, to: Pt) {
+function flowCurve(from: Pt, to: Pt): [Pt, Pt, Pt, Pt] {
   const dx = to.x - from.x;
-  return `M${round(from.x)},${round(from.y)} C${round(from.x + dx * 0.55)},${round(from.y)} ${round(to.x - dx * 0.45)},${round(to.y)} ${round(to.x)},${round(to.y)}`;
+  return [from, { x: from.x + dx * 0.55, y: from.y }, { x: to.x - dx * 0.45, y: to.y }, to];
+}
+
+function curvePath([a, b, c, d]: [Pt, Pt, Pt, Pt]) {
+  return `M${round(a.x)},${round(a.y)} C${round(b.x)},${round(b.y)} ${round(c.x)},${round(c.y)} ${round(d.x)},${round(d.y)}`;
+}
+
+const flowPath = (from: Pt, to: Pt) => curvePath(flowCurve(from, to));
+
+function cubicAt([a, b, c, d]: [Pt, Pt, Pt, Pt], t: number): Pt {
+  const m = 1 - t;
+  const w = [m * m * m, 3 * m * m * t, 3 * m * t * t, t * t * t];
+  return { x: w[0] * a.x + w[1] * b.x + w[2] * c.x + w[3] * d.x, y: w[0] * a.y + w[1] * b.y + w[2] * c.y + w[3] * d.y };
+}
+
+/** Piecewise-linear keyframes, [time, value] pairs with times ascending over 0..1. */
+function keyframe(stops: Array<[number, number]>, k: number) {
+  for (let i = 1; i < stops.length; i++) {
+    const [t1, v1] = stops[i];
+    if (k <= t1) {
+      const [t0, v0] = stops[i - 1];
+      return v0 + ((v1 - v0) * (k - t0)) / (t1 - t0);
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * The drone in screen space at time t of its survey: the ground point it scans,
+ * its own position above that point, and its bank, climb and depth scale, all
+ * derived from the flight path so they stay in step.
+ */
+function makeSurvey(cfg: SceneConfig, onTop: (u: number, v: number) => Pt) {
+  const { drone } = cfg;
+  const [cols, rows] = cfg.cells;
+  const flight = compileFlight(drone.flight);
+  const ground = (t: number) => {
+    const [c, r] = flightAt(flight, t);
+    const v = (r + 0.5) / rows;
+    return { ...onTop((c + 0.5) / cols, v), c, r, v };
+  };
+  const step = 1 / 30;
+  return (t: number) => {
+    const g = ground(t);
+    const prev = ground(t - step);
+    const vx = (g.x - prev.x) / step;
+    const speed = Math.hypot(vx, (g.y - prev.y) / step);
+    // A little higher while transiting, settling back down to inspect.
+    const alt = drone.alt + drone.climb * smoothstep(0, 90, speed);
+    return {
+      gx: g.x,
+      gy: g.y,
+      x: g.x,
+      y: g.y - alt,
+      // Nearer plots are lower on screen, so the drone is drawn slightly larger over them.
+      scale: drone.scale * (1 + 0.1 * (0.5 - g.v)),
+      // Banks into its direction of travel, as a multirotor does.
+      tilt: clamp(vx * 0.09, -8, 8),
+      footprint: (drone.footprint * alt) / drone.alt,
+      cell: clamp(Math.round(g.r), 0, rows - 1) * cols + clamp(Math.round(g.c), 0, cols - 1),
+    };
+  };
+}
+
+type DroneState = ReturnType<ReturnType<typeof makeSurvey>>;
+
+const droneBodyTransform = (d: DroneState) => `rotate(${d.tilt.toFixed(2)}) scale(${d.scale.toFixed(3)})`;
+
+/** Scan footprint: a disc lying on the field's top face, sheared to match its perspective. */
+function footprintTransform(d: DroneState, cfg: SceneConfig) {
+  const r = d.footprint;
+  const depth = r * 0.3;
+  const shear = (depth * cfg.block.skew) / (cfg.block.frontY - cfg.block.backY);
+  return `matrix(${round(r)} 0 ${round(-shear)} ${round(depth)} ${round(d.gx)} ${round(d.gy)})`;
+}
+
+/** The drone's scan cone, from its camera down to the plot under it. */
+function beamPoints(d: DroneState) {
+  const top = d.y + 9 * d.scale;
+  const w = 5 * d.scale;
+  return `${round(d.x - w)},${round(top)} ${round(d.x + w)},${round(top)} ${round(d.gx + d.footprint)},${round(d.gy)} ${round(d.gx - d.footprint)},${round(d.gy)}`;
 }
 
 /** Illustrative season shape (normalized time) echoing the default demo field. */
@@ -291,6 +437,7 @@ function buildScene(cfg: SceneConfig) {
     plants.push({ x: p.x, base: p.y, height, row: 'back', seed: i + 1, rootX: p.x });
   }
 
+  // Cells are stored row by row, so the plot at (column i, row j) is cells[j * cols + i].
   const [cols, rows] = cfg.cells;
   const cells = [];
   for (let j = 0; j < rows; j++) {
@@ -343,20 +490,24 @@ function buildScene(cfg: SceneConfig) {
     return monotonePath(pts);
   });
 
-  const { hub, card, nodes, drone, satellite, arrivals } = cfg;
+  const { hub, card, nodes, satellite, arrivals } = cfg;
+  const droneAt = makeSurvey(cfg, onTop);
+  const home = droneAt(0);
   const arrive = (dy: number): Pt => ({ x: hub.x - hub.r - 1, y: hub.y + dy });
+  const droneLink = (d: DroneState) => flowCurve({ x: d.x + 4 * d.scale, y: d.y + 3 * d.scale }, arrive(arrivals.drone));
   const lines = [
     { key: 'spectral', color: nodes.spectral.color, d: flowPath(nodes.spectral, arrive(arrivals.spectral)) },
     { key: 'weather', color: nodes.weather.color, d: flowPath(nodes.weather, arrive(arrivals.weather)) },
-    {
-      key: 'drone',
-      color: C.sun500,
-      d: flowPath({ x: drone.x + 4 * drone.scale, y: drone.y + 3 * drone.scale }, arrive(arrivals.drone)),
-    },
+    { key: 'drone', color: C.sun500, d: curvePath(droneLink(home)) },
     { key: 'soil', color: nodes.soil.color, d: flowPath(nodes.soil, arrive(arrivals.soil)) },
   ];
-  // The satellite, parked after its pass, beams down to its imagery node.
-  const downlink = `M${satellite.to},${satellite.y + 14 * cfg.stroke}L${nodes.spectral.x},${nodes.spectral.y - 8 * cfg.stroke}`;
+  // The satellite beams down to its imagery node while it is overhead.
+  const downlinkFrom = (sat: Pt): [Pt, Pt] => [
+    { x: sat.x, y: sat.y + 14 * cfg.stroke },
+    { x: nodes.spectral.x, y: nodes.spectral.y - 8 * cfg.stroke },
+  ];
+  const [linkA, linkB] = downlinkFrom({ x: satellite.track.park, y: satellite.track.y });
+  const downlink = `M${round(linkA.x)},${round(linkA.y)}L${round(linkB.x)},${round(linkB.y)}`;
 
   const pad = cfg.labels ? 20 : 14;
   const chart = {
@@ -390,6 +541,10 @@ function buildScene(cfg: SceneConfig) {
   };
 
   return {
+    droneAt,
+    home,
+    droneLink,
+    downlinkFrom,
     plants,
     cells,
     rain,
@@ -405,6 +560,46 @@ function buildScene(cfg: SceneConfig) {
       horizonB: wave(cfg.horizons[1], 3.2, 2.1),
     },
   };
+}
+
+type LiveKey =
+  | 'drone'
+  | 'droneBody'
+  | 'beam'
+  | 'scan'
+  | 'footprint'
+  | 'droneLine'
+  | 'droneDot'
+  | 'sat'
+  | 'swath'
+  | 'link'
+  | 'linkPath'
+  | 'linkDot';
+
+/** How strongly the plot under the drone is lit while it inspects it. */
+const PLOT_LIT = 0.85;
+const SCAN_PERIOD = 2.6;
+const SCAN_FADE: Array<[number, number]> = [
+  [0, 0],
+  [0.12, 0.75],
+  [0.8, 0.5],
+  [1, 0],
+];
+const DOT_FADE: Array<[number, number]> = [
+  [0, 0],
+  [0.12, 1],
+  [0.84, 1],
+  [1, 0],
+];
+
+/** A data dot with a soft halo; the ambient loop positions it. */
+function DataDot({ ref, color, sw }: { ref: (el: SVGElement | null) => void; color: string; sw: number }) {
+  return (
+    <g ref={ref} opacity={0}>
+      <circle r={6 * sw} fill={color} opacity={0.18} />
+      <circle r={2.6 * sw} fill={color} />
+    </g>
+  );
 }
 
 export function HeroSystemAnimation() {
@@ -429,7 +624,156 @@ export function HeroSystemAnimation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduce]);
 
-  const ambient = settled && !reduce;
+  // Motion's hook reads the preference once; this one follows it live, so switching reduced
+  // motion on mid-visit also stops the ambient layer and returns the scene to its resting frame.
+  const reduceNow = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const ambient = settled && !reduce && !reduceNow;
+
+  // Elements the ambient loop moves directly, outside React's render path.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const live = useRef<Partial<Record<LiveKey, SVGElement>>>({});
+  const bind = (key: LiveKey) => (el: SVGElement | null) => {
+    if (el) live.current[key] = el;
+    else delete live.current[key];
+  };
+  const plotRefs = useRef<Array<SVGPolygonElement | null>>([]);
+  const washRefs = useRef<Array<SVGPolygonElement | null>>([]);
+
+  // One clock drives the drone's survey, the satellite's loop, the plots they light and
+  // the data leaving each of them. It pauses while the hero is off screen.
+  useEffect(() => {
+    if (!ambient) return;
+    const el = live.current;
+    const { cells, droneAt, droneLink, downlinkFrom, home } = scene;
+    const { track, link, swath } = cfg.satellite;
+    const { block } = cfg;
+    const n = cells.length;
+    const plots = new Float32Array(n);
+    const wash = new Float32Array(n);
+    // What is currently in the DOM, so unchanged plots are not rewritten every frame.
+    const shownPlots = new Float32Array(n);
+    const shownWash = new Float32Array(n);
+    plots[home.cell] = 1;
+    shownPlots[home.cell] = PLOT_LIT;
+    let flash = 0;
+    let lastScan = 0;
+    const fieldL = block.x0 + block.skew * 0.5;
+    const fieldR = block.x1 + block.skew * 0.5;
+    const overField = (x: number) => smoothstep(fieldL - 30, fieldL + 10, x) * (1 - smoothstep(fieldR - 10, fieldR + 30, x));
+    const sw = cfg.stroke;
+    const write = (node: SVGElement | null | undefined, shown: Float32Array, i: number, value: number) => {
+      if (Math.abs(value - shown[i]) < 0.004) return;
+      shown[i] = value;
+      node?.setAttribute('opacity', value.toFixed(3));
+    };
+
+    const draw = (t: number, dt: number) => {
+      // Drone: position, bank, cone and footprint.
+      const d = droneAt(t);
+      el.drone?.setAttribute('transform', `translate(${round(d.x)} ${round(d.y)})`);
+      el.droneBody?.setAttribute('transform', droneBodyTransform(d));
+      el.beam?.setAttribute('points', beamPoints(d));
+      el.footprint?.setAttribute('transform', footprintTransform(d, cfg));
+
+      // A scan line runs down the cone; as it lands, the footprint and its plot flash.
+      const scan = (t % SCAN_PERIOD) / SCAN_PERIOD;
+      if (scan < lastScan) flash = 1;
+      lastScan = scan;
+      flash *= Math.exp(-dt * 3);
+      const e = scan ** 1.6;
+      const top = d.y + 9 * d.scale;
+      const y = round(top + (d.gy - top) * e);
+      const half = 5 * d.scale + (d.footprint - 5 * d.scale) * e;
+      el.scan?.setAttribute('x1', `${round(d.x - half)}`);
+      el.scan?.setAttribute('x2', `${round(d.x + half)}`);
+      el.scan?.setAttribute('y1', `${y}`);
+      el.scan?.setAttribute('y2', `${y}`);
+      el.scan?.setAttribute('opacity', keyframe(SCAN_FADE, scan).toFixed(3));
+      el.footprint?.setAttribute('opacity', (0.8 + 0.2 * flash).toFixed(3));
+
+      // Its data rides the line to SoilSignal, which bends as the drone moves.
+      const curve = droneLink(d);
+      el.droneLine?.setAttribute('d', curvePath(curve));
+      // Same period and in-out curve (keySplines 0.45 0 0.55 1) as the other lines' SMIL dots.
+      const k = (t % 3.2) / 3.2;
+      const dot = cubicAt(curve, satEase(k));
+      el.droneDot?.setAttribute('transform', `translate(${round(dot.x)} ${round(dot.y)})`);
+      el.droneDot?.setAttribute('opacity', keyframe(DOT_FADE, k).toFixed(3));
+
+      // Satellite: loops across the sky, imaging the field as it crosses.
+      const sat = satelliteAt(track, t);
+      const imaging = sat.opacity * overField(sat.x);
+      el.sat?.setAttribute('transform', `translate(${round(sat.x - track.park)} ${round(sat.y - track.y)})`);
+      el.sat?.setAttribute('opacity', sat.opacity.toFixed(3));
+      const swathTop = sat.y + 12 * sw;
+      el.swath?.setAttribute(
+        'points',
+        `${round(sat.x - 4 * sw)},${round(swathTop)} ${round(sat.x + 4 * sw)},${round(swathTop)} ${round(sat.x + 24 * sw)},${block.backY + 18} ${round(sat.x - 24 * sw)},${block.backY + 18}`,
+      );
+      el.swath?.setAttribute('opacity', (0.45 * imaging).toFixed(3));
+
+      // ...and downlinks while it is over its node.
+      const contact = sat.opacity * (1 - smoothstep(link[0], link[1], Math.abs(sat.x - cfg.nodes.spectral.x)));
+      const [a, b] = downlinkFrom(sat);
+      el.linkPath?.setAttribute('d', `M${round(a.x)},${round(a.y)}L${round(b.x)},${round(b.y)}`);
+      el.link?.setAttribute('opacity', contact.toFixed(3));
+      const q = (t % 1.8) / 1.8;
+      const eq = satEase(q);
+      el.linkDot?.setAttribute('transform', `translate(${round(a.x + (b.x - a.x) * eq)} ${round(a.y + (b.y - a.y) * eq)})`);
+      el.linkDot?.setAttribute('opacity', keyframe(DOT_FADE, q).toFixed(3));
+
+      // Plots: the one under the drone brightens while it lingers and fades once it moves on;
+      // the satellite's swath washes whole columns and leaves a slower wake.
+      const trail = Math.exp(-dt / 1.6);
+      const rise = 1 - Math.exp(-dt * 2.2);
+      const wake = Math.exp(-dt / 1.4);
+      for (let i = 0; i < n; i++) {
+        plots[i] = i === d.cell ? plots[i] + (1 - plots[i]) * rise : plots[i] * trail;
+        const near = 1 - smoothstep(swath[0], swath[1], Math.abs(cells[i].cx - sat.x));
+        wash[i] = Math.max(near * imaging, wash[i] * wake);
+        write(plotRefs.current[i], shownPlots, i, plots[i] * PLOT_LIT + (i === d.cell ? 0.15 * flash : 0));
+        write(washRefs.current[i], shownWash, i, wash[i] * 0.55);
+      }
+    };
+
+    let raf = 0;
+    let running = false;
+    let last = 0;
+    let t = 0;
+    const frame = (now: number) => {
+      // Clamp the step so a stalled or backgrounded tab resumes smoothly instead of jumping.
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      t += dt;
+      draw(t, dt);
+      raf = requestAnimationFrame(frame);
+    };
+    const start = () => {
+      if (running) return;
+      running = true;
+      last = 0;
+      raf = requestAnimationFrame(frame);
+    };
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+    const observer = new IntersectionObserver(([entry]) => (entry.isIntersecting ? start() : stop()));
+    if (rootRef.current) observer.observe(rootRef.current);
+    else start();
+
+    return () => {
+      stop();
+      observer.disconnect();
+      // Back to the resting frame (reduced motion was switched on, or the hero is unmounting).
+      plots.fill(0);
+      plots[home.cell] = 1;
+      wash.fill(0);
+      flash = 0;
+      lastScan = 0;
+      draw(0, 0);
+    };
+  }, [ambient, cfg, scene]);
 
   // Scroll: the field system gently compresses as the product section takes over.
   const { scrollY } = useScroll();
@@ -439,31 +783,30 @@ export function HeroSystemAnimation() {
   const lift = useTransform(scrollY, [0, 620], [0, -24]);
 
   const { block, satellite, nodes, hub, card, drone } = cfg;
-  const { forecast } = scene;
+  const { track } = satellite;
+  const { forecast, home } = scene;
   const sw = cfg.stroke;
   const satDelay = T(2.35);
   const satDur = D(1.15);
 
   const nodeList = [nodes.spectral, nodes.weather, nodes.soil];
-  const beamDepth = drone.beamTo - drone.y;
-  const ds = drone.scale;
-  const beamPoints = `${-5 * ds},${9 * ds} ${5 * ds},${9 * ds} ${drone.beamWidth},${beamDepth} ${-drone.beamWidth},${beamDepth}`;
-  // Everything the ambient data dots travel along: sources into the hub, the satellite downlink, the hub out to the forecast.
+  // The fixed paths the ambient data dots loop along: sources into the hub, the hub out to the
+  // forecast. The drone's line and the satellite downlink move, so the ambient loop carries theirs.
   const flows = [
     ...scene.lines.map((line, i) => ({ key: line.key, d: line.d, color: line.color, dur: 3.2, begin: 0.4 + i * 0.8 })),
-    { key: 'downlink', d: scene.downlink, color: C.leaf500, dur: 1.8, begin: 1.1 },
     { key: 'forecast', d: forecast.connector, color: C.leaf700, dur: 1.6, begin: 0.2 },
-  ];
+  ].filter((flow) => flow.key !== 'drone');
 
   return (
     <motion.div
+      ref={rootRef}
       className="relative w-full select-none"
       style={{
         aspectRatio: `${cfg.w} / ${cfg.h}`,
         ...(reduce ? {} : { scaleX, scaleY, opacity, y: lift, originY: 1 }),
       }}
       role="img"
-      aria-label="Illustration: a maize plot is planted and grows ears, rain passes, a drone scans the canopy and a satellite images the plot. Satellite and drone imagery, weather and the field record feed SoilSignal, which produces a yield forecast."
+      aria-label="Illustration: a maize plot is planted and grows ears, rain passes, a drone surveys the plots and a satellite images the field as it passes overhead. Satellite and drone imagery, weather and the field record feed SoilSignal, which produces a yield forecast."
     >
       {/* Background topographic contours, on their own layer so drifting stays on the compositor. */}
       <motion.svg
@@ -487,8 +830,13 @@ export function HeroSystemAnimation() {
           </linearGradient>
           <linearGradient id="hero-drone-beam" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={C.leaf300} stopOpacity="0.5" />
-            <stop offset="100%" stopColor={C.leaf300} stopOpacity="0.06" />
+            <stop offset="100%" stopColor={C.leaf300} stopOpacity="0.16" />
           </linearGradient>
+          <radialGradient id="hero-footprint">
+            <stop offset="0%" stopColor={C.leaf300} stopOpacity="0.8" />
+            <stop offset="65%" stopColor={C.leaf300} stopOpacity="0.45" />
+            <stop offset="100%" stopColor={C.leaf300} stopOpacity="0" />
+          </radialGradient>
           <linearGradient id="hero-band" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor={C.leaf400} stopOpacity="0.1" />
             <stop offset="100%" stopColor={C.leaf400} stopOpacity="0.22" />
@@ -516,7 +864,7 @@ export function HeroSystemAnimation() {
 
         {/* Top-face field zones: they light up as the satellite passes, then settle into a faint vigor map. */}
         {scene.cells.map((cell) => {
-          const progress = (cell.cx - satellite.from) / (satellite.to - satellite.from);
+          const progress = (cell.cx - satellite.from) / (track.park - satellite.from);
           const at = satDelay + satDur * satTimeAt(Math.min(1, Math.max(0, progress)));
           return (
             <motion.polygon
@@ -529,6 +877,49 @@ export function HeroSystemAnimation() {
             />
           );
         })}
+
+        {/* Survey marks on the plots, beneath the crop: the satellite's swath washes the columns it
+            crosses, and the drone's footprint lights the plot it is inspecting, leaving a fading trail. */}
+        <motion.g
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: T(2.8), duration: D(0.5), ease: 'easeOut' }}
+        >
+          {scene.cells.map((cell, k) => (
+            <polygon
+              key={`wash-${cell.key}`}
+              ref={(node) => {
+                washRefs.current[k] = node;
+              }}
+              points={cell.points}
+              fill={C.leaf300}
+              opacity={0}
+            />
+          ))}
+          {scene.cells.map((cell, k) => (
+            <polygon
+              key={`plot-${cell.key}`}
+              ref={(node) => {
+                plotRefs.current[k] = node;
+              }}
+              points={cell.points}
+              fill={C.leaf400}
+              fillOpacity={0.3}
+              stroke={C.leaf500}
+              strokeWidth={1.2 * sw}
+              strokeLinejoin="round"
+              opacity={k === home.cell ? PLOT_LIT : 0}
+            />
+          ))}
+          <ellipse
+            ref={bind('footprint')}
+            rx={1}
+            ry={1}
+            transform={footprintTransform(home, cfg)}
+            fill="url(#hero-footprint)"
+            opacity={0.8}
+          />
+        </motion.g>
 
         {/* Horizon lines draw left to right. */}
         {[
@@ -703,45 +1094,32 @@ export function HeroSystemAnimation() {
             />
           ))}
 
-        {/* ---- Drone: flies in over the canopy, then hovers and scans ------ */}
+        {/* The satellite's imaging swath on later passes, under the drone so it never tints it. */}
+        {ambient && <polygon ref={bind('swath')} fill="url(#hero-beam)" opacity={0} />}
+
+        {/* ---- Drone: flies in over the canopy, then surveys the plots ------- */}
         <motion.g
-          initial={reduce ? false : { x: -drone.x - 60 * ds, opacity: 0 }}
+          initial={reduce ? false : { x: -home.x - 60 * drone.scale, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ x: { delay: T(1.55), duration: D(1.4), ease: EASE_OUT }, opacity: { delay: T(1.55), duration: 0.3 } }}
         >
-          <g transform={`translate(${drone.x} ${drone.y})`}>
-            <motion.g
-              initial={reduce ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: T(2.8), duration: D(0.5), ease: 'easeOut' }}
-            >
-              <clipPath id="hero-drone-clip">
-                <polygon points={beamPoints} />
-              </clipPath>
-              <polygon points={beamPoints} fill="url(#hero-drone-beam)" />
-              <ellipse cx={0} cy={beamDepth} rx={drone.beamWidth} ry={drone.beamWidth * 0.14} fill={C.leaf300} opacity={0.3} />
-              {ambient && (
-                <g clipPath="url(#hero-drone-clip)">
-                  <rect
-                    x={-drone.beamWidth}
-                    y={8 * ds}
-                    width={drone.beamWidth * 2}
-                    height={1.6 * sw}
-                    fill={C.leaf400}
-                    className="ss-scan"
-                    style={{ '--scan': `${beamDepth - 10 * ds}px` } as CSSProperties}
-                  />
-                </g>
-              )}
-            </motion.g>
+          <motion.g
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: T(2.8), duration: D(0.5), ease: 'easeOut' }}
+          >
+            <polygon ref={bind('beam')} points={beamPoints(home)} fill="url(#hero-drone-beam)" />
+            {ambient && <line ref={bind('scan')} stroke={C.leaf400} strokeWidth={1.6 * sw} strokeLinecap="round" opacity={0} />}
+          </motion.g>
+          <g ref={bind('drone')} transform={`translate(${round(home.x)} ${round(home.y)})`}>
             <g className={ambient ? 'ss-hover' : undefined}>
-              <g transform={`scale(${ds})`}>
+              <g ref={bind('droneBody')} transform={droneBodyTransform(home)}>
                 <DroneShape spin={!reduce} />
               </g>
             </g>
             {cfg.labels && (
               <motion.text
-                x={-38 * ds}
+                x={-38 * drone.scale}
                 y={0}
                 textAnchor="end"
                 className="fill-muted text-[12px] font-medium"
@@ -755,33 +1133,35 @@ export function HeroSystemAnimation() {
           </g>
         </motion.g>
 
-        {/* ---- Phase 4: satellite pass ----------------------------------- */}
+        {/* ---- Phase 4: satellite pass, then a slow loop across the sky ---- */}
         <motion.g
           initial={reduce ? false : { x: satellite.from, opacity: 0 }}
-          animate={{ x: satellite.to, opacity: 1 }}
+          animate={{ x: track.park, opacity: 1 }}
           transition={{
             x: { delay: satDelay, duration: satDur, ease: SAT_EASE },
             opacity: { delay: satDelay, duration: 0.2 },
           }}
         >
-          <g transform={`translate(0 ${satellite.y})`}>
-            {!reduce && (
-              <motion.polygon
-                points={`-4,12 4,12 ${24 * sw},${block.backY - satellite.y + 18} ${-24 * sw},${block.backY - satellite.y + 18}`}
-                fill="url(#hero-beam)"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 1, 0] }}
-                transition={{ delay: satDelay, duration: satDur, times: [0, 0.12, 0.86, 1] }}
-              />
-            )}
-            <g transform={`scale(${sw})`}>
-              <rect x={-26} y={-3.5} width={17} height={7} rx={1} fill={C.rain500} />
-              <rect x={9} y={-3.5} width={17} height={7} rx={1} fill={C.rain500} />
-              <path d="M-20.3 -3.5V3.5M-14.7 -3.5V3.5M14.7 -3.5V3.5M20.3 -3.5V3.5" stroke={C.surface} strokeWidth={0.8} opacity={0.7} />
-              <path d="M-9 0H-7M7 0H9" stroke={C.inkSoft} strokeWidth={1.2} />
-              <rect x={-7} y={-5.5} width={14} height={11} rx={2.2} fill={C.inkSoft} />
-              <path d="M0 5.5V10" stroke={C.inkSoft} strokeWidth={1.2} />
-              <circle cx={0} cy={11} r={1.8} fill={C.inkSoft} />
+          <g ref={bind('sat')}>
+            <g transform={`translate(0 ${track.y})`}>
+              {!reduce && (
+                <motion.polygon
+                  points={`-4,12 4,12 ${24 * sw},${block.backY - track.y + 18} ${-24 * sw},${block.backY - track.y + 18}`}
+                  fill="url(#hero-beam)"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 1, 0] }}
+                  transition={{ delay: satDelay, duration: satDur, times: [0, 0.12, 0.86, 1] }}
+                />
+              )}
+              <g transform={`scale(${sw})`}>
+                <rect x={-26} y={-3.5} width={17} height={7} rx={1} fill={C.rain500} />
+                <rect x={9} y={-3.5} width={17} height={7} rx={1} fill={C.rain500} />
+                <path d="M-20.3 -3.5V3.5M-14.7 -3.5V3.5M14.7 -3.5V3.5M20.3 -3.5V3.5" stroke={C.surface} strokeWidth={0.8} opacity={0.7} />
+                <path d="M-9 0H-7M7 0H9" stroke={C.inkSoft} strokeWidth={1.2} />
+                <rect x={-7} y={-5.5} width={14} height={11} rx={2.2} fill={C.inkSoft} />
+                <path d="M0 5.5V10" stroke={C.inkSoft} strokeWidth={1.2} />
+                <circle cx={0} cy={11} r={1.8} fill={C.inkSoft} />
+              </g>
             </g>
           </g>
         </motion.g>
@@ -790,6 +1170,7 @@ export function HeroSystemAnimation() {
         {scene.lines.map((line, i) => (
           <motion.path
             key={line.key}
+            ref={line.key === 'drone' ? bind('droneLine') : undefined}
             d={line.d}
             fill="none"
             stroke={line.color}
@@ -803,17 +1184,22 @@ export function HeroSystemAnimation() {
             }}
           />
         ))}
-        <motion.path
-          d={scene.downlink}
-          fill="none"
-          stroke={C.leaf400}
-          strokeWidth={1.3 * sw}
-          strokeDasharray={`${2 * sw} ${5 * sw}`}
-          strokeLinecap="round"
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 0.8 }}
-          transition={{ delay: T(3.3), duration: D(0.4) }}
-        />
+        <g ref={bind('link')}>
+          <motion.path
+            ref={bind('linkPath')}
+            d={scene.downlink}
+            fill="none"
+            stroke={C.leaf400}
+            strokeWidth={1.3 * sw}
+            strokeDasharray={`${2 * sw} ${5 * sw}`}
+            strokeLinecap="round"
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 0.8 }}
+            transition={{ delay: T(3.3), duration: D(0.4) }}
+          />
+          {ambient && <DataDot ref={bind('linkDot')} color={C.leaf500} sw={sw} />}
+        </g>
+        {ambient && <DataDot ref={bind('droneDot')} color={C.sun500} sw={sw} />}
 
         {/* Ambient data dots: each rides one flow path on a loop (SMIL keeps it off the React render path). */}
         {ambient &&
