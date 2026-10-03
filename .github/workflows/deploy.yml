@@ -1,0 +1,50 @@
+name: Request Production Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sydag-production-request
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    name: Request centralized production deployment
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Request SyDag production deployment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.SERVER_INFRA_DISPATCH_TOKEN }}
+          APP: sydag
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+              echo "ERROR: SERVER_INFRA_DISPATCH_TOKEN is not configured."
+              exit 1
+          fi
+
+          echo "============================================================"
+          echo "REQUEST CENTRALIZED PRODUCTION DEPLOYMENT"
+          echo "============================================================"
+          echo "Application: $APP"
+          echo "Repository:  $SOURCE_REPO"
+          echo "Commit:      $SOURCE_SHA"
+
+          gh workflow run deploy-app.yml             --repo AryanSharma0512/server-infra             --ref main             -f app="$APP"             -f source_repo="$SOURCE_REPO"             -f source_sha="$SOURCE_SHA"
+
+          echo
+          echo "Deployment request accepted by server-infra."
